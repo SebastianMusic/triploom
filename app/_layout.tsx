@@ -1,14 +1,20 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
-// TODO: Add auth guard logic here
-const IS_AUTHENTICATED = false;
+const IS_AUTHENTICATED = true;
 
 export default function RootLayout() {
-  return (
-    <>
-      <Stack screenOptions={{ headerShown: false }} />
-      <StatusBar style="auto" />
-    </>
-  );
+	return (
+		<>
+			<Stack>
+				<Stack.Protected guard={IS_AUTHENTICATED}>
+					<Stack.Screen name="(app)" options={{ headerShown: false }} />
+				</Stack.Protected>
+				<Stack.Protected guard={!IS_AUTHENTICATED}>
+					<Stack.Screen name="(auth)" options={{ headerShown: false }} />
+				</Stack.Protected>
+			</Stack>
+			<StatusBar style="auto" />
+		</>
+	);
 }
