@@ -96,6 +96,38 @@ const { fetchTrips } = useTripStore();
 await fetchTrips(); // Calls service and updates state
 ```
 
+**Complete example — Store action calling service:**
+```ts
+// store/trip.store.ts
+import { getTrips } from '@/services/trip.service';
+
+export const useTripStore = create<TripState>()((set) => ({
+  trips: [],
+  isLoading: false,
+  
+  // Action calls service and updates state
+  fetchTrips: async () => {
+    set({ isLoading: true });
+    const trips = await getTrips();  // calls service
+    set({ trips, isLoading: false });
+  },
+}));
+
+// Component using the store
+function TripList() {
+  const { trips, isLoading, fetchTrips } = useTripStore();
+  
+  useEffect(() => {
+    fetchTrips();  // calls store → calls service → updates all subscribers
+  }, []);
+  
+  if (isLoading) return <Text>Loading...</Text>;
+  return trips.map(t => <TripCard key={t.id} trip={t} />);
+}
+```
+
+**Note:** Currently stores have placeholder functions since we don't want to enforce implementation yet. When you build features, implement actions like the example above.
+
 **Using outside components:**
 In regular functions (not React components), you can access the store directly without the hook:
 ```ts
