@@ -102,11 +102,12 @@ In regular functions (not React components), you can access the store directly w
 // In a service or utility function
 import { useTripStore } from '@/store/trip.store';
 
+const tripState = useTripStore.getState()
 // Get current state
-const currentTrip = useTripStore.getState().currentTrip;
+const currentTrip = tripState.currentTrip;
 
 // Call action
-useTripStore.getState().setCurrentTrip(newTrip);
+tripState.setCurrentTrip(newTrip);
 ```
 
 **Stores live in `store/` folder** — one file per domain (auth, trips, chat, etc.)
