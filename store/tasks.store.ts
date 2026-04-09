@@ -6,7 +6,6 @@ interface TasksState {
   isLoading: boolean;
   setTasks: (tasks: Task[]) => void;
   addTask: (task: Task) => void;
-  toggleTask: (id: string) => void;
   removeTask: (id: string) => void;
   setLoading: (isLoading: boolean) => void;
 }
@@ -16,7 +15,6 @@ export const useTasksStore = create<TasksState>()(() => ({
   isLoading: false,
   setTasks: () => {},
   addTask: () => {},
-  toggleTask: () => {},
   removeTask: () => {},
   setLoading: () => {},
 }));

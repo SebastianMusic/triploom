@@ -3,29 +3,84 @@
  * Import from here rather than from individual files to keep imports clean.
  */
 
-export type { Database } from './database.types';
+export type { Database, Json, Tables, TablesInsert, TablesUpdate, Enums } from './database.types';
+export { createTripSchema } from './trip.types';
+export type { CreateTripDTO } from './trip.types';
 
-// Derived convenience types from the database schema
-import type { Database } from './database.types';
+import type { Tables, TablesInsert, TablesUpdate } from './database.types';
 
-type Tables = Database['public']['Tables'];
+// Trip
+export type Trip = Tables<'trip'>;
+export type TripInsert = TablesInsert<'trip'>;
+export type TripUpdate = TablesUpdate<'trip'>;
 
-export type Trip = Tables['trips']['Row'];
-export type TripInsert = Tables['trips']['Insert'];
-export type TripUpdate = Tables['trips']['Update'];
+// Trip participant
+export type TripParticipant = Tables<'trip_participant'>;
+export type TripParticipantInsert = TablesInsert<'trip_participant'>;
+export type TripParticipantUpdate = TablesUpdate<'trip_participant'>;
 
-export type TripMember = Tables['trip_members']['Row'];
+// Trip group
+export type TripGroup = Tables<'trip_group'>;
+export type TripGroupInsert = TablesInsert<'trip_group'>;
+export type TripGroupUpdate = TablesUpdate<'trip_group'>;
 
-export type Event = Tables['events']['Row'];
-export type EventInsert = Tables['events']['Insert'];
-export type EventUpdate = Tables['events']['Update'];
+// Trip invite URL
+export type TripInviteUrl = Tables<'trip_invite_url'>;
+export type TripInviteUrlInsert = TablesInsert<'trip_invite_url'>;
+export type TripInviteUrlUpdate = TablesUpdate<'trip_invite_url'>;
 
-export type Task = Tables['tasks']['Row'];
-export type TaskInsert = Tables['tasks']['Insert'];
-export type TaskUpdate = Tables['tasks']['Update'];
+// Event
+export type Event = Tables<'event'>;
+export type EventInsert = TablesInsert<'event'>;
+export type EventUpdate = TablesUpdate<'event'>;
 
-export type Message = Tables['messages']['Row'];
-export type MessageInsert = Tables['messages']['Insert'];
+// Event participation
+export type EventParticipation = Tables<'event_participation'>;
+export type EventParticipationInsert = TablesInsert<'event_participation'>;
+export type EventParticipationUpdate = TablesUpdate<'event_participation'>;
 
-export type Profile = Tables['profiles']['Row'];
-export type ProfileUpdate = Tables['profiles']['Update'];
+// Task
+export type Task = Tables<'task'>;
+export type TaskInsert = TablesInsert<'task'>;
+export type TaskUpdate = TablesUpdate<'task'>;
+
+// Task assignment
+export type TaskAssignment = Tables<'task_assignment'>;
+export type TaskAssignmentInsert = TablesInsert<'task_assignment'>;
+export type TaskAssignmentUpdate = TablesUpdate<'task_assignment'>;
+
+// Message
+export type Message = Tables<'message'>;
+export type MessageInsert = TablesInsert<'message'>;
+export type MessageUpdate = TablesUpdate<'message'>;
+
+// Group chat
+export type GroupChat = Tables<'group_chat'>;
+export type GroupChatInsert = TablesInsert<'group_chat'>;
+export type GroupChatUpdate = TablesUpdate<'group_chat'>;
+
+// Chat participant
+export type ChatParticipant = Tables<'chat_participant'>;
+export type ChatParticipantInsert = TablesInsert<'chat_participant'>;
+export type ChatParticipantUpdate = TablesUpdate<'chat_participant'>;
+
+// Chat image
+export type ChatImage = Tables<'chat_image'>;
+export type ChatImageInsert = TablesInsert<'chat_image'>;
+export type ChatImageUpdate = TablesUpdate<'chat_image'>;
+
+// Announcement
+export type Announcement = Tables<'announcement'>;
+export type AnnouncementInsert = TablesInsert<'announcement'>;
+export type AnnouncementUpdate = TablesUpdate<'announcement'>;
+
+// Profile
+export type Profile = Tables<'profile'>;
+export type ProfileInsert = TablesInsert<'profile'>;
+export type ProfileUpdate = TablesUpdate<'profile'>;
+
+// Group membership
+export type GroupMembership = Tables<'group_membership'>;
+export type GroupMembershipInsert = TablesInsert<'group_membership'>;
+export type GroupMembershipUpdate = TablesUpdate<'group_membership'>;
+

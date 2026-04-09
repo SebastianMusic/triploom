@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router';
 
-const HAS_SELECTED_TRIP = true;
+const HAS_SELECTED_TRIP = false;
 
 export default function AppLayout() {
 	return (

@@ -1,5 +1,6 @@
 import type { MessageInsert } from '@/types';
 
-export async function getMessages(tripId: string) {}
+export async function getGroupChats(tripId: string) {}
+export async function getMessages(groupChatId: string) {}
 export async function sendMessage(data: MessageInsert) {}
-export function subscribeToMessages(tripId: string, onMessage: (payload: unknown) => void) {}
+export function subscribeToMessages(groupChatId: string, onMessage: (payload: unknown) => void) {}
