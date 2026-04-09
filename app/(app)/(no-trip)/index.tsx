@@ -10,13 +10,16 @@ import {
 } from 'react-native';
 import { createTripSchema } from '@/types/trip.types';
 import { useTripStore } from '@/store/trip.store';
+import { useProfileStore } from '@/store/profile.store';
 
 export default function TripPickerScreen() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [selectionError, setSelectionError] = useState<string | null>(null);
 
   const { createTrip, trips, isLoading } = useTripStore();
+  const { setSelectedTrip, isLoading: profileLoading } = useProfileStore();
 
   async function handleCreate() {
     setError(null);
@@ -37,6 +40,16 @@ export default function TripPickerScreen() {
       setDescription('');
     } catch {
       setError('Failed to create trip. Please try again.');
+    }
+  }
+
+  async function handleSelectTrip(tripId: string) {
+    setSelectionError(null);
+    try {
+      await setSelectedTrip(tripId);
+      // Navigation will happen automatically via layout
+    } catch (error: any) {
+      setSelectionError(error?.message ?? 'Failed to select trip');
     }
   }
 
@@ -74,16 +87,25 @@ export default function TripPickerScreen() {
         }
       </Pressable>
 
+      {selectionError && <Text style={styles.error}>{selectionError}</Text>}
+
       {trips.length > 0 && (
         <View style={styles.tripList}>
-          <Text style={styles.listTitle}>Created trips</Text>
+          <Text style={styles.listTitle}>Select a trip</Text>
+          <Text style={styles.listSubtitle}>Tap a trip to start planning</Text>
           {trips.map((trip) => (
-            <View key={trip.id} style={styles.tripItem}>
+            <Pressable
+              key={trip.id}
+              style={({ pressed }) => [styles.tripItem, pressed && styles.tripItemPressed]}
+              onPress={() => handleSelectTrip(trip.id)}
+              disabled={profileLoading}
+            >
               <Text style={styles.tripName}>{trip.name}</Text>
               {trip.description && (
                 <Text style={styles.tripDescription}>{trip.description}</Text>
               )}
-            </View>
+              {profileLoading && <ActivityIndicator size="small" color="#3b82f6" />}
+            </Pressable>
           ))}
         </View>
       )}
@@ -146,8 +168,13 @@ const styles = StyleSheet.create({
   listTitle: {
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 12,
+    marginBottom: 4,
     color: '#333',
+  },
+  listSubtitle: {
+    fontSize: 13,
+    color: '#666',
+    marginBottom: 16,
   },
   tripItem: {
     padding: 14,
@@ -156,6 +183,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#eee',
     marginBottom: 8,
+  },
+  tripItemPressed: {
+    opacity: 0.7,
+    backgroundColor: '#e8f0fe',
   },
   tripName: {
     fontSize: 16,
