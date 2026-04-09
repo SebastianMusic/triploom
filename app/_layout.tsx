@@ -2,9 +2,14 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Text } from 'react-native';
 import { useAuthStore } from '@/store/auth.store';
+import { useEffect } from 'react';
 
 export default function RootLayout() {
-	const { session, isLoading } = useAuthStore();
+	const { session, isLoading, initialize } = useAuthStore();
+
+	useEffect(() => {
+		initialize();
+	}, []);
 
 	if (isLoading) {
 		return <Text>Loading...</Text>;

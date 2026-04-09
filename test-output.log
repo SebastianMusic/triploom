@@ -1,0 +1,126 @@
+
+> triploom@1.0.0 test
+> jest __integration__/auth-user-creation.test.ts --verbose
+
+  console.log
+    Captured error details: {
+      message: 'Unable to validate email address: invalid format',
+      code: 'validation_failed',
+      details: undefined
+    }
+
+      at Object.log (__integration__/auth-user-creation.test.ts:155:15)
+
+  console.log
+    === RLS Comparison ===
+
+      at Object.log (__integration__/auth-user-creation.test.ts:193:13)
+
+  console.log
+    Admin creation - user ID: 68df7c4d-f71a-47c8-95d5-12912d9290e2
+
+      at Object.log (__integration__/auth-user-creation.test.ts:195:13)
+
+  console.log
+    Admin creation - profile: {
+      id: '68df7c4d-f71a-47c8-95d5-12912d9290e2',
+      user_name: 'rls-comparison-admin',
+      expo_push_token: null,
+      profile_picture_url: null
+    }
+
+      at Object.log (__integration__/auth-user-creation.test.ts:197:13)
+
+  console.log
+    SignUp result: {
+      success: false,
+      error: {
+        message: 'email rate limit exceeded',
+        code: 'over_email_send_rate_limit',
+        details: undefined
+      }
+    }
+
+      at Object.log (__integration__/auth-user-creation.test.ts:199:13)
+
+  console.log
+    Cleaning up test user: daa57ebf-80db-49a6-b2c9-2239b0713658
+
+      at Object.log (__integration__/auth-user-creation.test.ts:95:13)
+
+  console.log
+    Cleaning up test user: fe898023-cb70-4c0e-a254-99c462c667a8
+
+      at Object.log (__integration__/auth-user-creation.test.ts:95:13)
+
+  console.log
+    Cleaning up test user: ac3fead8-a680-4bfa-aa30-f961ddd2bd2f
+
+      at Object.log (__integration__/auth-user-creation.test.ts:95:13)
+
+  console.log
+    Cleaning up test user: 68df7c4d-f71a-47c8-95d5-12912d9290e2
+
+      at Object.log (__integration__/auth-user-creation.test.ts:95:13)
+
+  console.log
+    Cleaning up test user: 6b97b305-729d-4805-9c14-ec261ef009de
+
+      at Object.log (__integration__/auth-user-creation.test.ts:95:13)
+
+FAIL __integration__/auth-user-creation.test.ts (5.512 s)
+  Admin API User Creation (bypasses RLS)
+    ✓ creates user via admin API (644 ms)
+    ✓ admin-created user has profile via trigger (581 ms)
+    ✓ can sign in with admin-created user (641 ms)
+  Regular signUp User Creation (respects RLS)
+    ✕ creates user via signUp service (408 ms)
+    ✓ captures detailed error on failure (129 ms)
+    ✓ signUp creates profile via trigger (275 ms)
+  RLS Diagnostics
+    ✕ compares admin vs regular user creation side by side (822 ms)
+    ✓ verifies profile access permissions (721 ms)
+
+  ● Regular signUp User Creation (respects RLS) › creates user via signUp service
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      144 |
+      145 |     // signUp may succeed but return null session if email confirm is required
+    > 146 |     expect(result.success).toBe(true);
+          |                            ^
+      147 |   });
+      148 |
+      149 |   it('captures detailed error on failure', async () => {
+
+      at Object.toBe (__integration__/auth-user-creation.test.ts:146:28)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● RLS Diagnostics › compares admin vs regular user creation side by side
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      204 |
+      205 |     // signUp should also work (unless RLS is blocking it)
+    > 206 |     expect(signUpResult.success).toBe(true);
+          |                                  ^
+      207 |   });
+      208 |
+      209 |   it('verifies profile access permissions', async () => {
+
+      at Object.toBe (__integration__/auth-user-creation.test.ts:206:34)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 6 passed, 8 total
+Snapshots:   0 total
+Time:        5.675 s, estimated 6 s
+Ran all test suites matching /__integration__\/auth-user-creation.test.ts/i.

@@ -1,14 +1,20 @@
 import { Stack } from 'expo-router';
-
-const HAS_SELECTED_TRIP = false;
+import { useEffect } from 'react';
+import { useProfileStore } from '@/store/profile.store';
 
 export default function AppLayout() {
+	const { selectedTrip, fetchProfile } = useProfileStore();
+
+	useEffect(() => {
+		fetchProfile();
+	}, []);
+
 	return (
 		<Stack screenOptions={{ headerShown: false }}>
-			<Stack.Protected guard={HAS_SELECTED_TRIP}>
+			<Stack.Protected guard={!!selectedTrip}>
 				<Stack.Screen name="(trip)" />
 			</Stack.Protected>
-			<Stack.Protected guard={!HAS_SELECTED_TRIP}>
+			<Stack.Protected guard={!selectedTrip}>
 				<Stack.Screen name="(no-trip)" />
 			</Stack.Protected>
 		</Stack>
