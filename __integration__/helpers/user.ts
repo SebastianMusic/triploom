@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { getSupabaseAdmin } from '@/lib/supabase.admin';
 
-const TEST_PASSWORD = 'integration-test-pw-123!';
+export const TEST_PASSWORD = 'integration-test-pw-123!';
 
 export interface TestUser {
   id: string;

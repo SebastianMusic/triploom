@@ -1,10 +1,14 @@
 import { create } from 'zustand';
 import type { Trip, TripParticipant } from '@/types';
 import type { CreateTripDTO } from '@/types/trip.types';
-import { createTrip as createTripService } from '@/services/trip.service';
+import {
+  createTrip as createTripService,
+  getTripParticipant,
+} from '@/services/trip.service';
 
 interface TripState {
   currentTrip: Trip | null;
+  currentParticipant: TripParticipant | null;
   trips: Trip[];
   participants: TripParticipant[];
   isLoading: boolean;
@@ -13,10 +17,12 @@ interface TripState {
   setParticipants: (participants: TripParticipant[]) => void;
   setLoading: (isLoading: boolean) => void;
   createTrip: (dto: CreateTripDTO) => Promise<Trip>;
+  fetchCurrentParticipant: (tripId: string, userId: string) => Promise<void>;
 }
 
 export const useTripStore = create<TripState>()((set) => ({
   currentTrip: null,
+  currentParticipant: null,
   trips: [],
   participants: [],
   isLoading: false,
@@ -36,5 +42,10 @@ export const useTripStore = create<TripState>()((set) => ({
       set({ isLoading: false });
       throw error;
     }
+  },
+
+  fetchCurrentParticipant: async (tripId, userId) => {
+    const participant = await getTripParticipant(tripId, userId);
+    set({ currentParticipant: participant });
   },
 }));

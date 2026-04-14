@@ -1,6 +1,12 @@
 import { z } from 'zod';
 import type { TripInsert } from '@/types';
 
+export enum TripRole {
+  Organizer = 'organizer',
+  CoOrganizer = 'coOrganizer',
+  Participant = 'participant',
+}
+
 // Excludes server-set fields: id, created_at, organizer_id, event_permission
 // The satisfies constraint ensures this stays in sync with the Supabase schema —
 // if a column is renamed or removed, TypeScript will catch it here.
