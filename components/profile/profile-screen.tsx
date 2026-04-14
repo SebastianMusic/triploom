@@ -4,8 +4,6 @@ import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, View } fro
 import EditProfileScreen from '@/components/profile/edit-profile-screen';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { signOut } from '@/services/auth.service';
-import { updateProfile } from '@/services/profile.service';
 import { useAuthStore } from '@/store/auth.store';
 import { useProfileStore } from '@/store/profile.store';
 
@@ -21,11 +19,16 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 }
 
 export default function ProfileScreen() {
-  const { session } = useAuthStore();
-  const { profile, isLoading, fetchProfile, setProfile } = useProfileStore();
+  const { session, signOut } = useAuthStore();
+  const { profile, displayAvatarUrl, isLoading, fetchProfile, saveProfileChanges } = useProfileStore();
+
   const [showEditScreen, setShowEditScreen] = useState(false);
-  const [editableAvatarUrl, setEditableAvatarUrl] = useState('');
+
+  // Local file URI from camera — set when user takes a new photo, cleared on save/cancel
+  const [pendingLocalUri, setPendingLocalUri] = useState<string | null>(null);
+
   const [editableFullName, setEditableFullName] = useState('');
+  const [editablePhoneNumber, setEditablePhoneNumber] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -44,21 +47,22 @@ export default function ProfileScreen() {
     'Not added yet';
 
   const email = session?.user.email ?? 'Not available';
-
   const resolvedMobileNumber =
-    session?.user.phone ?? session?.user.user_metadata?.phone ?? 'Not added yet';
+    profile?.phonenumber ?? session?.user.phone ?? session?.user.user_metadata?.phone ?? 'Not added yet';
 
   useEffect(() => {
-    setEditableAvatarUrl(profile?.profile_picture_url ?? '');
     setEditableFullName(resolvedFullName === 'Not added yet' ? '' : resolvedFullName);
-  }, [profile?.profile_picture_url, resolvedFullName]);
+  }, [resolvedFullName]);
+
+  useEffect(() => {
+    setEditablePhoneNumber(profile?.phonenumber ?? '');
+  }, [profile?.phonenumber]);
 
   const fullName = editableFullName.trim() || 'Not added yet';
   const mobileNumber = resolvedMobileNumber;
 
   const initials = useMemo(() => {
     const source = fullName !== 'Not added yet' ? fullName : email;
-
     return (
       source
         .split(/[\s@._-]+/)
@@ -80,12 +84,13 @@ export default function ProfileScreen() {
     setSaveSuccess(null);
 
     try {
-      const updatedProfile = await updateProfile(session.user.id, {
-        user_name: editableFullName.trim() || null,
-        profile_picture_url: editableAvatarUrl.trim() || null,
+      await saveProfileChanges({
+        localImageUri: pendingLocalUri ?? undefined,
+        userName: editableFullName.trim() || null,
+        phoneNumber: editablePhoneNumber.trim() || null,
       });
 
-      setProfile(updatedProfile);
+      setPendingLocalUri(null);
       setSaveSuccess('Profile updated successfully.');
       setShowEditScreen(false);
     } catch (error) {
@@ -101,7 +106,6 @@ export default function ProfileScreen() {
     setIsSigningOut(true);
     setSaveError(null);
     setSaveSuccess(null);
-
     try {
       await signOut();
     } catch (error) {
@@ -114,13 +118,15 @@ export default function ProfileScreen() {
   if (showEditScreen) {
     return (
       <EditProfileScreen
-        avatarUrl={editableAvatarUrl}
+        // Show the pending local photo if taken, otherwise the current signed URL
+        avatarUrl={pendingLocalUri ?? displayAvatarUrl}
         fullName={editableFullName}
-        mobileNumber={mobileNumber === 'Not added yet' ? '' : mobileNumber}
-        onAvatarUrlChange={setEditableAvatarUrl}
+        mobileNumber={editablePhoneNumber}
+        onAvatarUrlChange={setPendingLocalUri}
         onFullNameChange={setEditableFullName}
-        onMobileNumberChange={() => undefined}
+        onMobileNumberChange={setEditablePhoneNumber}
         onBack={() => {
+          setPendingLocalUri(null);
           setSaveError(null);
           setShowEditScreen(false);
         }}
@@ -142,15 +148,14 @@ export default function ProfileScreen() {
 
       <ThemedView style={styles.card}>
         <View style={styles.avatarWrapper}>
-          {editableAvatarUrl ? (
-            <Image source={{ uri: editableAvatarUrl }} style={styles.avatar} />
+          {displayAvatarUrl ? (
+            <Image source={{ uri: displayAvatarUrl }} style={styles.avatar} />
           ) : (
             <View style={styles.avatarPlaceholder}>
               <ThemedText style={styles.avatarText}>{initials}</ThemedText>
             </View>
           )}
         </View>
-
         <ThemedText type="subtitle" style={styles.profileName}>
           {fullName}
         </ThemedText>

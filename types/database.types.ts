@@ -333,6 +333,7 @@ export type Database = {
         Row: {
           expo_push_token: string | null
           id: string
+          phonenumber: string | null
           profile_picture_url: string | null
           selected_trip: string | null
           user_name: string | null
@@ -340,6 +341,7 @@ export type Database = {
         Insert: {
           expo_push_token?: string | null
           id?: string
+          phonenumber?: string | null
           profile_picture_url?: string | null
           selected_trip?: string | null
           user_name?: string | null
@@ -347,6 +349,7 @@ export type Database = {
         Update: {
           expo_push_token?: string | null
           id?: string
+          phonenumber?: string | null
           profile_picture_url?: string | null
           selected_trip?: string | null
           user_name?: string | null
