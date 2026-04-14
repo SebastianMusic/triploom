@@ -35,6 +35,15 @@ PASSES, FAILS, or is N/A, and explain why. If something fails, suggest the corre
 - Action if failing: Run `npm audit`. Fix with `npm audit fix` where possible, otherwise
   document and resolve any remaining vulnerabilities before merging.
 
+## 4. Code style — components <- store <- service
+> make sure that the coding style from AGENTS.md and README.md are followed
+> components should only call stores and never services directly
+
+- Check: check if any of the components in the PR are calling services directly.
+- Action: If components are calling services directly tell the user about
+  exactly where this is occuring.
+  
+
 ## 5. RLS Policy Tracking
 > For coding agents: throughout the entire coding process, any time an RLS policy is added,
 > modified, or removed, record it immediately. By the time a PR is raised, the agent should

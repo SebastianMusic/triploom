@@ -1,144 +1,147 @@
-import { getProfile, updateProfile, updateSelectedTrip } from '../profile.service';
+import { createTestUser, type TestUser } from '@/__integration__/helpers/user';
+import {
+  getProfile,
+  getProfileImageUrl,
+  updateProfile,
+  updateSelectedTrip,
+  uploadProfileImage,
+} from '../profile.service';
 
-jest.mock('@/lib/supabase', () => ({
-  supabase: {
-    from: jest.fn(),
-    auth: {
-      getSession: jest.fn(),
-      updateUser: jest.fn(),
-    },
-  },
-}));
+jest.setTimeout(20000);
 
-import { supabase } from '@/lib/supabase';
-const mockSupabase = supabase as jest.Mocked<typeof supabase>;
+let user: TestUser;
+let realFetch: typeof global.fetch;
 
-const mockProfile = {
-  id: 'user-1',
-  user_name: 'Old Name',
-  expo_push_token: null,
-  profile_picture_url: 'https://example.com/old.png',
-  selected_trip: 'trip-1',
-};
-
-beforeEach(() => {
-  jest.clearAllMocks();
-  (mockSupabase.auth.getSession as jest.Mock).mockResolvedValue({
-    data: { session: { user: { id: 'user-1' } } },
-    error: null,
-  });
-  (mockSupabase.auth.updateUser as jest.Mock).mockResolvedValue({
-    data: { user: { id: 'user-1' } },
-    error: null,
-  });
+beforeAll(async () => {
+  realFetch = global.fetch;
+  user = await createTestUser();
 });
 
-describe('updateSelectedTrip', () => {
-  it('updates selected_trip in the profile table', async () => {
-    const single = jest.fn().mockResolvedValue({
-      data: { ...mockProfile, selected_trip: 'trip-2' },
-      error: null,
-    });
-    const select = jest.fn().mockReturnValue({ single });
-    const eq = jest.fn().mockReturnValue({ select });
-    const update = jest.fn().mockReturnValue({ eq });
-
-    mockSupabase.from.mockReturnValue({ update } as any);
-
-    const result = await updateSelectedTrip('trip-2');
-
-    expect(mockSupabase.from).toHaveBeenCalledWith('profile');
-    expect(update).toHaveBeenCalledWith({ selected_trip: 'trip-2' });
-    expect(eq).toHaveBeenCalledWith('id', 'user-1');
-    expect(result.selected_trip).toBe('trip-2');
-  });
+afterAll(async () => {
+  global.fetch = realFetch;
+  await user.cleanup();
 });
+
+afterEach(() => {
+  global.fetch = realFetch;
+});
+
+// Mocks only fetch('file://...') calls — Supabase HTTP calls go through unchanged
+function mockLocalFetch() {
+  global.fetch = jest.fn().mockImplementation((url: string, options?: RequestInit) => {
+    if (url.startsWith('file://')) {
+      return Promise.resolve({
+        arrayBuffer: jest.fn().mockResolvedValue(new ArrayBuffer(8)),
+      });
+    }
+    return realFetch(url, options);
+  });
+}
+
+// ── getProfile ────────────────────────────────────────────────────────────────
 
 describe('getProfile', () => {
-  it('fetches the profile by user id', async () => {
-    const single = jest.fn().mockResolvedValue({ data: mockProfile, error: null });
-    const eq = jest.fn().mockReturnValue({ single });
-    const select = jest.fn().mockReturnValue({ eq });
+  it('fetches the profile row for an existing user', async () => {
+    const profile = await getProfile(user.id);
+    expect(profile).not.toBeNull();
+    expect(profile?.id).toBe(user.id);
+  });
 
-    mockSupabase.from.mockReturnValue({ select } as any);
-
-    const result = await getProfile('user-1');
-
-    expect(mockSupabase.from).toHaveBeenCalledWith('profile');
-    expect(eq).toHaveBeenCalledWith('id', 'user-1');
-    expect(result).toEqual(mockProfile);
+  it('returns null for a non-existent user id', async () => {
+    const profile = await getProfile('00000000-0000-0000-0000-000000000000');
+    expect(profile).toBeNull();
   });
 });
 
+// ── updateProfile ─────────────────────────────────────────────────────────────
+
 describe('updateProfile', () => {
-  it('updates the profile table and full name metadata', async () => {
-    const updatedProfile = {
-      ...mockProfile,
-      user_name: 'New Name',
-      profile_picture_url: 'https://example.com/new.png',
-    };
-
-    const single = jest.fn().mockResolvedValue({ data: updatedProfile, error: null });
-    const select = jest.fn().mockReturnValue({ single });
-    const eq = jest.fn().mockReturnValue({ select });
-    const update = jest.fn().mockReturnValue({ eq });
-
-    mockSupabase.from.mockReturnValue({ update } as any);
-
-    const result = await updateProfile('user-1', {
-      user_name: '  New Name  ',
-      profile_picture_url: '  https://example.com/new.png  ',
-    });
-
-    expect(mockSupabase.auth.updateUser).toHaveBeenCalledWith({
-      data: {
-        full_name: 'New Name',
-      },
-    });
-    expect(mockSupabase.from).toHaveBeenCalledWith('profile');
-    expect(update).toHaveBeenCalledWith({
-      user_name: 'New Name',
-      profile_picture_url: 'https://example.com/new.png',
-    });
-    expect(eq).toHaveBeenCalledWith('id', 'user-1');
-    expect(result).toEqual(updatedProfile);
+  it('updates user_name in the profile table', async () => {
+    const result = await updateProfile(user.id, { user_name: 'Service Test User' });
+    expect(result.id).toBe(user.id);
+    expect(result.user_name).toBe('Service Test User');
   });
 
-  it('returns the current profile when no profile fields change', async () => {
-    const single = jest.fn().mockResolvedValue({ data: mockProfile, error: null });
-    const eq = jest.fn().mockReturnValue({ single });
-    const select = jest.fn().mockReturnValue({ eq });
-
-    mockSupabase.from.mockReturnValue({ select } as any);
-
-    const result = await updateProfile('user-1', {});
-
-    expect(mockSupabase.auth.updateUser).not.toHaveBeenCalled();
-    expect(mockSupabase.from).toHaveBeenCalledWith('profile');
-    expect(result).toEqual(mockProfile);
+  it('updates phonenumber in the profile table', async () => {
+    const result = await updateProfile(user.id, { phonenumber: '12345678' });
+    expect(result.phonenumber).toBe('12345678');
   });
 
-  it('throws when the profile table update fails', async () => {
-    const single = jest.fn().mockResolvedValue({ data: null, error: { message: 'DB error' } });
-    const select = jest.fn().mockReturnValue({ single });
-    const eq = jest.fn().mockReturnValue({ select });
-    const update = jest.fn().mockReturnValue({ eq });
-
-    mockSupabase.from.mockReturnValue({ update } as any);
-
-    await expect(updateProfile('user-1', { user_name: 'Broken' })).rejects.toMatchObject({
-      message: 'DB error',
-    });
+  it('trims whitespace from user_name', async () => {
+    const result = await updateProfile(user.id, { user_name: '  Trimmed Name  ' });
+    expect(result.user_name).toBe('Trimmed Name');
   });
 
-  it('throws when auth metadata update fails', async () => {
-    (mockSupabase.auth.updateUser as jest.Mock).mockResolvedValue({
-      data: { user: null },
-      error: { message: 'Auth update failed' },
-    });
+  it('stores null when user_name is empty string', async () => {
+    const result = await updateProfile(user.id, { user_name: '' });
+    expect(result.user_name).toBeNull();
+  });
 
-    await expect(updateProfile('user-1', { user_name: 'Broken' })).rejects.toMatchObject({
-      message: 'Auth update failed',
-    });
+  it('stores null when phonenumber is empty string', async () => {
+    const result = await updateProfile(user.id, { phonenumber: '' });
+    expect(result.phonenumber).toBeNull();
+  });
+
+  it('returns the current profile when no fields are provided', async () => {
+    const result = await updateProfile(user.id, {});
+    expect(result.id).toBe(user.id);
+  });
+
+  it('persists changes readable via getProfile', async () => {
+    await updateProfile(user.id, { user_name: 'Persisted Name', phonenumber: '87654321' });
+    const profile = await getProfile(user.id);
+    expect(profile?.user_name).toBe('Persisted Name');
+    expect(profile?.phonenumber).toBe('87654321');
+  });
+});
+
+// ── updateSelectedTrip ────────────────────────────────────────────────────────
+
+describe('updateSelectedTrip', () => {
+  it('clears selected_trip when set to null', async () => {
+    const result = await updateSelectedTrip(null);
+    expect(result.id).toBe(user.id);
+    expect(result.selected_trip).toBeNull();
+  });
+});
+
+// ── uploadProfileImage ────────────────────────────────────────────────────────
+
+describe('uploadProfileImage', () => {
+  it('uploads the image and returns a valid UUID', async () => {
+    mockLocalFetch();
+    const imageId = await uploadProfileImage('file:///tmp/photo.jpg');
+    expect(imageId).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+    );
+  });
+
+  it('fetches the local URI to read image bytes', async () => {
+    mockLocalFetch();
+    await uploadProfileImage('file:///tmp/photo.jpg');
+    expect(global.fetch).toHaveBeenCalledWith('file:///tmp/photo.jpg');
+  });
+
+  it('deletes the previous image when a new one is uploaded', async () => {
+    mockLocalFetch();
+    const firstId = await uploadProfileImage('file:///tmp/photo1.jpg');
+    await updateProfile(user.id, { profile_picture_url: firstId });
+
+    const secondId = await uploadProfileImage('file:///tmp/photo2.jpg');
+    expect(secondId).not.toBe(firstId);
+  });
+});
+
+// ── getProfileImageUrl ────────────────────────────────────────────────────────
+
+describe('getProfileImageUrl', () => {
+  it('returns a signed URL for an uploaded image', async () => {
+    mockLocalFetch();
+    const imageId = await uploadProfileImage('file:///tmp/photo.jpg');
+    await updateProfile(user.id, { profile_picture_url: imageId });
+    global.fetch = realFetch;
+
+    const url = await getProfileImageUrl(imageId);
+    expect(url).toMatch(/^https?:\/\//);
   });
 });

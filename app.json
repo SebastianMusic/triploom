@@ -9,9 +9,13 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Triploom uses the camera to take profile pictures and photos for trips."
+      }
     },
     "android": {
+      "permissions": ["android.permission.CAMERA"],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -28,6 +32,18 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Triploom uses the camera to take profile pictures and photos for trips."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Triploom needs access to your photo library to let you choose a profile picture and photos for your trips."
+        }
+      ],
       [
         "expo-splash-screen",
         {
