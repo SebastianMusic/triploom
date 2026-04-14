@@ -3,6 +3,16 @@ import { StatusBar } from 'expo-status-bar';
 import { Text } from 'react-native';
 import { useAuthStore } from '@/store/auth.store';
 import { useEffect } from 'react';
+import * as Notifications from 'expo-notifications';
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
 
 export default function RootLayout() {
 	const { session, isLoading, initialize } = useAuthStore();

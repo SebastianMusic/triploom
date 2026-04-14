@@ -10,6 +10,8 @@ export { signInSchema, signUpSchema } from './auth.types';
 export type { SignInDTO, SignUpDTO } from './auth.types';
 export { updateSelectedTripSchema } from './profile.types';
 export type { UpdateSelectedTripDTO } from './profile.types';
+export { createAnnouncementSchema, updateAnnouncementSchema } from './announcement.types';
+export type { CreateAnnouncementDTO, UpdateAnnouncementDTO } from './announcement.types';
 
 import type { Tables, TablesInsert, TablesUpdate } from './database.types';
 

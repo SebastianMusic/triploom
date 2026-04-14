@@ -1,65 +1,82 @@
 {
-  "expo": {
-    "name": "triploom",
-    "slug": "triploom",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "triploom",
-    "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
-    "ios": {
-      "supportsTablet": true,
-      "infoPlist": {
-        "NSCameraUsageDescription": "Triploom uses the camera to take profile pictures and photos for trips."
-      }
-    },
-    "android": {
-      "permissions": ["android.permission.CAMERA"],
-      "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
-      },
-      "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false,
-      "package": "com.triploomapp.triploom"
-    },
-    "web": {
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
-    },
-    "plugins": [
-      "expo-router",
-      [
-        "expo-camera",
-        {
-          "cameraPermission": "Triploom uses the camera to take profile pictures and photos for trips."
-        }
-      ],
-      [
-        "expo-image-picker",
-        {
-          "photosPermission": "Triploom needs access to your photo library to let you choose a profile picture and photos for your trips."
-        }
-      ],
-      [
-        "expo-splash-screen",
-        {
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
-          "dark": {
-            "backgroundColor": "#000000"
-          }
-        }
-      ]
-    ],
-    "experiments": {
-      "typedRoutes": true,
-      "reactCompiler": true
-    }
-  }
+	"expo": {
+		"name": "triploom",
+		"slug": "triploom",
+		"version": "1.0.0",
+		"orientation": "portrait",
+		"icon": "./assets/images/icon.png",
+		"scheme": "triploom",
+		"userInterfaceStyle": "automatic",
+		"newArchEnabled": true,
+		"ios": {
+			"supportsTablet": true,
+			"infoPlist": {
+				"NSCameraUsageDescription": "Triploom uses the camera to take profile pictures and photos for trips."
+			}
+		},
+		"android": {
+			"permissions": [
+				"android.permission.CAMERA"
+			],
+			"googleServicesFile": "./google-services.json",
+			"adaptiveIcon": {
+				"backgroundColor": "#E6F4FE",
+				"foregroundImage": "./assets/images/android-icon-foreground.png",
+				"backgroundImage": "./assets/images/android-icon-background.png",
+				"monochromeImage": "./assets/images/android-icon-monochrome.png"
+			},
+			"edgeToEdgeEnabled": true,
+			"predictiveBackGestureEnabled": false,
+			"package": "com.triploomapp.triploom"
+		},
+		"web": {
+			"output": "static",
+			"favicon": "./assets/images/favicon.png"
+		},
+		"plugins": [
+			"expo-router",
+			"expo-notifications",
+			[
+				"expo-camera",
+				{
+					"cameraPermission": "Triploom uses the camera to take profile pictures and photos for trips."
+				}
+			],
+			[
+				"expo-image-picker",
+				{
+					"photosPermission": "Triploom needs access to your photo library to let you choose a profile picture and photos for your trips."
+				}
+			],
+			[
+				"expo-splash-screen",
+				{
+					"image": "./assets/images/splash-icon.png",
+					"imageWidth": 200,
+					"resizeMode": "contain",
+					"backgroundColor": "#ffffff",
+					"dark": {
+						"backgroundColor": "#000000"
+					}
+				}
+			]
+		],
+		"experiments": {
+			"typedRoutes": true,
+			"reactCompiler": true
+		},
+		"extra": {
+			"router": {},
+			"eas": {
+				"projectId": "a8462ab6-3298-45d5-b8ba-5a0c08e619f2"
+			}
+		},
+		"owner": "triploomapp",
+		"runtimeVersion": {
+			"policy": "appVersion"
+		},
+		"updates": {
+			"url": "https://u.expo.dev/a8462ab6-3298-45d5-b8ba-5a0c08e619f2"
+		}
+	}
 }
