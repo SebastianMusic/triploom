@@ -4,7 +4,7 @@
  */
 
 export type { Database, Json, Tables, TablesInsert, TablesUpdate, Enums } from './database.types';
-export { createTripSchema } from './trip.types';
+export { createTripSchema, TripRole } from './trip.types';
 export type { CreateTripDTO } from './trip.types';
 export { signInSchema, signUpSchema } from './auth.types';
 export type { SignInDTO, SignUpDTO } from './auth.types';
