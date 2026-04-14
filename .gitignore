@@ -43,3 +43,6 @@ app-example
 /android
 
 .sisyphus
+
+# Supabase CLI local cache
+supabase/.temp/
