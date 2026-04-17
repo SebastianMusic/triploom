@@ -114,26 +114,21 @@ export const useTripStore = create<TripState>()((set) => ({
 
 Run `npm test` after implementing the service and store. Fix failures before touching the UI.
 
-### Unit tests — `services/__tests__/<domain>.service.test.ts`
+### Service tests — `__integration__/<domain>.test.ts`
 
-Mock the Supabase client entirely. Test logic, not the database.
+**Do not mock Supabase.** All service tests run against the real hosted Supabase database. If you mock Supabase in a service test the mock will pass even when the query, schema, or RLS policy is wrong — defeating the point of the test.
+
+Pure logic tests (e.g. Zod schema validation) that have no Supabase dependency may live in `services/__tests__/` — but they must not import or mock `@/lib/supabase`.
+
+### Store tests — `store/__tests__/<domain>.store.test.ts`
+
+Store tests mock the **service layer**, not Supabase. This is correct: stores should be tested in isolation from the database.
 
 ```ts
-jest.mock('@/lib/supabase', () => ({
-  supabase: {
-    from: jest.fn(),
-    auth: { getSession: jest.fn() },
-  },
+jest.mock('@/services/trip.service', () => ({
+  createTrip: jest.fn(),
+  getTrips: jest.fn(),
 }));
-```
-
-Mock the Supabase method chain in each test:
-
-```ts
-const single = jest.fn().mockResolvedValue({ data: mockTrip, error: null });
-const select = jest.fn().mockReturnValue({ single });
-const insert = jest.fn().mockReturnValue({ select });
-(supabase.from as jest.Mock).mockReturnValue({ insert });
 ```
 
 ### Integration tests — `__integration__/<domain>.test.ts`

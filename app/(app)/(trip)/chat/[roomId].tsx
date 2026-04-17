@@ -77,7 +77,7 @@ export default function ChatRoomScreen() {
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={insets.bottom}
+      keyboardVerticalOffset={0}
     >
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>

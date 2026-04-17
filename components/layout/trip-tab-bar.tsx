@@ -50,6 +50,8 @@ export function TripTabBar({ state, descriptors, navigation }: BottomTabBarProps
     }).start();
   }, [safeIndex, translateIndex]);
 
+  if (activeRouteName === 'chat/[roomId]') return null;
+
   return (
     <View
       pointerEvents="box-none"
