@@ -7,7 +7,7 @@ jest.mock('@/services/chat.service', () => ({
   getAllMessages: jest.fn(),
   sendMessage: jest.fn(),
   subscribeToMessages: jest.fn(() => jest.fn()),
-  markChatRead: jest.fn(),
+  markChatRead: jest.fn().mockResolvedValue(undefined),
 }));
 
 import * as chatService from '@/services/chat.service';
