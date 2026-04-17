@@ -1,10 +1,13 @@
+import { Ionicons } from '@expo/vector-icons';
 import { ScrollView, View } from 'react-native';
 
+import { useTripChromeInsets } from '@/components/layout';
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Container } from '@/components/ui/container';
+import { IconButton } from '@/components/ui/icon-button';
 import { Input } from '@/components/ui/input';
 import { ListItem } from '@/components/ui/list-item';
 import { Row } from '@/components/ui/row';
@@ -55,13 +58,14 @@ export function DesignSystemExample() {
     mode,
     theme: { colors, layout, radius, spacing },
   } = useAppTheme();
+  const { headerContentOffset, bottomOverlayOffset } = useTripChromeInsets();
 
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: colors.background }}
       contentContainerStyle={{
-        paddingTop: spacing.md,
-        paddingBottom: spacing.xxxl,
+        paddingTop: headerContentOffset,
+        paddingBottom: Math.max(spacing.xxxl, bottomOverlayOffset),
       }}
       showsVerticalScrollIndicator={false}>
       <Container>
@@ -70,8 +74,8 @@ export function DesignSystemExample() {
             <Badge label={`Theme: ${mode}`} />
             <AppText variant="title">Design System Playground</AppText>
             <AppText tone="muted">
-              Denne skjermen er levende dokumentasjon. Hvis noen skal bygge nye sider senere, skal de starte her:
-              bruk tokens fra theme, bygg med primitive komponenter, og unngå hardkodede verdier.
+              Dette er levende dokumentasjon for nye skjermer. Bygg med theme-tokens, bruk primitive komponenter
+              først, og legg delt app-chrome i layout-laget i stedet for å style hver side på nytt.
             </AppText>
           </Stack>
 
@@ -79,19 +83,22 @@ export function DesignSystemExample() {
             <Stack space="sm">
               <AppText variant="subtitle">Hvordan theme fungerer</AppText>
               <AppText>
-                1. Bruk alltid <AppText tone="primary">theme.colors</AppText>, <AppText tone="primary">theme.spacing</AppText>,{' '}
-                <AppText tone="primary">theme.radius</AppText> og <AppText tone="primary">theme.typography</AppText> som førstevalg.
+                1. Start alltid med <AppText tone="primary">theme.colors</AppText>,{' '}
+                <AppText tone="primary">theme.spacing</AppText>, <AppText tone="primary">theme.radius</AppText> og{' '}
+                <AppText tone="primary">theme.typography</AppText>.
               </AppText>
               <AppText>
-                2. Hvis en skjerm trenger et nytt visuelt mønster flere steder, utvider man theme med en ny{' '}
-                <AppText tone="primary">semantisk token</AppText>, ikke en ny tilfeldig hex-verdi.
+                2. Hvis samme visuelle rolle dukker opp flere steder, legg til en ny token. Ikke legg inn en ny tilfeldig
+                hex-verdi i én skjerm.
               </AppText>
               <AppText>
-                3. Hvis behovet bare er layout, komponer med <AppText tone="primary">Container</AppText>,{' '}
-                <AppText tone="primary">Stack</AppText> og <AppText tone="primary">Row</AppText> før du lager nye komponenter.
+                3. Bruk <AppText tone="primary">components/ui</AppText> for primitives og{' '}
+                <AppText tone="primary">components/layout</AppText> for delt navigasjon og skjerm-chrome som trip-header
+                og bottom pill-nav.
               </AppText>
               <AppText tone="muted">
-                Tommelfingerregel: bruk det som er hvis det dekker 80-90% av behovet. Utvid først når samme mønster dukker opp igjen.
+                Tommelfingerregel: utvid først når samme mønster dukker opp igjen. Konsistens er viktigere enn flest mulig
+                komponenter.
               </AppText>
             </Stack>
           </Card>
@@ -99,7 +106,8 @@ export function DesignSystemExample() {
           <Stack space="sm">
             <AppText variant="subtitle">Palette and hierarchy</AppText>
             <AppText tone="muted">
-              60-30-10 her betyr rolige nøytrale bakgrunner, blå som handlingsfarge, og varm sand/gul veldig sparsomt.
+              Systemet er bevisst smalt: rolige hvite/svarte nøytraler, blå hierarki for handling og navigasjon, og gul
+              kun som sparsom accent.
             </AppText>
             <Row align="stretch">
               <ColorSwatch label="Background" value={colors.background} backgroundColor={colors.background} />
@@ -107,16 +115,17 @@ export function DesignSystemExample() {
             </Row>
             <Row align="stretch">
               <ColorSwatch label="Primary" value={colors.primary} backgroundColor={colors.primary} />
-              <ColorSwatch label="Secondary" value={colors.secondarySoft} backgroundColor={colors.secondarySoft} />
-              <ColorSwatch label="Accent" value={colors.accentSoft} backgroundColor={colors.accentSoft} />
+              <ColorSwatch label="Primary soft" value={colors.primarySoft} backgroundColor={colors.primarySoft} />
+              <ColorSwatch label="Secondary soft" value={colors.secondarySoft} backgroundColor={colors.secondarySoft} />
             </Row>
           </Stack>
 
           <Stack space="sm">
             <AppText variant="subtitle">Layout primitives</AppText>
             <AppText tone="muted">
-              Denne seksjonen er bygd med <AppText tone="primary">Container</AppText>, <AppText tone="primary">Stack</AppText> og{' '}
-              <AppText tone="primary">Row</AppText>. Det er meningen at de skal styre whitespace på tvers av appen.
+              Whitespace styres med <AppText tone="primary">Container</AppText>, <AppText tone="primary">Stack</AppText>{' '}
+              og <AppText tone="primary">Row</AppText>. Trip-layouten bruker de samme tokenene for header og flytende
+              navigasjon.
             </AppText>
             <Card>
               <Stack>
@@ -125,12 +134,36 @@ export function DesignSystemExample() {
                   <AppText tone="muted">{layout.screenPadding}px</AppText>
                 </Row>
                 <Row justify="space-between">
-                  <AppText>Content gap</AppText>
-                  <AppText tone="muted">{layout.contentGap}px</AppText>
-                </Row>
-                <Row justify="space-between">
                   <AppText>Card radius</AppText>
                   <AppText tone="muted">{radius.lg}px</AppText>
+                </Row>
+                <Row justify="space-between">
+                  <AppText>Floating nav width</AppText>
+                  <AppText tone="muted">{layout.floatingBarWidth}</AppText>
+                </Row>
+              </Stack>
+            </Card>
+          </Stack>
+
+          <Stack space="sm">
+            <AppText variant="subtitle">Trip chrome</AppText>
+            <Card>
+              <Stack space="sm">
+                <AppText>
+                  Dette er laget som alle trip-sider arver gjennom layouten: transparent topp med tilbakeknapp og profil,
+                  floating bottom pill-nav og fade-lag over scroll-innhold.
+                </AppText>
+                <AppText tone="muted">
+                  Hvis du bygger nye trip-sider videre, skal de bruke samme chrome automatisk via layouten, ikke lage egne
+                  navbars eller egne top/bottom offsets.
+                </AppText>
+                <Row justify="space-between">
+                  <AppText>Top content inset</AppText>
+                  <AppText tone="muted">{headerContentOffset}px</AppText>
+                </Row>
+                <Row justify="space-between">
+                  <AppText>Bottom content inset</AppText>
+                  <AppText tone="muted">{bottomOverlayOffset}px</AppText>
                 </Row>
               </Stack>
             </Card>
@@ -144,7 +177,7 @@ export function DesignSystemExample() {
                 <AppText variant="subtitle">Subtitle text</AppText>
                 <AppText>Body text brukes til vanlig innhold og beskrivelser.</AppText>
                 <AppText variant="caption" tone="muted">
-                  Caption brukes til sekundær informasjon, hint og labels.
+                  Caption brukes til sekundær informasjon, hint og små labels.
                 </AppText>
               </Stack>
             </Card>
@@ -163,6 +196,17 @@ export function DesignSystemExample() {
                   <Button label="Disabled" disabled />
                 </Row>
                 <Button label="Full width action" fullWidth />
+                <Row>
+                  <IconButton
+                    accessibilityLabel="Go back"
+                    icon={<Ionicons name="arrow-back" size={20} color={colors.text} />}
+                  />
+                  <IconButton
+                    accessibilityLabel="Open profile"
+                    active
+                    icon={<Ionicons name="person-outline" size={20} color={colors.primary} />}
+                  />
+                </Row>
               </Stack>
             </Card>
           </Stack>
@@ -174,7 +218,7 @@ export function DesignSystemExample() {
                 <Stack space="xs">
                   <AppText>Default card</AppText>
                   <AppText variant="caption" tone="muted">
-                    Flat content surface with subtle border.
+                    Flat surface for grouped content.
                   </AppText>
                 </Stack>
               </Card>
@@ -182,7 +226,7 @@ export function DesignSystemExample() {
                 <Stack space="xs">
                   <AppText>Elevated card</AppText>
                   <AppText variant="caption" tone="muted">
-                    Uses the shared shadow token, not a local shadow.
+                    Uses shared shadow tokens for depth instead of local effects.
                   </AppText>
                 </Stack>
               </Card>
@@ -190,7 +234,7 @@ export function DesignSystemExample() {
                 <Stack space="xs">
                   <AppText>Interactive card</AppText>
                   <AppText variant="caption" tone="muted">
-                    Has pressed/hover feedback and is meant for tappable content.
+                    For tappable blocks where motion and pressed state should be consistent.
                   </AppText>
                 </Stack>
               </Card>
@@ -206,7 +250,7 @@ export function DesignSystemExample() {
                   label="Error state"
                   placeholder="Organizer name"
                   value=" "
-                  error="Use error state for validation feedback, not custom red text outside the component."
+                  error="Use the built-in error state instead of styling ad hoc validation text on each screen."
                 />
                 <Input
                   label="Multiline"
@@ -260,15 +304,30 @@ export function DesignSystemExample() {
             <Stack space="sm">
               <AppText variant="subtitle">When to extend the system</AppText>
               <AppText>
-                Utvid theme når en ny <AppText tone="primary">rolle</AppText> mangler, for eksempel en ny semantisk state eller et nytt
-                gjenbrukbart surface-mønster.
+                Lag en ny token når en ny <AppText tone="primary">rolle</AppText> mangler. Lag en ny komponent når samme
+                UI-mønster faktisk brukes på flere skjermer.
               </AppText>
               <AppText>
-                Lag en ny komponent når samme UI-mønster dukker opp på flere sider. Hvis det bare er én enkel layout på én side, komponer med
-                primitive komponenter først.
+                Hvis du bygger ny trip-side senere, start med disse primitives, og komponer videre med samme layout-lag og
+                navigasjonsmønster som trip-shellen bruker nå.
               </AppText>
               <AppText tone="muted">
-                Målet er ikke flest mulig komponenter. Målet er færrest mulig primitives som gir mest mulig consistency.
+                Målet er et lite system som tåler vekst, ikke et stort bibliotek ingen tør å bruke.
+              </AppText>
+            </Stack>
+          </Card>
+
+          <Card variant="elevated">
+            <Stack space="sm">
+              <AppText variant="subtitle">What is ready now</AppText>
+              <AppText>
+                Basen er klar for å bygge <AppText tone="primary">home</AppText>, <AppText tone="primary">create event</AppText>,{' '}
+                <AppText tone="primary">create trip</AppText>, <AppText tone="primary">trip landing page</AppText>,{' '}
+                <AppText tone="primary">profile</AppText> og <AppText tone="primary">chat</AppText> videre med samme språk.
+              </AppText>
+              <AppText tone="muted">
+                Det som skal gjenbrukes er tokens i <AppText tone="primary">constants/theme.ts</AppText>, primitives i{' '}
+                <AppText tone="primary">components/ui</AppText> og shared chrome i <AppText tone="primary">components/layout</AppText>.
               </AppText>
             </Stack>
           </Card>

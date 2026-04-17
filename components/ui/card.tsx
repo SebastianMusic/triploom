@@ -11,18 +11,17 @@ export type CardProps = PressableProps & {
 
 export function Card({ variant = 'default', disabled, style, children, ...props }: CardProps) {
   const {
-    theme: { colors, opacity, radius, shadows, spacing, stroke },
+    theme: { colors, opacity, radius, shadows, spacing },
   } = useAppTheme();
 
   const baseStyle: ViewStyle = {
     borderRadius: radius.lg,
     padding: spacing.md,
     backgroundColor: colors.surface,
-    borderWidth: stroke.thin,
-    borderColor: colors.border,
   };
 
-  const shadowStyle = variant === 'elevated' || variant === 'interactive' ? shadows.sm : shadows.none;
+  const shadowStyle =
+    variant === 'elevated' ? shadows.md : variant === 'interactive' ? shadows.sm : shadows.none;
 
   const interactiveStyle = variant === 'interactive';
 

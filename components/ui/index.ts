@@ -4,6 +4,7 @@ export * from '@/components/ui/button';
 export * from '@/components/ui/card';
 export * from '@/components/ui/container';
 export * from '@/components/ui/example-usage';
+export * from '@/components/ui/icon-button';
 export * from '@/components/ui/input';
 export * from '@/components/ui/list-item';
 export * from '@/components/ui/row';

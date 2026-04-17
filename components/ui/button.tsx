@@ -24,7 +24,7 @@ export function Button({
   ...props
 }: ButtonProps) {
   const {
-    theme: { colors, opacity, radius, shadows, sizes, spacing, stroke, typography },
+    theme: { colors, opacity, radius, shadows, sizes, spacing, typography },
   } = useAppTheme();
 
   const isDisabled = disabled || loading;
@@ -49,23 +49,17 @@ export function Button({
     variant === 'secondary'
       ? {
           backgroundColor: colors.secondarySoft,
-          borderColor: colors.border,
-          borderWidth: stroke.none,
-          textColor: colors.text,
+          textColor: colors.secondary,
           shadow: shadows.none,
         }
       : variant === 'ghost'
         ? {
-            backgroundColor: colors.transparent,
-            borderColor: colors.transparent,
-            borderWidth: stroke.none,
-            textColor: colors.primary,
-            shadow: shadows.none,
-          }
+          backgroundColor: colors.transparent,
+          textColor: colors.primary,
+          shadow: shadows.none,
+        }
         : {
             backgroundColor: colors.primary,
-            borderColor: colors.primary,
-            borderWidth: stroke.none,
             textColor: colors.textOnPrimary,
             shadow: shadows.sm,
           };
@@ -80,8 +74,6 @@ export function Button({
             minWidth: fullWidth ? undefined : sizes.button.md * 2,
             width: fullWidth ? '100%' : undefined,
             borderRadius: radius.full,
-            borderWidth: variantStyle.borderWidth,
-            borderColor: variantStyle.borderColor,
             backgroundColor: variantStyle.backgroundColor,
             paddingVertical: spacing.sm - spacing.xs / 2,
             alignItems: 'center',

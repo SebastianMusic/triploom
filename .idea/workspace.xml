@@ -6,13 +6,18 @@
   <component name="ChangeListManager">
     <list default="true" id="6e9e7edf-1c22-4b89-8de2-b36fb60c648c" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/(app)/(trip)/events/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(app)/(trip)/events/index.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/_layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/_layout.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/themed-text.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/themed-text.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/themed-view.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/themed-view.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(app)/(trip)/_layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(app)/(trip)/_layout.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ui/__tests__/design-system.test.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/ui/__tests__/design-system.test.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ui/badge.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/ui/badge.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ui/button.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/ui/button.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ui/card.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/ui/card.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ui/example-usage.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/ui/example-usage.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ui/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/components/ui/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ui/list-item.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/ui/list-item.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ui/theme-provider.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/ui/theme-provider.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/constants/theme.ts" beforeDir="false" afterPath="$PROJECT_DIR$/constants/theme.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hooks/use-theme-color.ts" beforeDir="false" afterPath="$PROJECT_DIR$/hooks/use-theme-color.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -71,7 +76,7 @@
       <option name="presentableId" value="Default" />
       <updated>1776407093990</updated>
       <workItem from="1776407095164" duration="13647000" />
-      <workItem from="1776428995257" duration="1351000" />
+      <workItem from="1776428995257" duration="5180000" />
     </task>
     <servers />
   </component>

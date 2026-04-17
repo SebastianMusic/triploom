@@ -17,6 +17,7 @@ export type ThemeProviderProps = {
 
 export function ThemeProvider({ children, modeOverride }: ThemeProviderProps) {
   const theme = useResolvedTheme(modeOverride);
+
   const value = useMemo(
     () => ({
       mode: theme.mode,
