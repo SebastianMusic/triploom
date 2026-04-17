@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { View, FlatList, ActivityIndicator, Text, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, FlatList, ActivityIndicator, Text, StyleSheet, KeyboardAvoidingView, Platform, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useChatStore } from '@/store/chat.store';
 import { MessageBubble } from '@/components/message-bubble';
 import { MessageInput } from '@/components/message-input';
@@ -9,6 +9,7 @@ import type { SendMessageDTO } from '@/types';
 
 export default function ChatRoomScreen() {
   const { roomId } = useLocalSearchParams<{ roomId: string }>();
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const { messages, isLoading, isSending, openChatRoom, closeChatRoom, loadMoreMessages, sendMessage } =
     useChatStore();
@@ -76,6 +77,12 @@ export default function ChatRoomScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={insets.bottom}
     >
+      <View style={[styles.header, { paddingTop: insets.top }]}>
+        <Pressable onPress={() => router.back()} style={styles.backButton}>
+          <Text style={styles.backButtonText}>← Back</Text>
+        </Pressable>
+      </View>
+
       {isLoading && messages.length === 0 ? (
         <View style={styles.centered}>
           <ActivityIndicator />
@@ -125,6 +132,13 @@ export default function ChatRoomScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
+  header: {
+    backgroundColor: '#fff',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#ddd',
+  },
+  backButton: { padding: 16 },
+  backButtonText: { color: '#007AFF', fontSize: 16 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 48 },
   emptyText: { color: '#888', textAlign: 'center' },
