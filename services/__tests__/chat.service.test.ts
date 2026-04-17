@@ -221,30 +221,44 @@ describe('sendMessage', () => {
 // --- subscribeToMessages ---
 
 describe('subscribeToMessages', () => {
-  it('calls onMessage when a realtime INSERT event fires', () => {
-    let capturedHandler: ((payload: { new: object }) => void) | null = null;
+  it('calls onMessage when a realtime INSERT event fires', async () => {
+    let capturedHandler: ((payload: { new: object }) => Promise<void>) | null = null;
 
-    // Use a self-referential channel mock so chaining works correctly
     const mockChannel = {
       on: jest.fn(),
       subscribe: jest.fn(),
     };
-    mockChannel.on.mockImplementation((_event: unknown, _filter: unknown, handler: (payload: { new: object }) => void) => {
+    mockChannel.on.mockImplementation((_event: unknown, _filter: unknown, handler: (payload: { new: object }) => Promise<void>) => {
       capturedHandler = handler;
-      return mockChannel; // return self for chaining
+      return mockChannel;
     });
-    mockChannel.subscribe.mockReturnValue(mockChannel); // return self
+    mockChannel.subscribe.mockReturnValue(mockChannel);
 
     (mockSupabase.channel as jest.Mock).mockReturnValue(mockChannel);
     (mockSupabase.removeChannel as jest.Mock).mockResolvedValue(undefined);
+
+    // Mock the follow-up SELECT that fetches sender profile data
+    const single = jest.fn().mockResolvedValue({
+      data: {
+        id: 'msg-rt-1',
+        content: 'Realtime!',
+        created_at: '2026-01-01T14:00:00Z',
+        group_chat_id: 'room-1',
+        user_id: 'user-1',
+        profile: null,
+      },
+      error: null,
+    });
+    const eq = jest.fn().mockReturnValue({ single });
+    const select = jest.fn().mockReturnValue({ eq });
+    mockSupabase.from.mockReturnValue({ select } as any);
 
     const onMessage = jest.fn();
     const unsubscribe = subscribeToMessages('room-1', onMessage);
 
     expect(mockSupabase.channel).toHaveBeenCalledWith('messages:room-1');
 
-    // Simulate a realtime INSERT payload
-    capturedHandler!({
+    await capturedHandler!({
       new: {
         id: 'msg-rt-1',
         content: 'Realtime!',

@@ -3,6 +3,7 @@ import { View, FlatList, ActivityIndicator, Text, StyleSheet, KeyboardAvoidingVi
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useChatStore } from '@/store/chat.store';
+import { useAuthStore } from '@/store/auth.store';
 import { MessageBubble } from '@/components/message-bubble';
 import { MessageInput } from '@/components/message-input';
 import type { SendMessageDTO } from '@/types';
@@ -13,6 +14,7 @@ export default function ChatRoomScreen() {
   const insets = useSafeAreaInsets();
   const { messages, isLoading, isSending, openChatRoom, closeChatRoom, loadMoreMessages, sendMessage } =
     useChatStore();
+  const currentUserId = useAuthStore((s) => s.session?.user.id ?? null);
   const [error, setError] = useState<string | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
   const [pendingText, setPendingText] = useState<string | null>(null);
@@ -91,7 +93,9 @@ export default function ChatRoomScreen() {
         <FlatList
           data={messages}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <MessageBubble message={item} />}
+          renderItem={({ item }) => (
+            <MessageBubble message={item} isOwnMessage={item.user_id === currentUserId} />
+          )}
           inverted
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.2}

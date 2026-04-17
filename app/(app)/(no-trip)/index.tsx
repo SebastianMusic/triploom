@@ -42,6 +42,7 @@ export default function TripPickerScreen() {
     }
   }, [fetchTrips]);
 
+
   async function handleCreate() {
     setError(null);
 
