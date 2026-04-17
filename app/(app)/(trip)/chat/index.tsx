@@ -1,14 +1,20 @@
 import { useEffect, useState } from 'react';
-import { View, FlatList, ActivityIndicator, Text, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ActivityIndicator, FlatList, View } from 'react-native';
 import { useRouter } from 'expo-router';
+
+import { ChatRoomListItem } from '@/components/chat/chat-room-list-item';
+import { useTripChromeInsets } from '@/components/layout/use-trip-chrome';
+import { AppText } from '@/components/ui/text';
+import { useAppTheme } from '@/components/ui/theme-provider';
 import { useChatStore } from '@/store/chat.store';
 import { useTripStore } from '@/store/trip.store';
-import { ChatRoomListItem } from '@/components/chat-room-list-item';
 
 export default function ChatListScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
+  const { headerContentOffset, bottomOverlayOffset } = useTripChromeInsets();
+  const {
+    theme: { colors, spacing },
+  } = useAppTheme();
   const currentTrip = useTripStore((s) => s.currentTrip);
   const { chatRooms, isLoading, getAllChatRooms } = useChatStore();
   const [error, setError] = useState<string | null>(null);
@@ -29,19 +35,21 @@ export default function ChatListScreen() {
 
   if (isLoading && chatRooms.length === 0) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator color={colors.primary} />
       </View>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.centered}>
-        <Text style={styles.errorText}>{error}</Text>
-        <Text style={styles.retryButton} onPress={load}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.md }}>
+        <AppText tone="error" style={{ marginBottom: spacing.xs, textAlign: 'center' }}>
+          {error}
+        </AppText>
+        <AppText tone="primary" onPress={load}>
           Retry
-        </Text>
+        </AppText>
       </View>
     );
   }
@@ -50,7 +58,12 @@ export default function ChatListScreen() {
     <FlatList
       data={chatRooms}
       keyExtractor={(item) => item.id}
-      contentContainerStyle={{ paddingTop: insets.top + 8 }}
+      contentContainerStyle={{
+        paddingTop: headerContentOffset,
+        paddingBottom: bottomOverlayOffset,
+        paddingHorizontal: spacing.sm,
+        gap: spacing.xs,
+      }}
       renderItem={({ item }) => (
         <ChatRoomListItem
           room={item}
@@ -58,17 +71,10 @@ export default function ChatListScreen() {
         />
       )}
       ListEmptyComponent={
-        <View style={styles.centered}>
-          <Text style={styles.emptyText}>No chat rooms yet.</Text>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.xxl }}>
+          <AppText tone="muted">No chat rooms yet.</AppText>
         </View>
       }
     />
   );
 }
-
-const styles = StyleSheet.create({
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
-  errorText: { color: '#cc0000', marginBottom: 12, textAlign: 'center' },
-  retryButton: { color: '#007AFF', fontWeight: '600' },
-  emptyText: { color: '#888' },
-});

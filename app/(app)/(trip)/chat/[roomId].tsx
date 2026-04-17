@@ -1,23 +1,31 @@
-import { useEffect, useRef, useState } from 'react';
-import { View, FlatList, ActivityIndicator, Text, StyleSheet, KeyboardAvoidingView, Platform, Pressable } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { useEffect, useState } from 'react';
+import { FlatList, KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useChatStore } from '@/store/chat.store';
+
+import { MessageBubble } from '@/components/chat/message-bubble';
+import { MessageInput } from '@/components/chat/message-input';
+import { IconButton } from '@/components/ui/icon-button';
+import { AppText } from '@/components/ui/text';
+import { useAppTheme } from '@/components/ui/theme-provider';
 import { useAuthStore } from '@/store/auth.store';
-import { MessageBubble } from '@/components/message-bubble';
-import { MessageInput } from '@/components/message-input';
+import { useChatStore } from '@/store/chat.store';
 import type { SendMessageDTO } from '@/types';
 
 export default function ChatRoomScreen() {
   const { roomId } = useLocalSearchParams<{ roomId: string }>();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
-  const { messages, isLoading, isSending, openChatRoom, closeChatRoom, loadMoreMessages, sendMessage } =
+  const {
+    theme: { colors, spacing },
+  } = useAppTheme();
+  const { messages, chatRooms, isLoading, isSending, openChatRoom, closeChatRoom, loadMoreMessages, sendMessage } =
     useChatStore();
   const currentUserId = useAuthStore((s) => s.session?.user.id ?? null);
   const [error, setError] = useState<string | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
   const [pendingText, setPendingText] = useState<string | null>(null);
+
+  const roomName = chatRooms.find((r) => r.id === roomId)?.chat_name ?? 'Chat';
 
   useEffect(() => {
     if (!roomId) return;
@@ -53,46 +61,57 @@ export default function ChatRoomScreen() {
     }
   }
 
-  if (error) {
-    return (
-      <View style={styles.centered}>
-        <Text style={styles.errorText}>{error}</Text>
-        <Text
-          style={styles.retryButton}
-          onPress={() => {
-            setError(null);
-            openChatRoom(roomId!).catch((err) => {
-              const msg = err?.message ?? err?.error_description ?? JSON.stringify(err);
-              setError(msg || 'Failed to open chat');
-            });
-          }}
-        >
-          Retry
-        </Text>
-      </View>
-    );
-  }
-
   return (
     <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={0}
-    >
-      <View style={[styles.header, { paddingTop: insets.top }]}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>← Back</Text>
-        </Pressable>
+      style={[styles.container, { backgroundColor: colors.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <View
+        style={[
+          styles.header,
+          {
+            paddingTop: spacing.xxl,
+            paddingHorizontal: spacing.sm,
+            paddingBottom: spacing.xs,
+            backgroundColor: colors.surface,
+            borderBottomColor: colors.border,
+          },
+        ]}>
+        <IconButton
+          icon={<Ionicons name="arrow-back" size={22} color={colors.text} />}
+          variant="ghost"
+          onPress={() => router.back()}
+          accessibilityLabel="Back to chat list"
+        />
+        <AppText variant="subtitle" style={styles.headerTitle} numberOfLines={1}>
+          {roomName}
+        </AppText>
+        <View style={styles.headerSpacer} />
       </View>
 
-      {isLoading && messages.length === 0 ? (
+      {error ? (
         <View style={styles.centered}>
-          <ActivityIndicator />
+          <AppText tone="error" style={{ marginBottom: spacing.xs, textAlign: 'center' }}>
+            {error}
+          </AppText>
+          <AppText
+            tone="primary"
+            onPress={() => {
+              setError(null);
+              openChatRoom(roomId!).catch((err) => {
+                const msg = err?.message ?? err?.error_description ?? JSON.stringify(err);
+                setError(msg || 'Failed to open chat');
+              });
+            }}>
+            Retry
+          </AppText>
         </View>
+      ) : isLoading && messages.length === 0 ? (
+        <View style={styles.centered} />
       ) : (
         <FlatList
           data={messages}
           keyExtractor={(item) => item.id}
+          contentContainerStyle={{ paddingVertical: spacing.xs }}
           renderItem={({ item }) => (
             <MessageBubble message={item} isOwnMessage={item.user_id === currentUserId} />
           )}
@@ -101,25 +120,30 @@ export default function ChatRoomScreen() {
           onEndReachedThreshold={0.2}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>
+              <AppText tone="muted" style={{ textAlign: 'center' }}>
                 No messages yet — be the first to say something!
-              </Text>
+              </AppText>
             </View>
           }
         />
       )}
 
       {sendError && (
-        <View style={styles.sendErrorBar}>
-          <Text style={styles.sendErrorText}>{sendError}</Text>
-          <Text
-            style={styles.retryButton}
+        <View
+          style={[
+            styles.sendErrorBar,
+            { backgroundColor: colors.primarySoft, borderTopColor: colors.border },
+          ]}>
+          <AppText tone="error" style={{ flex: 1, fontSize: 13 }}>
+            {sendError}
+          </AppText>
+          <AppText
+            tone="primary"
             onPress={() => {
               if (pendingText) handleSubmit(pendingText);
-            }}
-          >
+            }}>
             Retry
-          </Text>
+          </AppText>
         </View>
       )}
 
@@ -135,28 +159,27 @@ export default function ChatRoomScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1 },
   header: {
-    backgroundColor: '#fff',
+    flexDirection: 'row',
+    alignItems: 'center',
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#ddd',
   },
-  backButton: { padding: 16 },
-  backButtonText: { color: '#007AFF', fontSize: 16 },
+  headerTitle: {
+    flex: 1,
+    textAlign: 'center',
+  },
+  headerSpacer: {
+    width: 44,
+  },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 48 },
-  emptyText: { color: '#888', textAlign: 'center' },
-  errorText: { color: '#cc0000', marginBottom: 12, textAlign: 'center' },
-  retryButton: { color: '#007AFF', fontWeight: '600' },
   sendErrorBar: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: '#fff3f3',
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#ffcccc',
   },
-  sendErrorText: { flex: 1, color: '#cc0000', fontSize: 13 },
 });
