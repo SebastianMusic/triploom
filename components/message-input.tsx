@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { View, TextInput, Pressable, Text, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface Props {
   onSubmit: (text: string) => void;
@@ -8,6 +9,7 @@ interface Props {
 
 export function MessageInput({ onSubmit, isSending }: Props) {
   const [text, setText] = useState('');
+  const insets = useSafeAreaInsets();
 
   function handleSubmit() {
     const trimmed = text.trim();
@@ -17,7 +19,7 @@ export function MessageInput({ onSubmit, isSending }: Props) {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 8) }]}>
       <TextInput
         style={styles.input}
         value={text}

@@ -1,6 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -16,33 +14,14 @@ type TripHeaderProps = {
 export function TripHeader({ routeName }: TripHeaderProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [isLeavingTrip, setIsLeavingTrip] = useState(false);
-  const { displayAvatarUrl, profile, setSelectedTrip } = useProfileStore();
+  const { displayAvatarUrl, profile } = useProfileStore();
   const {
-    theme: { colors, layout, spacing },
+    theme: { layout, spacing },
   } = useAppTheme();
   const isProfileRoute = routeName === 'profile/index';
 
-  async function handleLeaveTrip() {
-    if (isLeavingTrip) {
-      return;
-    }
-
-    setIsLeavingTrip(true);
-
-    try {
-      await setSelectedTrip(null);
-      router.replace('/(app)/(no-trip)');
-    } finally {
-      setIsLeavingTrip(false);
-    }
-  }
-
   function handleOpenProfile() {
-    if (isProfileRoute) {
-      return;
-    }
-
+    if (isProfileRoute) return;
     router.push('/(app)/(trip)/profile');
   }
 
@@ -63,17 +42,8 @@ export function TripHeader({ routeName }: TripHeaderProps) {
         style={{
           flexDirection: 'row',
           alignItems: 'center',
-          justifyContent: 'space-between',
+          justifyContent: 'flex-end',
         }}>
-        <IconButton
-          accessibilityLabel="Go back to trip selection"
-          icon={<Ionicons name="arrow-back" size={22} color={colors.text} />}
-          loading={isLeavingTrip}
-          onPress={() => {
-            void handleLeaveTrip();
-          }}
-        />
-
         <IconButton
           accessibilityLabel="Open profile"
           active={isProfileRoute}
