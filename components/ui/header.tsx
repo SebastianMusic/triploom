@@ -24,8 +24,6 @@ export function Header({ title, subtitle, badge, eyebrow }: HeaderProps) {
           <View
             style={{
               backgroundColor: colors.highlight,
-              borderColor: colors.border,
-              borderWidth: 1,
               paddingHorizontal: spacing.m,
               paddingVertical: spacing.s,
               borderRadius: radius.full,

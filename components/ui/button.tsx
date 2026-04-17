@@ -15,12 +15,13 @@ export function Button({ label, tone = 'primary', ...props }: ButtonProps) {
   const {
     theme: { colors, spacing, radius },
   } = useAppTheme();
+  const isPrimary = tone === 'primary';
 
   return (
     <Pressable
       style={({ pressed }) => [
         {
-          backgroundColor: tone === 'primary' ? colors.primary : colors.secondary,
+          backgroundColor: isPrimary ? colors.primary : colors.secondary,
           paddingVertical: spacing.s + 2,
           paddingHorizontal: spacing.m,
           borderRadius: radius.full,
@@ -30,7 +31,7 @@ export function Button({ label, tone = 'primary', ...props }: ButtonProps) {
         getShadow('sm', colors.shadow),
       ]}
       {...props}>
-      <AppText variant="caption" style={{ color: colors.bgDark, fontWeight: '700' }}>
+      <AppText variant="caption" style={{ color: isPrimary ? colors.bgLight : colors.text, fontWeight: '700' }}>
         {label}
       </AppText>
     </Pressable>

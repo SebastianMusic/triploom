@@ -1,5 +1,7 @@
 export * from '@/components/ui/button';
 export * from '@/components/ui/card';
+export * from '@/components/ui/event-card';
+export * from '@/components/ui/glass-pill';
 export * from '@/components/ui/header';
 export * from '@/components/ui/image';
 export * from '@/components/ui/screen';

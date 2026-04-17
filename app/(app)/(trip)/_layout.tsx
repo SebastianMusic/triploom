@@ -2,119 +2,127 @@ import { Pressable, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs, useRouter } from 'expo-router';
 
+import { TripTabBar } from '@/components/layout/trip-tab-bar';
 import { useAppTheme } from '@/hooks/use-app-theme';
+import { useProfileStore } from '@/store/profile.store';
 import { useThemeStore } from '@/store/theme.store';
 
 export default function TripLayout() {
 	const router = useRouter();
 	const toggleMode = useThemeStore((state) => state.toggleMode);
+	const setSelectedTrip = useProfileStore((state) => state.setSelectedTrip);
 	const {
-		theme: { colors, spacing, radius, typography },
+		theme: { colors, spacing, radius },
 	} = useAppTheme();
+	const navButtonSize = spacing.l + spacing.s / 2;
+	const backIconSize = spacing.m;
+	const actionIconSize = radius.m;
+	const tabIconSize = radius.m;
+	const headerHeight = spacing.xl + spacing.m + spacing.s / 2;
 
 	return (
 		<Tabs
+			tabBar={(props) => <TripTabBar {...props} />}
 			screenOptions={{
 				headerShown: true,
-				headerStyle: {
+				sceneStyle: {
 					backgroundColor: colors.bg,
 				},
-				headerShadowVisible: false,
+				headerStyle: {
+					backgroundColor: colors.bg,
+					height: headerHeight,
+					shadowColor: colors.shadow,
+					shadowOpacity: 0.12,
+					shadowRadius: 14,
+					shadowOffset: { width: 0, height: 8 },
+					elevation: 6,
+				},
+				headerShadowVisible: true,
 				headerTitle: '',
 				headerTitleAlign: 'left',
+				headerLeftContainerStyle: {
+					paddingLeft: spacing.m,
+					paddingTop: spacing.s,
+				},
 				headerLeft: () => (
 					<Pressable
-						onPress={() => {
-							if (router.canGoBack()) {
-								router.back();
-								return;
-							}
-							router.replace('/(app)/(trip)/home');
+						onPress={async () => {
+							await setSelectedTrip(null);
+							router.replace('/(app)/(no-trip)');
 						}}
 						style={{
-							marginLeft: spacing.s,
-							width: 36,
-							height: 36,
+							marginLeft: spacing.s / 3,
+							width: navButtonSize,
+							height: navButtonSize,
 							borderRadius: radius.full,
 							alignItems: 'center',
 							justifyContent: 'center',
 						}}>
-						<Ionicons name="chevron-back" size={22} color={colors.text} />
-					</Pressable>
+							<Ionicons name="chevron-back" size={backIconSize} color={colors.text} />
+						</Pressable>
 				),
+				headerRightContainerStyle: {
+					paddingRight: spacing.m,
+					paddingTop: spacing.s,
+				},
 				headerRight: () => (
-					<View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.s, marginRight: spacing.s }}>
+					<View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.s }}>
 						<Pressable
 							onPress={toggleMode}
 							style={{
-								width: 36,
-								height: 36,
+								width: navButtonSize,
+								height: navButtonSize,
 								borderRadius: radius.full,
 								alignItems: 'center',
 								justifyContent: 'center',
-								borderWidth: 1,
-								borderColor: colors.borderMuted,
 								backgroundColor: colors.bgLight,
 							}}>
-							<Ionicons name="contrast-outline" size={18} color={colors.textMuted} />
+							<Ionicons name="contrast-outline" size={actionIconSize} color={colors.textMuted} />
 						</Pressable>
 						<Pressable
 							onPress={() => router.push('/(app)/(trip)/profile')}
 							style={{
-								width: 36,
-								height: 36,
+								width: navButtonSize,
+								height: navButtonSize,
 								borderRadius: radius.full,
 								alignItems: 'center',
 								justifyContent: 'center',
-								borderWidth: 1,
-								borderColor: colors.borderMuted,
 								backgroundColor: colors.bgLight,
 							}}>
-							<Ionicons name="person-outline" size={18} color={colors.textMuted} />
+							<Ionicons name="person-outline" size={actionIconSize} color={colors.textMuted} />
 						</Pressable>
 					</View>
 				),
-				tabBarStyle: {
-					backgroundColor: colors.bg,
-					borderTopColor: colors.border,
-					borderTopWidth: 1,
-					height: 66,
-					paddingBottom: 10,
-					paddingTop: 10,
-				},
 				tabBarActiveTintColor: colors.secondary,
 				tabBarInactiveTintColor: colors.textMuted,
 				tabBarShowLabel: false,
-				tabBarItemStyle: {
-					paddingHorizontal: 6,
-				},
 			}}>
 			<Tabs.Screen
 				name="home/index"
 				options={{
 					title: 'Home',
-					tabBarIcon: ({ color }) => <Ionicons name="home-outline" size={20} color={color} />,
+					tabBarIcon: ({ color }) => <Ionicons name="home-outline" size={tabIconSize} color={color} />,
 				}}
 			/>
 			<Tabs.Screen
 				name="events/index"
 				options={{
 					title: 'Events',
-					tabBarIcon: ({ color }) => <Ionicons name="calendar-outline" size={20} color={color} />,
+					tabBarIcon: ({ color }) => <Ionicons name="calendar-outline" size={tabIconSize} color={color} />,
 				}}
 			/>
 			<Tabs.Screen
 				name="tasks/index"
 				options={{
 					title: 'Tasks',
-					tabBarIcon: ({ color }) => <Ionicons name="checkmark-done-outline" size={20} color={color} />,
+					tabBarIcon: ({ color }) => <Ionicons name="checkmark-done-outline" size={tabIconSize} color={color} />,
 				}}
 			/>
 			<Tabs.Screen
 				name="chat/index"
 				options={{
 					title: 'Chat',
-					tabBarIcon: ({ color }) => <Ionicons name="chatbubble-outline" size={20} color={color} />,
+					tabBarIcon: ({ color }) => <Ionicons name="chatbubble-outline" size={tabIconSize} color={color} />,
 				}}
 			/>
 			<Tabs.Screen

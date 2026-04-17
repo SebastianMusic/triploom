@@ -8,10 +8,11 @@ type CardTone = 'surface' | 'soft';
 export type CardProps = ViewProps & {
   tone?: CardTone;
   shadow?: ShadowLevel;
+  outlined?: boolean;
   style?: StyleProp<ViewStyle>;
 };
 
-export function Card({ tone = 'surface', shadow = 'md', style, ...props }: CardProps) {
+export function Card({ tone = 'surface', shadow = 'md', outlined = false, style, ...props }: CardProps) {
   const {
     theme: { colors, radius, spacing },
   } = useAppTheme();
@@ -22,7 +23,7 @@ export function Card({ tone = 'surface', shadow = 'md', style, ...props }: CardP
         {
           backgroundColor: tone === 'surface' ? colors.bgLight : colors.bgLight,
           borderColor: tone === 'surface' ? colors.borderMuted : colors.border,
-          borderWidth: 1,
+          borderWidth: outlined ? 1 : 0,
           borderRadius: radius.m,
           padding: spacing.l,
         },
