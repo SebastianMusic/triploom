@@ -19,3 +19,5 @@ export const createTripSchema = z.object({
 }) satisfies z.ZodType<Omit<TripInsert, 'id' | 'created_at' | 'organizer_id' | 'event_permission'>>;
 
 export type CreateTripDTO = z.infer<typeof createTripSchema>;
+
+export type TripWithRole = import('@/types').Trip & { userRole: TripRole };

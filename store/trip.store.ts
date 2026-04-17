@@ -1,10 +1,11 @@
 import { create } from 'zustand';
 import type { Trip, TripParticipant } from '@/types';
-import type { CreateTripDTO } from '@/types/trip.types';
+import type { CreateTripDTO, TripWithRole } from '@/types/trip.types';
 import type { RedeemInviteResponse } from '@/types/invite.types';
 import {
   createTrip as createTripService,
   getTrips as getTripsService,
+  deleteTrip as deleteTripService,
   getTripParticipant,
   leaveTrip as leaveTripService,
 } from '@/services/trip.service';
@@ -16,7 +17,7 @@ import {
 interface TripState {
   currentTrip: Trip | null;
   currentParticipant: TripParticipant | null;
-  trips: Trip[];
+  trips: TripWithRole[];
   participants: TripParticipant[];
   isLoading: boolean;
   inviteUrl: string | null;
@@ -24,11 +25,12 @@ interface TripState {
   isRedeemingInvite: boolean;
   inviteError: string | null;
   setCurrentTrip: (trip: Trip | null) => void;
-  setTrips: (trips: Trip[]) => void;
+  setTrips: (trips: TripWithRole[]) => void;
   setParticipants: (participants: TripParticipant[]) => void;
   setLoading: (isLoading: boolean) => void;
   fetchTrips: () => Promise<void>;
   createTrip: (dto: CreateTripDTO) => Promise<Trip>;
+  deleteTrip: (tripId: string) => Promise<void>;
   fetchCurrentParticipant: (tripId: string, userId: string) => Promise<void>;
   generateInvite: (tripId: string) => Promise<string>;
   redeemInvite: (code: string) => Promise<RedeemInviteResponse>;
@@ -68,6 +70,20 @@ export const useTripStore = create<TripState>()((set) => ({
       const trip = await createTripService(dto);
       set((state) => ({ trips: [...state.trips, trip], isLoading: false }));
       return trip;
+    } catch (error) {
+      set({ isLoading: false });
+      throw error;
+    }
+  },
+
+  deleteTrip: async (tripId) => {
+    set({ isLoading: true });
+    try {
+      await deleteTripService(tripId);
+      set((state) => ({
+        trips: state.trips.filter((t) => t.id !== tripId),
+        isLoading: false,
+      }));
     } catch (error) {
       set({ isLoading: false });
       throw error;

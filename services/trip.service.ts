@@ -1,16 +1,16 @@
 import { supabase } from '@/lib/supabase';
 import type { Trip, TripParticipant, TripUpdate } from '@/types';
-import type { CreateTripDTO } from '@/types/trip.types';
+import type { CreateTripDTO, TripWithRole } from '@/types/trip.types';
 import { TripRole } from '@/types/trip.types';
 
-export async function getTrips(): Promise<Trip[]> {
+export async function getTrips(): Promise<TripWithRole[]> {
   const { data: { session } } = await supabase.auth.getSession();
   const userId = session?.user.id;
   if (!userId) return [];
 
   const { data: participantRows, error: participantError } = await supabase
     .from('trip_participant')
-    .select('trip_id')
+    .select('trip_id, role')
     .eq('user_id', userId);
 
   if (participantError) throw participantError;
@@ -18,13 +18,18 @@ export async function getTrips(): Promise<Trip[]> {
   const tripIds = (participantRows ?? []).map((row) => row.trip_id).filter(Boolean) as string[];
   if (tripIds.length === 0) return [];
 
+  const roleMap = new Map(participantRows!.map((row) => [row.trip_id, row.role as TripRole]));
+
   const { data: trips, error: tripsError } = await supabase
     .from('trip')
     .select('*')
     .in('id', tripIds);
 
   if (tripsError) throw tripsError;
-  return trips ?? [];
+  return (trips ?? []).map((trip) => ({
+    ...trip,
+    userRole: roleMap.get(trip.id) ?? TripRole.Participant,
+  }));
 }
 
 export async function getTripById(id: string): Promise<Trip> {
@@ -68,6 +73,15 @@ export async function updateTrip(id: string, updates: TripUpdate): Promise<Trip>
 }
 
 export async function deleteTrip(id: string): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  const userId = user?.id;
+  if (!userId) throw new Error('Not authenticated.');
+
+  const participant = await getTripParticipant(id, userId);
+  if (participant.role !== TripRole.Organizer) {
+    throw new Error('Only the organizer can delete a trip.');
+  }
+
   const { error } = await supabase.from('trip').delete().eq('id', id);
   if (error) throw error;
 }
