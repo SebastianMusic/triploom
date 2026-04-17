@@ -14,6 +14,8 @@ export { createAnnouncementSchema, updateAnnouncementSchema } from './announceme
 export type { CreateAnnouncementDTO, UpdateAnnouncementDTO } from './announcement.types';
 export { generateInviteSchema, redeemInviteSchema } from './invite.types';
 export type { GenerateInviteDTO, RedeemInviteDTO, GenerateInviteResponse, RedeemInviteResponse } from './invite.types';
+export { sendMessageSchema } from './chat.types';
+export type { SendMessageDTO, MessageWithSender, ChatRoomWithMeta } from './chat.types';
 
 import type { Tables, TablesInsert, TablesUpdate } from './database.types';
 
