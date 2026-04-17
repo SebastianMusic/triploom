@@ -1,5 +1,4 @@
-import { Image, type ImageSourcePropType } from 'react-native';
-import type { ImageStyle, StyleProp } from 'react-native';
+import { Image, type ImageSourcePropType, type ImageStyle, type StyleProp } from 'react-native';
 
 import { useAppTheme } from '@/hooks/use-app-theme';
 
@@ -23,7 +22,7 @@ export function ThemedImage({ source, height = 160, style }: ThemedImageProps) {
           width: '100%',
           height,
           borderRadius: radius.m,
-          backgroundColor: colors.bgLight,
+          backgroundColor: colors.surface,
         },
         style,
       ]}

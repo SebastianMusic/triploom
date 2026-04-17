@@ -1,5 +1,6 @@
 import { ImageBackground, Pressable, View, type PressableProps } from 'react-native';
 
+import { getShadow } from '@/components/ui/shadow';
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/hooks/use-app-theme';
 
@@ -35,17 +36,13 @@ export function EventCard({
         transform: [{ scale: pressed ? 0.995 : 1 }],
       })}
       {...props}>
-      <View
-        style={{
-          borderRadius: radius.l,
-          overflow: 'hidden',
-          backgroundColor: colors.bgLight,
-          shadowColor: colors.shadow,
-          shadowOpacity: 0.16,
-          shadowRadius: 16,
-          shadowOffset: { width: 0, height: 8 },
-          elevation: 7,
-        }}>
+        <View
+          style={{
+            borderRadius: radius.l,
+            overflow: 'hidden',
+            backgroundColor: colors.surface,
+            ...getShadow('lg', colors.shadow),
+          }}>
         <ImageBackground
           source={{ uri: imageUrl }}
           style={{

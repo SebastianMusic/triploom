@@ -1,11 +1,12 @@
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { Pressable, View, useWindowDimensions } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { Animated, Easing, Pressable, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { layout, motion } from '@/constants/theme';
 import { useAppTheme } from '@/hooks/use-app-theme';
 
-const TAB_BAR_WIDTH_RATIO = 0.9;
-const TAB_BAR_WIDTH = `${TAB_BAR_WIDTH_RATIO * 100}%`;
+const TAB_BAR_WIDTH_RATIO = layout.tabBarWidthRatio;
 const TAB_ROUTES = ['home/index', 'events/index', 'tasks/index', 'chat/index'] as const;
 
 export function TripTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
@@ -22,10 +23,28 @@ export function TripTabBar({ state, descriptors, navigation }: BottomTabBarProps
   const bottomOffset = horizontalInset + insets.bottom / 4;
   const barHeight = spacing.l + spacing.s;
   const fadeHeight = bottomOffset + barHeight + spacing.m;
+  const barHorizontalPadding = spacing.s / 2;
+  const barVerticalPadding = spacing.s / 2;
   const visibleRoutes = state.routes.filter((route) =>
     TAB_ROUTES.includes(route.name as (typeof TAB_ROUTES)[number])
   );
-  const itemWidth = `${100 / visibleRoutes.length}%` as `${number}%`;
+  const visibleRouteCount = Math.max(visibleRoutes.length, 1);
+  const itemWidth = `${100 / visibleRouteCount}%` as `${number}%`;
+  const visibleIndex = visibleRoutes.findIndex((route) => route.key === state.routes[state.index]?.key);
+  const activeIndex = visibleIndex < 0 ? 0 : visibleIndex;
+  const barWidth = screenWidth * TAB_BAR_WIDTH_RATIO;
+  const sliderWidth = (barWidth - barHorizontalPadding * 2) / visibleRouteCount;
+  const sliderOffset = sliderWidth * activeIndex;
+  const sliderTranslateX = useRef(new Animated.Value(sliderOffset)).current;
+
+  useEffect(() => {
+    Animated.timing(sliderTranslateX, {
+      toValue: sliderOffset,
+      duration: motion.normal,
+      easing: Easing.bezier(0.22, 1, 0.36, 1),
+      useNativeDriver: true,
+    }).start();
+  }, [sliderOffset, sliderTranslateX]);
 
   return (
     <View
@@ -83,11 +102,11 @@ export function TripTabBar({ state, descriptors, navigation }: BottomTabBarProps
 
       <View
         style={{
-          width: TAB_BAR_WIDTH,
+          width: barWidth,
           minHeight: barHeight,
           marginBottom: bottomOffset,
-          paddingHorizontal: spacing.s / 2,
-          paddingVertical: spacing.s / 2,
+          paddingHorizontal: barHorizontalPadding,
+          paddingVertical: barVerticalPadding,
           flexDirection: 'row',
           alignItems: 'center',
           borderRadius: radius.full,
@@ -98,6 +117,19 @@ export function TripTabBar({ state, descriptors, navigation }: BottomTabBarProps
           shadowOffset: { width: 0, height: 18 },
           elevation: 28,
         }}>
+        <Animated.View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            left: barHorizontalPadding,
+            top: barVerticalPadding,
+            bottom: barVerticalPadding,
+            width: sliderWidth,
+            borderRadius: radius.full,
+            backgroundColor: colors.navigationPill,
+            transform: [{ translateX: sliderTranslateX }],
+          }}
+        />
         {visibleRoutes.map((route) => {
           const descriptor = descriptors[route.key];
           const options = descriptor.options;
@@ -141,6 +173,7 @@ export function TripTabBar({ state, descriptors, navigation }: BottomTabBarProps
                 alignItems: 'center',
                 justifyContent: 'center',
                 borderRadius: radius.full,
+                zIndex: 1,
               }}>
               {options.tabBarIcon?.({
                 focused: isFocused,

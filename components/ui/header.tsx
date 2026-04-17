@@ -1,5 +1,7 @@
+import type { ReactNode } from 'react';
 import { View } from 'react-native';
 
+import { Badge } from '@/components/ui/badge';
 import { useAppTheme } from '@/hooks/use-app-theme';
 import { AppText } from '@/components/ui/text';
 
@@ -8,31 +10,31 @@ export type HeaderProps = {
   subtitle?: string;
   badge?: string;
   eyebrow?: string;
+  action?: ReactNode;
 };
 
-export function Header({ title, subtitle, badge, eyebrow }: HeaderProps) {
+export function Header({ title, subtitle, badge, eyebrow, action }: HeaderProps) {
   const {
-    theme: { colors, spacing, radius },
+    theme: { spacing },
   } = useAppTheme();
 
   return (
     <View style={{ gap: spacing.m }}>
-      {eyebrow ? <AppText variant="caption" tone="secondary">{eyebrow}</AppText> : null}
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.m }}>
-        <AppText variant="title">{title}</AppText>
-        {badge ? (
-          <View
-            style={{
-              backgroundColor: colors.highlight,
-              paddingHorizontal: spacing.m,
-              paddingVertical: spacing.s,
-              borderRadius: radius.full,
-            }}>
-            <AppText variant="caption">{badge}</AppText>
-          </View>
-        ) : null}
+      {eyebrow ? (
+        <AppText variant="caption" tone="secondary">
+          {eyebrow}
+        </AppText>
+      ) : null}
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: spacing.m }}>
+        <View style={{ flex: 1, gap: spacing.s / 2 }}>
+          <AppText variant="title">{title}</AppText>
+          {subtitle ? <AppText tone="muted">{subtitle}</AppText> : null}
+        </View>
+        <View style={{ alignItems: 'flex-end', gap: spacing.s / 2 }}>
+          {badge ? <Badge label={badge} tone="highlight" /> : null}
+          {action}
+        </View>
       </View>
-      {subtitle ? <AppText tone="muted">{subtitle}</AppText> : null}
     </View>
   );
 }

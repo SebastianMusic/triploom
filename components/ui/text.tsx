@@ -2,8 +2,16 @@ import { Text, type StyleProp, type TextProps, type TextStyle } from 'react-nati
 
 import { useAppTheme } from '@/hooks/use-app-theme';
 
-type TextVariant = 'title' | 'subtitle' | 'body' | 'caption';
-type TextTone = 'default' | 'muted' | 'primary' | 'secondary' | 'danger' | 'success';
+type TextVariant = 'display' | 'title' | 'subtitle' | 'body' | 'caption' | 'label';
+type TextTone =
+  | 'default'
+  | 'muted'
+  | 'primary'
+  | 'secondary'
+  | 'danger'
+  | 'success'
+  | 'warning'
+  | 'info';
 
 export type AppTextProps = TextProps & {
   variant?: TextVariant;
@@ -17,33 +25,47 @@ export function AppText({ variant = 'body', tone = 'default', style, ...props }:
   } = useAppTheme();
 
   const variantStyle: TextStyle =
-    variant === 'title'
+    variant === 'display'
       ? {
-          fontSize: typography.title.fontSize,
-          fontWeight: typography.title.fontWeight,
-          fontFamily: typography.title.fontFamily,
-          lineHeight: typography.title.lineHeight,
+          fontSize: typography.display.fontSize,
+          fontWeight: typography.display.fontWeight,
+          fontFamily: typography.display.fontFamily,
+          lineHeight: typography.display.lineHeight,
         }
-      : variant === 'subtitle'
+      : variant === 'title'
         ? {
-            fontSize: typography.subtitle.fontSize,
-            fontWeight: typography.subtitle.fontWeight,
-            fontFamily: typography.subtitle.fontFamily,
-            lineHeight: typography.subtitle.lineHeight,
+            fontSize: typography.title.fontSize,
+            fontWeight: typography.title.fontWeight,
+            fontFamily: typography.title.fontFamily,
+            lineHeight: typography.title.lineHeight,
           }
-        : variant === 'caption'
+        : variant === 'subtitle'
           ? {
-              fontSize: typography.caption.fontSize,
-              fontWeight: typography.caption.fontWeight,
-              fontFamily: typography.caption.fontFamily,
-              lineHeight: typography.caption.lineHeight,
+              fontSize: typography.subtitle.fontSize,
+              fontWeight: typography.subtitle.fontWeight,
+              fontFamily: typography.subtitle.fontFamily,
+              lineHeight: typography.subtitle.lineHeight,
             }
-          : {
-              fontSize: typography.body.fontSize,
-              fontWeight: typography.body.fontWeight,
-              fontFamily: typography.body.fontFamily,
-              lineHeight: typography.body.lineHeight,
-            };
+          : variant === 'caption'
+            ? {
+                fontSize: typography.caption.fontSize,
+                fontWeight: typography.caption.fontWeight,
+                fontFamily: typography.caption.fontFamily,
+                lineHeight: typography.caption.lineHeight,
+              }
+            : variant === 'label'
+              ? {
+                  fontSize: typography.label.fontSize,
+                  fontWeight: typography.label.fontWeight,
+                  fontFamily: typography.label.fontFamily,
+                  lineHeight: typography.label.lineHeight,
+                }
+              : {
+                  fontSize: typography.body.fontSize,
+                  fontWeight: typography.body.fontWeight,
+                  fontFamily: typography.body.fontFamily,
+                  lineHeight: typography.body.lineHeight,
+                };
 
   const color =
     tone === 'muted'
@@ -56,6 +78,10 @@ export function AppText({ variant = 'body', tone = 'default', style, ...props }:
             ? colors.danger
             : tone === 'success'
               ? colors.success
+              : tone === 'warning'
+                ? colors.warning
+                : tone === 'info'
+                  ? colors.info
               : colors.text;
 
   return <Text style={[variantStyle, { color }, style]} {...props} />;

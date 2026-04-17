@@ -25,7 +25,7 @@ export function ThemeSwitch() {
         value={mode === 'dark'}
         onValueChange={toggleMode}
         trackColor={{ false: colors.border, true: colors.secondary }}
-        thumbColor={mode === 'dark' ? colors.bgLight : colors.primary}
+        thumbColor={mode === 'dark' ? colors.surface : colors.primary}
       />
     </View>
   );
