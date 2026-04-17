@@ -43,6 +43,9 @@ app-example
 /android
 
 .sisyphus
+<<<<<<< HEAD
 
 # Supabase CLI local cache
 supabase/.temp/
+
+firebase-secret.json
