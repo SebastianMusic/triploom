@@ -18,10 +18,10 @@ export function Badge({ label, variant = 'info', style }: BadgeProps) {
 
   const palette =
     variant === 'success'
-      ? { backgroundColor: colors.successSoft, textColor: colors.success }
+      ? { backgroundColor: colors.surfaceMuted, textColor: colors.success }
       : variant === 'warning'
-        ? { backgroundColor: colors.warningSoft, textColor: colors.warning }
-        : { backgroundColor: colors.infoSoft, textColor: colors.info };
+        ? { backgroundColor: colors.secondarySoft, textColor: colors.warning }
+        : { backgroundColor: colors.primarySoft, textColor: colors.primary };
 
   return (
     <View

@@ -13,7 +13,7 @@ export type ListItemProps = Omit<PressableProps, 'style'> & {
 
 export function ListItem({ title, subtitle, leading, trailing, disabled, ...props }: ListItemProps) {
   const {
-    theme: { colors, opacity, radius, sizes, spacing, stroke },
+    theme: { colors, opacity, radius, sizes, spacing },
   } = useAppTheme();
 
   return (
@@ -22,9 +22,7 @@ export function ListItem({ title, subtitle, leading, trailing, disabled, ...prop
       style={({ pressed, hovered }) => ({
         minHeight: sizes.listItem.minHeight,
         borderRadius: radius.lg,
-        borderWidth: stroke.thin,
-        borderColor: colors.border,
-        backgroundColor: colors.surface,
+        backgroundColor: colors.surfaceMuted,
         paddingHorizontal: spacing.sm,
         paddingVertical: spacing.sm - spacing.xs / 2,
         flexDirection: 'row',

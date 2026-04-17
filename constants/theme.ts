@@ -13,10 +13,10 @@ export const spacing = {
 } as const;
 
 export const radius = {
-  sm: 12,
-  md: 18,
-  lg: 24,
-  xl: 32,
+  sm: 14,
+  md: 20,
+  lg: 28,
+  xl: 36,
   full: 999,
 } as const;
 
@@ -27,22 +27,22 @@ export const stroke = {
 } as const;
 
 export const opacity = {
-  pressed: 0.88,
-  hover: 0.94,
+  pressed: 0.9,
+  hover: 0.96,
   disabled: 0.45,
 } as const;
 
 export const motion = {
-  fast: 160,
-  normal: 220,
+  fast: 180,
+  normal: 240,
   slow: 320,
 } as const;
 
 export const sizes = {
   icon: {
-    sm: 16,
-    md: 20,
-    lg: 24,
+    sm: 18,
+    md: 22,
+    lg: 26,
   },
   button: {
     sm: 40,
@@ -51,15 +51,24 @@ export const sizes = {
   },
   input: {
     md: 52,
-    lg: 120,
+    lg: 128,
   },
   avatar: {
-    sm: 32,
+    sm: 36,
+    md: 48,
+    lg: 64,
+  },
+  iconButton: {
     md: 44,
-    lg: 56,
+    lg: 52,
   },
   listItem: {
-    minHeight: 72,
+    minHeight: 76,
+  },
+  navigation: {
+    barHeight: 72,
+    headerAction: 44,
+    indicatorInset: 8,
   },
 } as const;
 
@@ -68,6 +77,10 @@ export const layout = {
   contentGap: spacing.md,
   sectionGap: spacing.lg,
   rowGap: spacing.sm,
+  headerPaddingHorizontal: spacing.md,
+  headerPaddingBottom: spacing.sm,
+  floatingBarWidth: '92%' as const,
+  floatingBarMaxWidth: 460,
 } as const;
 
 const fontFamilies = Platform.select({
@@ -99,15 +112,17 @@ const fontFamilies = Platform.select({
 export const typography = {
   title: {
     fontFamily: fontFamilies.sans,
-    fontSize: 32,
-    lineHeight: 40,
+    fontSize: 36,
+    lineHeight: 42,
     fontWeight: '700' as const,
+    letterSpacing: -0.7,
   },
   subtitle: {
     fontFamily: fontFamilies.sans,
-    fontSize: 22,
+    fontSize: 24,
     lineHeight: 30,
     fontWeight: '600' as const,
+    letterSpacing: -0.3,
   },
   body: {
     fontFamily: fontFamilies.sans,
@@ -118,13 +133,13 @@ export const typography = {
   caption: {
     fontFamily: fontFamilies.sans,
     fontSize: 13,
-    lineHeight: 20,
+    lineHeight: 18,
     fontWeight: '500' as const,
   },
   label: {
     fontFamily: fontFamilies.sans,
     fontSize: 15,
-    lineHeight: 22,
+    lineHeight: 20,
     fontWeight: '600' as const,
   },
 } as const satisfies Record<string, TextStyle>;
@@ -142,30 +157,22 @@ type ThemeColors = {
   secondary: string;
   secondarySoft: string;
   accent: string;
-  accentSoft: string;
   border: string;
   borderStrong: string;
   focusRing: string;
   icon: string;
   shadow: string;
   overlay: string;
-  info: string;
-  infoSoft: string;
   success: string;
-  successSoft: string;
   warning: string;
-  warningSoft: string;
   error: string;
-  errorSoft: string;
-  tabIconDefault: string;
-  tabIconSelected: string;
-  navigationPill: string;
 };
 
 type ThemeShadows = {
   none: ViewStyle;
   sm: ViewStyle;
   md: ViewStyle;
+  lg: ViewStyle;
 };
 
 export type AppTheme = {
@@ -184,68 +191,50 @@ export type AppTheme = {
 
 const lightColors: ThemeColors = {
   transparent: 'transparent',
-  background: '#F7F8FA',
+  background: '#F6F8FC',
   surface: '#FFFFFF',
-  surfaceMuted: '#F3F5F8',
-  text: '#101214',
-  textMuted: '#5F6B77',
+  surfaceMuted: '#EEF3F9',
+  text: '#14202B',
+  textMuted: '#647487',
   textOnPrimary: '#FFFFFF',
-  primary: '#5877A6',
-  primarySoft: '#E8EEF7',
-  secondary: '#E7DDD0',
-  secondarySoft: '#F4EEE5',
-  accent: '#E7C86B',
-  accentSoft: '#FBF2D2',
-  border: '#E3E8EE',
-  borderStrong: '#CBD4DE',
-  focusRing: '#6D88B2',
-  icon: '#6D7782',
-  shadow: 'rgba(16,18,20,0.10)',
-  overlay: 'rgba(16,18,20,0.08)',
-  info: '#5877A6',
-  infoSoft: '#E8EEF7',
-  success: '#2F855A',
-  successSoft: '#E7F3EC',
-  warning: '#B6802F',
-  warningSoft: '#F8EEDB',
-  error: '#C65555',
-  errorSoft: '#FAE8E8',
-  tabIconDefault: '#6D7782',
-  tabIconSelected: '#5877A6',
-  navigationPill: '#EEF2F6',
+  primary: '#4D78D7',
+  primarySoft: '#E8F0FF',
+  secondary: '#7A91B8',
+  secondarySoft: '#EDF3FB',
+  accent: '#E4C86E',
+  border: '#E1E9F2',
+  borderStrong: '#CCD8E5',
+  focusRing: '#6D93E4',
+  icon: '#6B7C90',
+  shadow: 'rgba(20, 32, 43, 0.14)',
+  overlay: 'rgba(20, 32, 43, 0.08)',
+  success: '#2F8B5E',
+  warning: '#B98634',
+  error: '#C85A54',
 };
 
 const darkColors: ThemeColors = {
   transparent: 'transparent',
   background: '#000000',
-  surface: '#0B0D0F',
-  surfaceMuted: '#15181B',
-  text: '#F5F7F9',
-  textMuted: '#A6B0BA',
-  textOnPrimary: '#F5F7F9',
-  primary: '#7F9CC7',
-  primarySoft: '#172130',
-  secondary: '#8E7C63',
-  secondarySoft: '#1C1814',
-  accent: '#D3B362',
-  accentSoft: '#282111',
-  border: '#1C2127',
-  borderStrong: '#2B333B',
-  focusRing: '#8EACD6',
-  icon: '#A6B0BA',
-  shadow: 'rgba(0,0,0,0.46)',
-  overlay: 'rgba(0,0,0,0.34)',
-  info: '#7F9CC7',
-  infoSoft: '#172130',
-  success: '#59A37E',
-  successSoft: '#122018',
-  warning: '#CAA162',
-  warningSoft: '#241C10',
-  error: '#D97373',
-  errorSoft: '#2A1616',
-  tabIconDefault: '#A6B0BA',
-  tabIconSelected: '#F5F7F9',
-  navigationPill: '#171C21',
+  surface: '#0B1017',
+  surfaceMuted: '#141D28',
+  text: '#F5F7FB',
+  textMuted: '#9AA9BC',
+  textOnPrimary: '#F5F7FB',
+  primary: '#86A9F4',
+  primarySoft: '#16253B',
+  secondary: '#A0B4D3',
+  secondarySoft: '#101926',
+  accent: '#D8B95E',
+  border: '#1A2430',
+  borderStrong: '#253345',
+  focusRing: '#93B5FF',
+  icon: '#A0AEC0',
+  shadow: 'rgba(0, 0, 0, 0.56)',
+  overlay: 'rgba(0, 0, 0, 0.42)',
+  success: '#61B07F',
+  warning: '#D2A04A',
+  error: '#E07A73',
 };
 
 const lightShadows: ThemeShadows = {
@@ -258,16 +247,23 @@ const lightShadows: ThemeShadows = {
   sm: {
     shadowColor: lightColors.shadow,
     shadowOpacity: 1,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
   },
   md: {
     shadowColor: lightColors.shadow,
     shadowOpacity: 1,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 6,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 8,
+  },
+  lg: {
+    shadowColor: lightColors.shadow,
+    shadowOpacity: 1,
+    shadowRadius: 30,
+    shadowOffset: { width: 0, height: 14 },
+    elevation: 12,
   },
 };
 
@@ -281,16 +277,23 @@ const darkShadows: ThemeShadows = {
   sm: {
     shadowColor: darkColors.shadow,
     shadowOpacity: 1,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 5,
   },
   md: {
     shadowColor: darkColors.shadow,
     shadowOpacity: 1,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 8,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 9,
+  },
+  lg: {
+    shadowColor: darkColors.shadow,
+    shadowOpacity: 1,
+    shadowRadius: 34,
+    shadowOffset: { width: 0, height: 16 },
+    elevation: 13,
   },
 };
 
