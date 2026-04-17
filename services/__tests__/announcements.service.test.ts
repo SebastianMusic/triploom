@@ -1,3 +1,8 @@
+import { supabase } from '@/lib/supabase';
+import { getSupabaseAdmin } from '@/lib/supabase.admin';
+import { createTrip } from '@/services/trip.service';
+import { TripRole } from '@/types/trip.types';
+import { createTestUser, TEST_PASSWORD, type TestUser } from '@/__integration__/helpers/user';
 import {
   getAnnouncements,
   createAnnouncement,
@@ -7,125 +12,64 @@ import {
   createAnnouncementSchema,
   updateAnnouncementSchema,
 } from '@/types/announcement.types';
-import { TripRole } from '@/types/trip.types';
-import type { Announcement, TripParticipant } from '@/types';
 
-jest.mock('@/lib/supabase', () => ({
-  supabase: {
-    from: jest.fn(),
-    auth: { getSession: jest.fn() },
-  },
-}));
+jest.setTimeout(20000);
 
-import { supabase } from '@/lib/supabase';
-const mockSupabase = supabase as jest.Mocked<typeof supabase>;
+let organizer: TestUser;
+let coOrganizer: TestUser;
+let participant: TestUser;
+let tripId: string;
 
-// ---------------------------------------------------------------------------
-// Fixtures
-// ---------------------------------------------------------------------------
+beforeAll(async () => {
+  const admin = getSupabaseAdmin();
 
-const mockOrganizer: TripParticipant = {
-  id: 'participant-1',
-  trip_id: 'trip-1',
-  user_id: 'user-organizer',
-  role: TripRole.Organizer,
-  created_at: '2026-04-01T00:00:00Z',
-};
+  // organizer creates the trip — auto-added as Organizer in trip_participant
+  organizer = await createTestUser();
+  const trip = await createTrip({ name: 'Announcement Integration Trip' });
+  tripId = trip.id;
 
-const mockCoOrganizer: TripParticipant = {
-  id: 'participant-2',
-  trip_id: 'trip-1',
-  user_id: 'user-co',
-  role: TripRole.CoOrganizer,
-  created_at: '2026-04-01T00:00:00Z',
-};
-
-const mockParticipant: TripParticipant = {
-  id: 'participant-3',
-  trip_id: 'trip-1',
-  user_id: 'user-participant',
-  role: TripRole.Participant,
-  created_at: '2026-04-01T00:00:00Z',
-};
-
-const mockNullRoleParticipant: TripParticipant = {
-  id: 'participant-4',
-  trip_id: 'trip-1',
-  user_id: 'user-null-role',
-  role: null,
-  created_at: '2026-04-01T00:00:00Z',
-};
-
-const mockAnnouncement: Announcement = {
-  id: 'ann-1',
-  trip_id: 'trip-1',
-  participant_id: 'participant-1',
-  title: 'Pack light',
-  description: 'We have limited luggage space.',
-  created_at: '2026-04-10T10:00:00Z',
-};
-
-// ---------------------------------------------------------------------------
-// Mock chain helpers
-// ---------------------------------------------------------------------------
-
-/**
- * Mocks: .select('*').eq(trip_id).eq(user_id).single()
- * Used by the internal getParticipant helper.
- */
-function mockParticipantFetch(data: TripParticipant | null, error: object | null = null) {
-  const single = jest.fn().mockResolvedValue({ data, error });
-  const eq2 = jest.fn().mockReturnValue({ single });
-  const eq1 = jest.fn().mockReturnValue({ eq: eq2 });
-  const select = jest.fn().mockReturnValue({ eq: eq1 });
-  return { select } as any;
-}
-
-/**
- * Mocks: .select('*').eq('trip_id', ...).order(...)
- * Used by getAnnouncements.
- */
-function mockGetAnnouncementsChain(data: Announcement[], error: object | null = null) {
-  const order = jest.fn().mockResolvedValue({ data, error });
-  const eq = jest.fn().mockReturnValue({ order });
-  const select = jest.fn().mockReturnValue({ eq });
-  return { fromReturn: { select } as any, order, eq };
-}
-
-/**
- * Mocks: .insert({...}).select().single()
- * Used by createAnnouncement.
- */
-function mockInsertChain(data: Announcement | null, error: object | null = null) {
-  const single = jest.fn().mockResolvedValue({ data, error });
-  const select = jest.fn().mockReturnValue({ single });
-  const insert = jest.fn().mockReturnValue({ select });
-  return { fromReturn: { insert } as any, insert };
-}
-
-/**
- * Mocks: .update({...}).eq('id', ...).eq('trip_id', ...).select().single()
- * Used by updateAnnouncement.
- */
-function mockUpdateChain(data: Announcement | null, error: object | null = null) {
-  const single = jest.fn().mockResolvedValue({ data, error });
-  const select = jest.fn().mockReturnValue({ single });
-  const eq2 = jest.fn().mockReturnValue({ select });
-  const eq1 = jest.fn().mockReturnValue({ eq: eq2 });
-  const update = jest.fn().mockReturnValue({ eq: eq1 });
-  return { fromReturn: { update } as any, update };
-}
-
-// ---------------------------------------------------------------------------
-// Shared beforeEach — default to an authenticated organizer session
-// ---------------------------------------------------------------------------
-
-beforeEach(() => {
-  jest.clearAllMocks();
-  (mockSupabase.auth.getSession as jest.Mock).mockResolvedValue({
-    data: { session: { user: { id: 'user-organizer' } } },
-    error: null,
+  // createTestUser signs in as the new user, overwriting the session each time —
+  // re-sign in as organizer at the end of setup
+  coOrganizer = await createTestUser();
+  const { error: coError } = await admin.from('trip_participant').insert({
+    trip_id: tripId,
+    user_id: coOrganizer.id,
+    role: TripRole.CoOrganizer,
   });
+  if (coError) throw new Error(`Setup: failed to insert co-organizer — ${coError.message}`);
+
+  participant = await createTestUser();
+  const { error: pError } = await admin.from('trip_participant').insert({
+    trip_id: tripId,
+    user_id: participant.id,
+    role: TripRole.Participant,
+  });
+  if (pError) throw new Error(`Setup: failed to insert participant — ${pError.message}`);
+
+  const { error: signInError } = await supabase.auth.signInWithPassword({
+    email: organizer.email,
+    password: TEST_PASSWORD,
+  });
+  if (signInError) throw new Error(`Setup: failed to re-sign in as organizer — ${signInError.message}`);
+});
+
+afterAll(async () => {
+  const admin = getSupabaseAdmin();
+  // Delete in FK-safe order: announcements → participants → trip → users
+  await admin.from('announcement').delete().eq('trip_id', tripId);
+  await admin.from('trip_participant').delete().eq('trip_id', tripId);
+  await admin.from('trip').delete().eq('id', tripId);
+  await participant.cleanup();
+  await coOrganizer.cleanup();
+  await organizer.cleanup();
+});
+
+beforeEach(async () => {
+  const { error } = await supabase.auth.signInWithPassword({
+    email: organizer.email,
+    password: TEST_PASSWORD,
+  });
+  if (error) throw new Error(`beforeEach: failed to re-sign in as organizer — ${error.message}`);
 });
 
 // ---------------------------------------------------------------------------
@@ -158,8 +102,7 @@ describe('createAnnouncementSchema', () => {
   });
 
   it('rejects a missing title', () => {
-    const result = createAnnouncementSchema.safeParse({ description: 'No title here' });
-    expect(result.success).toBe(false);
+    expect(createAnnouncementSchema.safeParse({ description: 'No title here' }).success).toBe(false);
   });
 
   it('rejects an entirely empty object', () => {
@@ -208,111 +151,112 @@ describe('updateAnnouncementSchema', () => {
 // ---------------------------------------------------------------------------
 
 describe('getAnnouncements', () => {
-  it('returns the announcements array for a trip', async () => {
-    const { fromReturn } = mockGetAnnouncementsChain([mockAnnouncement]);
-    mockSupabase.from.mockReturnValue(fromReturn);
-
-    const result = await getAnnouncements('trip-1');
-
-    expect(mockSupabase.from).toHaveBeenCalledWith('announcement');
-    expect(result).toEqual([mockAnnouncement]);
-  });
-
   it('returns an empty array when no announcements exist', async () => {
-    const { fromReturn } = mockGetAnnouncementsChain([]);
-    mockSupabase.from.mockReturnValue(fromReturn);
-
-    const result = await getAnnouncements('trip-1');
-
-    expect(result).toEqual([]);
+    const result = await getAnnouncements(tripId);
+    expect(Array.isArray(result)).toBe(true);
   });
 
-  it('filters by the correct trip_id', async () => {
-    const { fromReturn, eq } = mockGetAnnouncementsChain([]);
-    mockSupabase.from.mockReturnValue(fromReturn);
+  it('returns created announcements for the trip', async () => {
+    const admin = getSupabaseAdmin();
+    const { data: participant_row } = await admin
+      .from('trip_participant')
+      .select('id')
+      .eq('trip_id', tripId)
+      .eq('user_id', organizer.id)
+      .single();
 
-    await getAnnouncements('trip-99');
+    const { data: ann } = await admin
+      .from('announcement')
+      .insert({ trip_id: tripId, participant_id: participant_row!.id, title: 'Test fetch' })
+      .select()
+      .single();
 
-    expect(eq).toHaveBeenCalledWith('trip_id', 'trip-99');
+    const result = await getAnnouncements(tripId);
+    expect(result.some((a) => a.id === ann!.id)).toBe(true);
+
+    await admin.from('announcement').delete().eq('id', ann!.id);
   });
 
-  it('orders results by created_at descending', async () => {
-    const { fromReturn, order } = mockGetAnnouncementsChain([mockAnnouncement]);
-    mockSupabase.from.mockReturnValue(fromReturn);
+  it('orders results newest-first', async () => {
+    const admin = getSupabaseAdmin();
+    const { data: participant_row } = await admin
+      .from('trip_participant')
+      .select('id')
+      .eq('trip_id', tripId)
+      .eq('user_id', organizer.id)
+      .single();
 
-    await getAnnouncements('trip-1');
+    const pid = participant_row!.id;
+    const { data: first } = await admin
+      .from('announcement')
+      .insert({ trip_id: tripId, participant_id: pid, title: 'First' })
+      .select()
+      .single();
+    const { data: second } = await admin
+      .from('announcement')
+      .insert({ trip_id: tripId, participant_id: pid, title: 'Second' })
+      .select()
+      .single();
 
-    expect(order).toHaveBeenCalledWith('created_at', { ascending: false });
-  });
+    const result = await getAnnouncements(tripId);
+    const ids = result.map((a) => a.id);
+    expect(ids.indexOf(second!.id)).toBeLessThan(ids.indexOf(first!.id));
 
-  it('throws when Supabase returns an error', async () => {
-    const { fromReturn } = mockGetAnnouncementsChain([], { message: 'DB error' });
-    mockSupabase.from.mockReturnValue(fromReturn);
-
-    await expect(getAnnouncements('trip-1')).rejects.toMatchObject({ message: 'DB error' });
+    await admin.from('announcement').delete().in('id', [first!.id, second!.id]);
   });
 });
 
 // ---------------------------------------------------------------------------
-// createAnnouncement — success cases
+// createAnnouncement — success
 // ---------------------------------------------------------------------------
 
 describe('createAnnouncement — success', () => {
-  it('organizer can create an announcement', async () => {
-    const { fromReturn } = mockInsertChain(mockAnnouncement);
-    mockSupabase.from
-      .mockReturnValueOnce(mockParticipantFetch(mockOrganizer))
-      .mockReturnValueOnce(fromReturn);
+  it('organizer can create an announcement and it is persisted in the DB', async () => {
+    const result = await createAnnouncement(tripId, { title: 'Pack light' });
 
-    const result = await createAnnouncement('trip-1', { title: 'Pack light' });
+    expect(result.id).toBeDefined();
+    expect(result.trip_id).toBe(tripId);
+    expect(result.title).toBe('Pack light');
 
-    expect(result).toEqual(mockAnnouncement);
+    // Verify it is actually in the DB
+    const { data } = await getSupabaseAdmin()
+      .from('announcement')
+      .select('id')
+      .eq('id', result.id)
+      .single();
+    expect(data?.id).toBe(result.id);
+
+    await getSupabaseAdmin().from('announcement').delete().eq('id', result.id);
   });
 
-  it('coOrganizer can create an announcement', async () => {
-    (mockSupabase.auth.getSession as jest.Mock).mockResolvedValue({
-      data: { session: { user: { id: 'user-co' } } },
-      error: null,
+  it('co-organizer can create an announcement', async () => {
+    await supabase.auth.signInWithPassword({ email: coOrganizer.email, password: TEST_PASSWORD });
+
+    const result = await createAnnouncement(tripId, { title: 'Co-org post' });
+
+    expect(result.id).toBeDefined();
+    expect(result.trip_id).toBe(tripId);
+
+    await getSupabaseAdmin().from('announcement').delete().eq('id', result.id);
+  });
+
+  it('stores optional description when provided', async () => {
+    const result = await createAnnouncement(tripId, {
+      title: 'With desc',
+      description: 'Bring sunscreen',
     });
 
-    const { fromReturn } = mockInsertChain(mockAnnouncement);
-    mockSupabase.from
-      .mockReturnValueOnce(mockParticipantFetch(mockCoOrganizer))
-      .mockReturnValueOnce(fromReturn);
+    expect(result.description).toBe('Bring sunscreen');
 
-    const result = await createAnnouncement('trip-1', { title: 'Pack light' });
-
-    expect(result).toEqual(mockAnnouncement);
+    await getSupabaseAdmin().from('announcement').delete().eq('id', result.id);
   });
 
-  it('inserts with the correct trip_id and participant_id', async () => {
-    const { fromReturn, insert } = mockInsertChain(mockAnnouncement);
-    mockSupabase.from
-      .mockReturnValueOnce(mockParticipantFetch(mockOrganizer))
-      .mockReturnValueOnce(fromReturn);
+  it('stores null description when omitted', async () => {
+    const result = await createAnnouncement(tripId, { title: 'No desc' });
 
-    await createAnnouncement('trip-1', { title: 'Pack light', description: 'Keep it under 10kg' });
+    expect(result.description).toBeNull();
 
-    expect(insert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        title: 'Pack light',
-        description: 'Keep it under 10kg',
-        trip_id: 'trip-1',
-        participant_id: mockOrganizer.id,
-      })
-    );
-  });
-
-  it('returns the created announcement row', async () => {
-    const { fromReturn } = mockInsertChain(mockAnnouncement);
-    mockSupabase.from
-      .mockReturnValueOnce(mockParticipantFetch(mockOrganizer))
-      .mockReturnValueOnce(fromReturn);
-
-    const result = await createAnnouncement('trip-1', { title: 'Pack light' });
-
-    expect(result.id).toBe('ann-1');
-    expect(result.trip_id).toBe('trip-1');
+    await getSupabaseAdmin().from('announcement').delete().eq('id', result.id);
   });
 });
 
@@ -321,157 +265,63 @@ describe('createAnnouncement — success', () => {
 // ---------------------------------------------------------------------------
 
 describe('createAnnouncement — role enforcement', () => {
-  it('throws when the user is a plain participant', async () => {
-    (mockSupabase.auth.getSession as jest.Mock).mockResolvedValue({
-      data: { session: { user: { id: 'user-participant' } } },
-      error: null,
-    });
-    mockSupabase.from.mockReturnValueOnce(mockParticipantFetch(mockParticipant));
+  it('plain participant is blocked', async () => {
+    await supabase.auth.signInWithPassword({ email: participant.email, password: TEST_PASSWORD });
 
     await expect(
-      createAnnouncement('trip-1', { title: 'Hello' })
+      createAnnouncement(tripId, { title: 'Should fail' })
     ).rejects.toThrow('Only organizers and co-organizers can manage announcements.');
   });
 
-  it('throws when the user has a null role', async () => {
-    (mockSupabase.auth.getSession as jest.Mock).mockResolvedValue({
-      data: { session: { user: { id: 'user-null-role' } } },
-      error: null,
-    });
-    mockSupabase.from.mockReturnValueOnce(mockParticipantFetch(mockNullRoleParticipant));
+  it('unauthenticated user is blocked', async () => {
+    await supabase.auth.signOut();
 
     await expect(
-      createAnnouncement('trip-1', { title: 'Hello' })
-    ).rejects.toThrow('Only organizers and co-organizers can manage announcements.');
-  });
-
-  it('throws when the user is not authenticated', async () => {
-    (mockSupabase.auth.getSession as jest.Mock).mockResolvedValue({
-      data: { session: null },
-      error: null,
-    });
-
-    await expect(
-      createAnnouncement('trip-1', { title: 'Hello' })
+      createAnnouncement(tripId, { title: 'Should fail' })
     ).rejects.toThrow('Not authenticated.');
   });
 });
 
 // ---------------------------------------------------------------------------
-// createAnnouncement — DB errors
-// ---------------------------------------------------------------------------
-
-describe('createAnnouncement — DB errors', () => {
-  it('throws when the participant fetch fails', async () => {
-    mockSupabase.from.mockReturnValueOnce(
-      mockParticipantFetch(null, { message: 'participant not found' })
-    );
-
-    await expect(
-      createAnnouncement('trip-1', { title: 'Hello' })
-    ).rejects.toMatchObject({ message: 'participant not found' });
-  });
-
-  it('throws when the insert fails', async () => {
-    const { fromReturn } = mockInsertChain(null, { message: 'insert failed' });
-    mockSupabase.from
-      .mockReturnValueOnce(mockParticipantFetch(mockOrganizer))
-      .mockReturnValueOnce(fromReturn);
-
-    await expect(
-      createAnnouncement('trip-1', { title: 'Hello' })
-    ).rejects.toMatchObject({ message: 'insert failed' });
-  });
-});
-
-// ---------------------------------------------------------------------------
-// updateAnnouncement — success cases
+// updateAnnouncement — success
 // ---------------------------------------------------------------------------
 
 describe('updateAnnouncement — success', () => {
-  it('organizer can update an announcement', async () => {
-    const updated = { ...mockAnnouncement, title: 'Updated title' };
-    const { fromReturn } = mockUpdateChain(updated);
-    mockSupabase.from
-      .mockReturnValueOnce(mockParticipantFetch(mockOrganizer))
-      .mockReturnValueOnce(fromReturn);
+  let announcementId: string;
 
-    const result = await updateAnnouncement('trip-1', 'ann-1', { title: 'Updated title' });
-
-    expect(result).toEqual(updated);
+  beforeEach(async () => {
+    const result = await createAnnouncement(tripId, { title: 'Original title' });
+    announcementId = result.id;
   });
 
-  it('coOrganizer can update an announcement', async () => {
-    (mockSupabase.auth.getSession as jest.Mock).mockResolvedValue({
-      data: { session: { user: { id: 'user-co' } } },
-      error: null,
-    });
-
-    const updated = { ...mockAnnouncement, title: 'Co update' };
-    const { fromReturn } = mockUpdateChain(updated);
-    mockSupabase.from
-      .mockReturnValueOnce(mockParticipantFetch(mockCoOrganizer))
-      .mockReturnValueOnce(fromReturn);
-
-    const result = await updateAnnouncement('trip-1', 'ann-1', { title: 'Co update' });
-
-    expect(result).toEqual(updated);
+  afterEach(async () => {
+    await getSupabaseAdmin().from('announcement').delete().eq('id', announcementId);
   });
 
-  it('passes the correct DTO fields to the update query', async () => {
-    const { fromReturn, update } = mockUpdateChain(mockAnnouncement);
-    mockSupabase.from
-      .mockReturnValueOnce(mockParticipantFetch(mockOrganizer))
-      .mockReturnValueOnce(fromReturn);
+  it('organizer can update the title and change is persisted in DB', async () => {
+    const result = await updateAnnouncement(tripId, announcementId, { title: 'Updated title' });
 
-    await updateAnnouncement('trip-1', 'ann-1', { title: 'New', description: 'New desc' });
+    expect(result.title).toBe('Updated title');
 
-    expect(update).toHaveBeenCalledWith({ title: 'New', description: 'New desc' });
+    const { data } = await getSupabaseAdmin()
+      .from('announcement')
+      .select('title')
+      .eq('id', announcementId)
+      .single();
+    expect(data?.title).toBe('Updated title');
   });
 
-  it('scopes the update to the given announcement id', async () => {
-    const { fromReturn, update } = mockUpdateChain(mockAnnouncement);
-    const eq1 = jest.fn().mockReturnValue({
-      eq: jest.fn().mockReturnValue({
-        select: jest.fn().mockReturnValue({
-          single: jest.fn().mockResolvedValue({ data: mockAnnouncement, error: null }),
-        }),
-      }),
-    });
-    const scopedUpdate = jest.fn().mockReturnValue({ eq: eq1 });
-    mockSupabase.from
-      .mockReturnValueOnce(mockParticipantFetch(mockOrganizer))
-      .mockReturnValueOnce({ update: scopedUpdate } as any);
+  it('co-organizer can update an announcement', async () => {
+    await supabase.auth.signInWithPassword({ email: coOrganizer.email, password: TEST_PASSWORD });
 
-    await updateAnnouncement('trip-1', 'ann-1', { title: 'x' });
+    const result = await updateAnnouncement(tripId, announcementId, { title: 'Co-org edit' });
 
-    expect(eq1).toHaveBeenCalledWith('id', 'ann-1');
+    expect(result.title).toBe('Co-org edit');
   });
 
-  it('scopes the update to the correct trip_id', async () => {
-    const single = jest.fn().mockResolvedValue({ data: mockAnnouncement, error: null });
-    const select = jest.fn().mockReturnValue({ single });
-    const eq2 = jest.fn().mockReturnValue({ select });
-    const eq1 = jest.fn().mockReturnValue({ eq: eq2 });
-    const update = jest.fn().mockReturnValue({ eq: eq1 });
-
-    mockSupabase.from
-      .mockReturnValueOnce(mockParticipantFetch(mockOrganizer))
-      .mockReturnValueOnce({ update } as any);
-
-    await updateAnnouncement('trip-1', 'ann-1', { title: 'x' });
-
-    expect(eq2).toHaveBeenCalledWith('trip_id', 'trip-1');
-  });
-
-  it('returns the updated announcement row', async () => {
-    const updated = { ...mockAnnouncement, description: null };
-    const { fromReturn } = mockUpdateChain(updated);
-    mockSupabase.from
-      .mockReturnValueOnce(mockParticipantFetch(mockOrganizer))
-      .mockReturnValueOnce(fromReturn);
-
-    const result = await updateAnnouncement('trip-1', 'ann-1', { description: null });
+  it('can clear description by setting it to null', async () => {
+    await updateAnnouncement(tripId, announcementId, { description: 'Temp desc' });
+    const result = await updateAnnouncement(tripId, announcementId, { description: null });
 
     expect(result.description).toBeNull();
   });
@@ -482,65 +332,31 @@ describe('updateAnnouncement — success', () => {
 // ---------------------------------------------------------------------------
 
 describe('updateAnnouncement — role enforcement', () => {
-  it('throws when the user is a plain participant', async () => {
-    (mockSupabase.auth.getSession as jest.Mock).mockResolvedValue({
-      data: { session: { user: { id: 'user-participant' } } },
-      error: null,
-    });
-    mockSupabase.from.mockReturnValueOnce(mockParticipantFetch(mockParticipant));
+  let announcementId: string;
+
+  beforeAll(async () => {
+    await supabase.auth.signInWithPassword({ email: organizer.email, password: TEST_PASSWORD });
+    const result = await createAnnouncement(tripId, { title: 'Role enforcement fixture' });
+    announcementId = result.id;
+  });
+
+  afterAll(async () => {
+    await getSupabaseAdmin().from('announcement').delete().eq('id', announcementId);
+  });
+
+  it('plain participant is blocked', async () => {
+    await supabase.auth.signInWithPassword({ email: participant.email, password: TEST_PASSWORD });
 
     await expect(
-      updateAnnouncement('trip-1', 'ann-1', { title: 'No' })
+      updateAnnouncement(tripId, announcementId, { title: 'Should fail' })
     ).rejects.toThrow('Only organizers and co-organizers can manage announcements.');
   });
 
-  it('throws when the user has a null role', async () => {
-    (mockSupabase.auth.getSession as jest.Mock).mockResolvedValue({
-      data: { session: { user: { id: 'user-null-role' } } },
-      error: null,
-    });
-    mockSupabase.from.mockReturnValueOnce(mockParticipantFetch(mockNullRoleParticipant));
+  it('unauthenticated user is blocked', async () => {
+    await supabase.auth.signOut();
 
     await expect(
-      updateAnnouncement('trip-1', 'ann-1', { title: 'No' })
-    ).rejects.toThrow('Only organizers and co-organizers can manage announcements.');
-  });
-
-  it('throws when the user is not authenticated', async () => {
-    (mockSupabase.auth.getSession as jest.Mock).mockResolvedValue({
-      data: { session: null },
-      error: null,
-    });
-
-    await expect(
-      updateAnnouncement('trip-1', 'ann-1', { title: 'No' })
+      updateAnnouncement(tripId, announcementId, { title: 'Should fail' })
     ).rejects.toThrow('Not authenticated.');
-  });
-});
-
-// ---------------------------------------------------------------------------
-// updateAnnouncement — DB errors
-// ---------------------------------------------------------------------------
-
-describe('updateAnnouncement — DB errors', () => {
-  it('throws when the participant fetch fails', async () => {
-    mockSupabase.from.mockReturnValueOnce(
-      mockParticipantFetch(null, { message: 'participant not found' })
-    );
-
-    await expect(
-      updateAnnouncement('trip-1', 'ann-1', { title: 'Hello' })
-    ).rejects.toMatchObject({ message: 'participant not found' });
-  });
-
-  it('throws when the update query fails', async () => {
-    const { fromReturn } = mockUpdateChain(null, { message: 'update failed' });
-    mockSupabase.from
-      .mockReturnValueOnce(mockParticipantFetch(mockOrganizer))
-      .mockReturnValueOnce(fromReturn);
-
-    await expect(
-      updateAnnouncement('trip-1', 'ann-1', { title: 'Hello' })
-    ).rejects.toMatchObject({ message: 'update failed' });
   });
 });

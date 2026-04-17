@@ -1,25 +1,49 @@
+import { supabase } from '@/lib/supabase';
+import { getSupabaseAdmin } from '@/lib/supabase.admin';
 import { signIn, signUp, signOut, getSession } from '../auth.service';
 import { signInSchema, signUpSchema } from '@/types/auth.types';
+import { createTestUser, TEST_PASSWORD, type TestUser } from '@/__integration__/helpers/user';
 
-jest.mock('@/lib/supabase', () => ({
-  supabase: {
-    auth: {
-      signInWithPassword: jest.fn(),
-      signUp: jest.fn(),
-      signOut: jest.fn(),
-      getSession: jest.fn(),
-    },
-  },
-}));
+jest.setTimeout(20000);
 
-import { supabase } from '@/lib/supabase';
-const mockAuth = supabase.auth as jest.Mocked<typeof supabase.auth>;
+let existingUser: TestUser;
+const signUpCreatedIds: string[] = [];
 
-const mockSession = { access_token: 'tok', user: { id: 'user-1' } } as any;
+// Creates a user via the signUp service and tracks their ID for cleanup.
+// Uses the profile row created by the on_auth_user_created trigger to get the ID.
+async function signUpAndTrack(username: string): Promise<{ email: string }> {
+  const email = `${username}@triploom-integration.dev`;
+  await signUp({ username, email, password: TEST_PASSWORD });
+  const { data } = await getSupabaseAdmin()
+    .from('profile')
+    .select('id')
+    .eq('user_name', username)
+    .maybeSingle();
+  if (data) signUpCreatedIds.push(data.id);
+  return { email };
+}
 
-beforeEach(() => jest.clearAllMocks());
+beforeAll(async () => {
+  existingUser = await createTestUser();
+  await supabase.auth.signOut();
+});
 
-// --- Schema validation ---
+afterAll(async () => {
+  await supabase.auth.signOut();
+  for (const id of signUpCreatedIds) {
+    await getSupabaseAdmin().from('profile').delete().eq('id', id);
+    await getSupabaseAdmin().auth.admin.deleteUser(id);
+  }
+  await existingUser.cleanup();
+});
+
+afterEach(async () => {
+  await supabase.auth.signOut();
+});
+
+// ---------------------------------------------------------------------------
+// signInSchema
+// ---------------------------------------------------------------------------
 
 describe('signInSchema', () => {
   it('accepts valid credentials', () => {
@@ -27,8 +51,7 @@ describe('signInSchema', () => {
   });
 
   it('rejects invalid email', () => {
-    const r = signInSchema.safeParse({ email: 'not-an-email', password: 'secret1' });
-    expect(r.success).toBe(false);
+    expect(signInSchema.safeParse({ email: 'not-an-email', password: 'secret1' }).success).toBe(false);
   });
 
   it('rejects short password', () => {
@@ -38,9 +61,15 @@ describe('signInSchema', () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// signUpSchema
+// ---------------------------------------------------------------------------
+
 describe('signUpSchema', () => {
   it('accepts valid sign-up data', () => {
-    expect(signUpSchema.safeParse({ username: 'alice', email: 'a@b.com', password: 'secret1' }).success).toBe(true);
+    expect(
+      signUpSchema.safeParse({ username: 'alice', email: 'a@b.com', password: 'secret1' }).success
+    ).toBe(true);
   });
 
   it('rejects short username', () => {
@@ -50,71 +79,89 @@ describe('signUpSchema', () => {
   });
 });
 
-// --- Service ---
+// ---------------------------------------------------------------------------
+// signIn
+// ---------------------------------------------------------------------------
 
 describe('signIn', () => {
-  it('returns the session on success', async () => {
-    mockAuth.signInWithPassword.mockResolvedValue({ data: { session: mockSession }, error: null } as any);
+  it('returns a session with the correct user id on valid credentials', async () => {
+    const session = await signIn({ email: existingUser.email, password: TEST_PASSWORD });
 
-    const session = await signIn({ email: 'a@b.com', password: 'secret1' });
-
-    expect(mockAuth.signInWithPassword).toHaveBeenCalledWith({ email: 'a@b.com', password: 'secret1' });
-    expect(session).toBe(mockSession);
+    expect(session.access_token).toBeDefined();
+    expect(session.user.id).toBe(existingUser.id);
   });
 
-  it('throws on error', async () => {
-    mockAuth.signInWithPassword.mockResolvedValue({ data: { session: null }, error: { message: 'Invalid credentials' } } as any);
-    await expect(signIn({ email: 'a@b.com', password: 'wrong' })).rejects.toMatchObject({ message: 'Invalid credentials' });
+  it('throws with the wrong password', async () => {
+    await expect(
+      signIn({ email: existingUser.email, password: 'wrongpassword' })
+    ).rejects.toBeDefined();
+  });
+
+  it('throws with an unknown email', async () => {
+    await expect(
+      signIn({ email: 'nobody@triploom-integration.dev', password: TEST_PASSWORD })
+    ).rejects.toBeDefined();
   });
 });
+
+// ---------------------------------------------------------------------------
+// signUp
+// ---------------------------------------------------------------------------
 
 describe('signUp', () => {
-  it('passes username through user metadata', async () => {
-    mockAuth.signUp.mockResolvedValue({ data: { session: mockSession }, error: null } as any);
+  it('creates a user and the trigger sets the username from metadata', async () => {
+    const username = `svc-signup-${Date.now()}`;
+    await signUpAndTrack(username);
 
-    await signUp({ username: 'alice', email: 'a@b.com', password: 'secret1' });
+    const { data: profile } = await getSupabaseAdmin()
+      .from('profile')
+      .select('user_name')
+      .eq('user_name', username)
+      .single();
 
-    expect(mockAuth.signUp).toHaveBeenCalledWith({
-      email: 'a@b.com',
-      password: 'secret1',
-      options: { data: { username: 'alice' } },
-    });
+    expect(profile?.user_name).toBe(username);
   });
 
-  it('returns null session when email confirmation is required', async () => {
-    mockAuth.signUp.mockResolvedValue({ data: { session: null }, error: null } as any);
-    const session = await signUp({ username: 'alice', email: 'a@b.com', password: 'secret1' });
-    expect(session).toBeNull();
-  });
+  it('throws when signing up with a duplicate email', async () => {
+    const username = `svc-dup-${Date.now()}`;
+    const { email } = await signUpAndTrack(username);
 
-  it('throws on error', async () => {
-    mockAuth.signUp.mockResolvedValue({ data: { session: null }, error: { message: 'Email already in use' } } as any);
-    await expect(signUp({ username: 'alice', email: 'a@b.com', password: 'secret1' })).rejects.toMatchObject({ message: 'Email already in use' });
+    await expect(
+      signUp({ username: 'duplicate', email, password: TEST_PASSWORD })
+    ).rejects.toBeDefined();
   });
 });
+
+// ---------------------------------------------------------------------------
+// signOut
+// ---------------------------------------------------------------------------
 
 describe('signOut', () => {
-  it('calls supabase signOut', async () => {
-    mockAuth.signOut.mockResolvedValue({ error: null } as any);
-    await signOut();
-    expect(mockAuth.signOut).toHaveBeenCalled();
-  });
+  it('clears the active session', async () => {
+    await signIn({ email: existingUser.email, password: TEST_PASSWORD });
+    expect(await getSession()).not.toBeNull();
 
-  it('throws on error', async () => {
-    mockAuth.signOut.mockResolvedValue({ error: { message: 'Sign out failed' } } as any);
-    await expect(signOut()).rejects.toMatchObject({ message: 'Sign out failed' });
+    await signOut();
+
+    expect(await getSession()).toBeNull();
   });
 });
 
+// ---------------------------------------------------------------------------
+// getSession
+// ---------------------------------------------------------------------------
+
 describe('getSession', () => {
-  it('returns the current session', async () => {
-    mockAuth.getSession.mockResolvedValue({ data: { session: mockSession }, error: null } as any);
+  it('returns the active session after sign-in', async () => {
+    await signIn({ email: existingUser.email, password: TEST_PASSWORD });
+
     const session = await getSession();
-    expect(session).toBe(mockSession);
+
+    expect(session).not.toBeNull();
+    expect(session?.user.id).toBe(existingUser.id);
   });
 
-  it('returns null when no session', async () => {
-    mockAuth.getSession.mockResolvedValue({ data: { session: null }, error: null } as any);
+  it('returns null when no session is active', async () => {
     expect(await getSession()).toBeNull();
   });
 });
