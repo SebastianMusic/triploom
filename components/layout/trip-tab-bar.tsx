@@ -34,6 +34,7 @@ export function TripTabBar({ state, descriptors, navigation }: BottomTabBarProps
   }[];
 
   const activeRouteName = state.routes[state.index]?.name;
+  const isHidden = activeRouteName === 'chat/[roomId]';
   const activeIndex = tabs.findIndex(({ route }) => route.name === activeRouteName);
   const safeIndex = activeIndex >= 0 ? activeIndex : 0;
   const bottomInset = Math.max(insets.bottom, spacing.sm);
@@ -42,13 +43,16 @@ export function TripTabBar({ state, descriptors, navigation }: BottomTabBarProps
   const indicatorWidth = Math.max(segmentWidth - spacing.xs, 0);
 
   useEffect(() => {
+    if (isHidden) return;
     Animated.timing(translateIndex, {
       toValue: safeIndex,
       duration: 260,
       easing: Easing.bezier(0.22, 1, 0.36, 1),
       useNativeDriver: true,
     }).start();
-  }, [safeIndex, translateIndex]);
+  }, [safeIndex, translateIndex, isHidden]);
+
+  if (isHidden) return null;
 
   if (activeRouteName === 'chat/[roomId]') return null;
 

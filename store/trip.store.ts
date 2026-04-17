@@ -26,9 +26,9 @@ interface TripState {
   inviteError: string | null;
   setCurrentTrip: (trip: Trip | null) => void;
   setTrips: (trips: TripWithRole[]) => void;
+  fetchTrips: () => Promise<void>;
   setParticipants: (participants: TripParticipant[]) => void;
   setLoading: (isLoading: boolean) => void;
-  fetchTrips: () => Promise<void>;
   createTrip: (dto: CreateTripDTO) => Promise<Trip>;
   deleteTrip: (tripId: string) => Promise<void>;
   fetchCurrentParticipant: (tripId: string, userId: string) => Promise<void>;
@@ -52,7 +52,6 @@ export const useTripStore = create<TripState>()((set) => ({
   setTrips: (trips) => set({ trips }),
   setParticipants: (participants) => set({ participants }),
   setLoading: (isLoading) => set({ isLoading }),
-
   fetchTrips: async () => {
     set({ isLoading: true });
     try {

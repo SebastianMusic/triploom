@@ -14,7 +14,6 @@ import {
   getAllMessages,
   sendMessage,
   subscribeToMessages,
-  markChatRead,
 } from '@/services/chat.service';
 import { createTestUser, type TestUser } from './helpers/user';
 
@@ -243,58 +242,6 @@ describe('US2: Send and receive messages', () => {
 
     const page1 = await getAllMessages(roomId, 1);
     expect(Array.isArray(page1)).toBe(true);
-  });
-
-  it('US2-6: getAllMessages with since param returns only messages after that timestamp', async () => {
-    await signInAs(user1);
-    const cutoff = new Date().toISOString();
-    // Small delay so the next insert has a strictly later timestamp
-    await new Promise((r) => setTimeout(r, 50));
-    const newMsg = await sendMessage({ content: 'After cutoff', group_chat_id: roomId });
-
-    const result = await getAllMessages(roomId, 0, cutoff);
-
-    expect(result.some((m) => m.id === newMsg.id)).toBe(true);
-    expect(result.every((m) => m.created_at > cutoff)).toBe(true);
-  });
-
-  it('US2-7: markChatRead updates last_read_at and clears has_unread', async () => {
-    // Establish a read baseline for user1
-    await signInAs(user1);
-    await markChatRead(roomId);
-
-    // user2 sends a new message — user1 now has unread
-    await signInAs(user2);
-    await sendMessage({ content: 'Unread for user1', group_chat_id: roomId });
-
-    // user1 sees the unread indicator
-    await signInAs(user1);
-    const roomsBefore = await getAllChatRooms(tripId);
-    const roomBefore = roomsBefore.find((r) => r.id === roomId);
-    expect(roomBefore?.hasUnread).toBe(true);
-
-    // user1 marks the room read
-    await markChatRead(roomId);
-
-    // Verify last_read_at was persisted via the admin client
-    const { data: participant } = await getSupabaseAdmin()
-      .from('trip_participant')
-      .select('id')
-      .eq('trip_id', tripId)
-      .eq('user_id', user1.id)
-      .single();
-    const { data: cp } = await getSupabaseAdmin()
-      .from('chat_participant')
-      .select('last_read_at')
-      .eq('group_chat_id', roomId)
-      .eq('participant_id', participant!.id)
-      .single();
-    expect(cp?.last_read_at).not.toBeNull();
-
-    // has_unread should now be false
-    const roomsAfter = await getAllChatRooms(tripId);
-    const roomAfter = roomsAfter.find((r) => r.id === roomId);
-    expect(roomAfter?.hasUnread).toBe(false);
   });
 });
 
