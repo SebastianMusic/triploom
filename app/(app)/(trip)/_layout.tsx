@@ -24,6 +24,7 @@ export default function TripLayout() {
         <Tabs.Screen name="tasks/index" options={{ title: 'Tasks' }} />
         <Tabs.Screen name="chat/index" options={{ title: 'Chat' }} />
         <Tabs.Screen name="profile/index" options={{ title: 'Profile', href: null }} />
+        <Tabs.Screen name="admin/index" options={{ title: 'Admin', href: null }} />
       </Tabs>
       <TripFadeOverlays />
     </>

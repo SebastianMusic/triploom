@@ -6,11 +6,12 @@ import type { Href } from 'expo-router';
 type IoniconName = ComponentProps<typeof Ionicons>['name'];
 
 export type TripTabItem = {
-  routeName: 'home/index' | 'events/index' | 'tasks/index' | 'chat/index';
+  routeName: 'home/index' | 'events/index' | 'tasks/index' | 'chat/index' | 'admin/index';
   href: Href;
   label: string;
   icon: IoniconName;
   activeIcon: IoniconName;
+  adminOnly?: boolean;
 };
 
 export const TRIP_TAB_ITEMS: TripTabItem[] = [
@@ -42,6 +43,14 @@ export const TRIP_TAB_ITEMS: TripTabItem[] = [
     icon: 'chatbubble-ellipses-outline',
     activeIcon: 'chatbubble-ellipses',
   },
+  {
+    routeName: 'admin/index',
+    href: '/(app)/(trip)/admin',
+    label: 'Admin',
+    icon: 'settings-outline',
+    activeIcon: 'settings',
+    adminOnly: true,
+  },
 ];
 
 const TRIP_SCREEN_TITLES: Record<string, string> = {
@@ -50,6 +59,7 @@ const TRIP_SCREEN_TITLES: Record<string, string> = {
   'tasks/index': 'Tasks',
   'chat/index': 'Chat',
   'profile/index': 'Profile',
+  'admin/index': 'Admin',
 };
 
 export function getTripScreenTitle(routeName: string) {

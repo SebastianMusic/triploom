@@ -6,6 +6,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { isPrimaryTripTab, TRIP_TAB_ITEMS } from '@/components/layout/trip-navigation';
 import { useAppTheme } from '@/components/ui/theme-provider';
+import { useTripStore } from '@/store/trip.store';
+import { TripRole } from '@/types/trip.types';
 
 export function TripTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
@@ -14,8 +16,15 @@ export function TripTabBar({ state, descriptors, navigation }: BottomTabBarProps
   const {
     theme: { colors, layout, opacity, radius, shadows, sizes, spacing },
   } = useAppTheme();
+  const { currentParticipant } = useTripStore();
 
-  const tabs = TRIP_TAB_ITEMS.map((item) => {
+  const isAdmin =
+    currentParticipant?.role === TripRole.Organizer ||
+    currentParticipant?.role === TripRole.CoOrganizer;
+
+  const visibleTabItems = TRIP_TAB_ITEMS.filter((item) => !item.adminOnly || isAdmin);
+
+  const tabs = visibleTabItems.map((item) => {
     const route = state.routes.find((currentRoute) => currentRoute.name === item.routeName);
 
     return route ? { item, route } : null;

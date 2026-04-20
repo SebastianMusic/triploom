@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
+import { useAnnouncementStore } from '@/store/announcement.store';
+import { useProfileStore } from '@/store/profile.store';
 import type { CreateAnnouncementDTO } from '@/types/announcement.types';
 
-type Props = {
-  onSubmit: (dto: CreateAnnouncementDTO) => Promise<void>;
-};
-
-export function AnnouncementForm({ onSubmit }: Props) {
+export function AnnouncementForm() {
+  const { selectedTrip } = useProfileStore();
+  const { createAnnouncement } = useAnnouncementStore();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -18,11 +18,16 @@ export function AnnouncementForm({ onSubmit }: Props) {
       return;
     }
 
+    if (!selectedTrip) {
+      setError('No trip selected.');
+      return;
+    }
+
     setIsSubmitting(true);
     setError(null);
 
     try {
-      await onSubmit({ title: title.trim(), description: description.trim() || null });
+      await createAnnouncement(selectedTrip, { title: title.trim(), description: description.trim() || null });
       setTitle('');
       setDescription('');
     } catch (err: any) {
