@@ -39,7 +39,7 @@ export default function TripLayout() {
         <Tabs.Screen name="chat/index" options={{ title: 'Chat' }} />
         <Tabs.Screen name="profile/index" options={{ title: 'Profile', href: null }} />
         <Tabs.Screen name="admin/index" options={{ title: 'Admin', href: null }} />
-        <Tabs.Screen name="chat/[roomId]" options={{ href: null }} />
+        <Tabs.Screen name="chat/[roomId]" options={{ href: null, headerShown: false }} />
       </Tabs>
       <TripFadeOverlays />
     </>
