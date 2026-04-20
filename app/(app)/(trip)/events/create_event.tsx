@@ -17,10 +17,12 @@ import { AppText } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAppTheme } from '@/components/ui/theme-provider';
+import { EventBannerPicker } from '@/components/events/event-banner-picker';
 import { useEventsStore } from '@/store/events.store';
 import { useProfileStore } from '@/store/profile.store';
 import { useTripStore } from '@/store/trip.store';
-import { createEventSchema } from '@/types';
+import { uploadEventBanner } from '@/services/events.service';
+import { createEventSchema, TripRole } from '@/types';
 
 function formatDisplay(date: Date | null): string {
   if (!date) return 'Select date and time';
@@ -52,7 +54,11 @@ export default function CreateEventScreen() {
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [priceRange, setPriceRange] = useState('');
+  const [bannerUri, setBannerUri] = useState<string | null>(null);
+  const [isMandatory, setIsMandatory] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
+
+  const isOrganizer = currentParticipant?.role === TripRole.Organizer;
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Picker state
@@ -154,6 +160,11 @@ export default function CreateEventScreen() {
 
     setIsSubmitting(true);
     try {
+      let bannerPath: string | null = null;
+      if (bannerUri && currentParticipant?.id) {
+        bannerPath = await uploadEventBanner(bannerUri, currentParticipant.id);
+      }
+
       await createEvent({
         title: result.data.title,
         description: result.data.description,
@@ -163,6 +174,8 @@ export default function CreateEventScreen() {
         price_range: result.data.price_range ?? null,
         trip_id: selectedTrip,
         created_by_id: currentParticipant?.id ?? null,
+        is_optional: isOrganizer ? !isMandatory : null,
+        banner_image_url: bannerPath,
       });
       router.back();
     } catch {
@@ -209,6 +222,8 @@ export default function CreateEventScreen() {
           <AppText variant="subtitle">New Event</AppText>
           <View style={{ width: 32 }} />
         </View>
+
+        <EventBannerPicker uri={bannerUri} onSelect={setBannerUri} />
 
         <Input
           label="Title *"
@@ -270,6 +285,23 @@ export default function CreateEventScreen() {
           onChangeText={setPriceRange}
           error={errors.price_range}
         />
+
+        {isOrganizer ? (
+          <Pressable
+            onPress={() => setIsMandatory((v) => !v)}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+            <View style={{
+              width: 22, height: 22, borderRadius: 6,
+              borderWidth: 2,
+              borderColor: isMandatory ? colors.warning : colors.border,
+              backgroundColor: isMandatory ? colors.warning : 'transparent',
+              alignItems: 'center', justifyContent: 'center',
+            }}>
+              {isMandatory ? <Ionicons name="checkmark" size={14} color="#fff" /> : null}
+            </View>
+            <AppText>Is mandatory</AppText>
+          </Pressable>
+        ) : null}
 
         <Button
           label="Create Event"

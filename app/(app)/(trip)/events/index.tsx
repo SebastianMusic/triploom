@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
+import { useCallback, useState } from 'react';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { EventCard } from '@/components/events/event-card';
@@ -22,6 +22,8 @@ export default function EventsScreen() {
   const headerHeight = insets.top + spacing.xs + sizes.iconButton.md + layout.headerPaddingBottom;
   const addButtonRight = layout.headerPaddingHorizontal + sizes.iconButton.md + spacing.xs;
 
+  const [refreshing, setRefreshing] = useState(false);
+
   useFocusEffect(
     useCallback(() => {
       if (selectedTrip) {
@@ -30,9 +32,28 @@ export default function EventsScreen() {
     }, [selectedTrip]),
   );
 
+  async function handleRefresh() {
+    if (!selectedTrip) return;
+    setRefreshing(true);
+    try {
+      await fetchEvents(selectedTrip);
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
   return (
     <View style={{ flex: 1 }}>
       <ScrollView
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => { void handleRefresh(); }}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+            progressViewOffset={headerHeight}
+          />
+        }
         contentContainerStyle={{
           paddingTop: headerHeight + spacing.sm,
           paddingHorizontal: layout.screenPadding,

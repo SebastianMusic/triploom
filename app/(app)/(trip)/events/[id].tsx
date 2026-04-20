@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -18,11 +19,12 @@ import { AppText } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAppTheme } from '@/components/ui/theme-provider';
-import { getEvent } from '@/services/events.service';
+import { getEvent, getEventBannerUrl, uploadEventBanner } from '@/services/events.service';
 import type { EventWithCount } from '@/services/events.service';
+import { EventBannerPicker } from '@/components/events/event-banner-picker';
 import { useEventsStore } from '@/store/events.store';
 import { useTripStore } from '@/store/trip.store';
-import { createEventSchema } from '@/types';
+import { createEventSchema, TripRole } from '@/types';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -140,6 +142,13 @@ function ViewEvent({ event, onBack }: { event: EventWithCount; onBack: () => voi
     (p) => p.participant_id === participantId,
   );
   const [isLoading, setIsLoading] = useState(false);
+  const [bannerUrl, setBannerUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (event.banner_image_url) {
+      getEventBannerUrl(event.banner_image_url).then(setBannerUrl).catch(() => {});
+    }
+  }, [event.banner_image_url]);
 
   async function handleToggle() {
     if (!participantId) return;
@@ -173,6 +182,12 @@ function ViewEvent({ event, onBack }: { event: EventWithCount; onBack: () => voi
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Pressable>
       </View>
+
+      {bannerUrl ? (
+        <View style={{ width: '100%', aspectRatio: 16 / 9, borderRadius: 14, overflow: 'hidden' }}>
+          <Image source={{ uri: bannerUrl }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+        </View>
+      ) : null}
 
       <AppText variant="title">{event.title}</AppText>
 
@@ -227,12 +242,24 @@ function ViewEvent({ event, onBack }: { event: EventWithCount; onBack: () => voi
 function EditEvent({ event, onBack }: { event: EventWithCount; onBack: () => void }) {
   const insets = useSafeAreaInsets();
   const { theme: { colors, layout, radius, spacing, stroke } } = useAppTheme();
-  const { updateEvent } = useEventsStore();
+  const { updateEvent, deleteEvent } = useEventsStore();
+  const { currentParticipant } = useTripStore();
+
+  const isOrganizer = currentParticipant?.role === TripRole.Organizer;
 
   const [title, setTitle] = useState(event.title ?? '');
   const [description, setDescription] = useState(event.description ?? '');
   const [location, setLocation] = useState(event.location ?? '');
   const [priceRange, setPriceRange] = useState(event.price_range ?? '');
+  const [isMandatory, setIsMandatory] = useState(event.is_optional === false);
+  const [bannerLocalUri, setBannerLocalUri] = useState<string | null>(null);
+  const [existingBannerUrl, setExistingBannerUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (event.banner_image_url) {
+      getEventBannerUrl(event.banner_image_url).then(setExistingBannerUrl).catch(() => {});
+    }
+  }, [event.banner_image_url]);
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -287,6 +314,11 @@ function EditEvent({ event, onBack }: { event: EventWithCount; onBack: () => voi
 
     setIsSubmitting(true);
     try {
+      let bannerPath = event.banner_image_url ?? null;
+      if (bannerLocalUri && currentParticipant?.id) {
+        bannerPath = await uploadEventBanner(bannerLocalUri, currentParticipant.id);
+      }
+
       await updateEvent(event.id, {
         title: result.data.title,
         description: result.data.description,
@@ -294,6 +326,8 @@ function EditEvent({ event, onBack }: { event: EventWithCount; onBack: () => voi
         start_time: picker.startDate.toISOString(),
         end_time: picker.endDate.toISOString(),
         price_range: result.data.price_range ?? null,
+        is_optional: isOrganizer ? !isMandatory : event.is_optional,
+        banner_image_url: bannerPath,
       });
       onBack();
     } catch {
@@ -313,6 +347,11 @@ function EditEvent({ event, onBack }: { event: EventWithCount; onBack: () => voi
           <AppText variant="subtitle">Edit Event</AppText>
           <View style={{ width: 32 }} />
         </View>
+
+        <EventBannerPicker
+          uri={bannerLocalUri ?? existingBannerUrl}
+          onSelect={setBannerLocalUri}
+        />
 
         <Input label="Title *" placeholder="Event title" value={title} onChangeText={setTitle} error={errors.title} />
         <Input label="Description *" placeholder="What is this event about?" value={description} onChangeText={setDescription} multiline error={errors.description} />
@@ -338,7 +377,50 @@ function EditEvent({ event, onBack }: { event: EventWithCount; onBack: () => voi
 
         <Input label="Price range" placeholder="e.g. Free, 50–100 kr" value={priceRange} onChangeText={setPriceRange} error={errors.price_range} />
 
+        {isOrganizer ? (
+          <Pressable
+            onPress={() => setIsMandatory((v) => !v)}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+            <View style={{
+              width: 22, height: 22, borderRadius: 6,
+              borderWidth: 2,
+              borderColor: isMandatory ? colors.warning : colors.border,
+              backgroundColor: isMandatory ? colors.warning : 'transparent',
+              alignItems: 'center', justifyContent: 'center',
+            }}>
+              {isMandatory ? <Ionicons name="checkmark" size={14} color="#fff" /> : null}
+            </View>
+            <AppText>Is mandatory</AppText>
+          </Pressable>
+        ) : null}
+
         <Button label="Save changes" fullWidth loading={isSubmitting} onPress={() => { void handleSave(); }} />
+
+        <Pressable
+          onPress={() => {
+            Alert.alert(
+              'Delete event',
+              'Are you sure you want to delete this event? This cannot be undone.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Delete',
+                  style: 'destructive',
+                  onPress: () => { void deleteEvent(event.id).then(() => onBack()); },
+                },
+              ],
+            );
+          }}
+          style={({ pressed }) => ({
+            width: '100%',
+            minHeight: 48,
+            borderRadius: 999,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: pressed ? '#c0392b' : '#e74c3c',
+          })}>
+          <AppText style={{ color: '#fff', fontWeight: '600' }}>Delete event</AppText>
+        </Pressable>
       </ScrollView>
 
       <DatePickerOverlay
@@ -374,7 +456,7 @@ export default function EventScreen() {
     if (cached) { setEvent(cached); setLoading(false); return; }
 
     getEvent(id).then((e) => {
-      setEvent(e ? { ...e, event_participation: [] } : null);
+      setEvent(e ? { ...e, event_participation: [], creator: null } : null);
       setLoading(false);
     }).catch(() => setLoading(false));
   }, [id]);
