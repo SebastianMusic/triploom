@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useEffect } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -19,16 +19,16 @@ export default function EventsScreen() {
     theme: { colors, layout, sizes, spacing },
   } = useAppTheme();
 
-  // top of TripHeader + iconButton.md + headerPaddingBottom = header bottom edge
   const headerHeight = insets.top + spacing.xs + sizes.iconButton.md + layout.headerPaddingBottom;
-  // right offset: headerPaddingHorizontal + iconButton (avatar) + small gap → place + button left of avatar
   const addButtonRight = layout.headerPaddingHorizontal + sizes.iconButton.md + spacing.xs;
 
-  useEffect(() => {
-    if (selectedTrip) {
-      void fetchEvents(selectedTrip);
-    }
-  }, [selectedTrip]);
+  useFocusEffect(
+    useCallback(() => {
+      if (selectedTrip) {
+        void fetchEvents(selectedTrip);
+      }
+    }, [selectedTrip]),
+  );
 
   return (
     <View style={{ flex: 1 }}>
@@ -46,11 +46,16 @@ export default function EventsScreen() {
             No upcoming events
           </AppText>
         ) : (
-          events.map((event) => <EventCard key={event.id} event={event} />)
+          events.map((event) => (
+            <EventCard
+              key={event.id}
+              event={event}
+              onPress={() => router.push({ pathname: '/(app)/(trip)/events/[id]', params: { id: event.id } })}
+            />
+          ))
         )}
       </ScrollView>
 
-      {/* + button overlaid in TripHeader area, left of the avatar */}
       <Pressable
         accessibilityLabel="Create event"
         onPress={() => router.push('/(app)/(trip)/events/create_event')}

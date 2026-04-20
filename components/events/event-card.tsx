@@ -4,10 +4,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { Card } from '@/components/ui/card';
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
-import type { Event } from '@/types';
+import type { EventWithCount } from '@/services/events.service';
 
 type EventCardProps = {
-  event: Event;
+  event: EventWithCount;
   onPress?: () => void;
 };
 
@@ -26,6 +26,8 @@ export function EventCard({ event, onPress }: EventCardProps) {
   const {
     theme: { colors, spacing },
   } = useAppTheme();
+
+  const participantCount = event.event_participation.length;
 
   return (
     <Card variant="interactive" onPress={onPress}>
@@ -56,14 +58,23 @@ export function EventCard({ event, onPress }: EventCardProps) {
           </AppText>
         </View>
 
-        {event.price_range ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          {event.price_range ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs / 2 }}>
+              <Ionicons name="cash-outline" size={14} color={colors.textMuted} />
+              <AppText variant="caption" tone="muted">
+                {event.price_range}
+              </AppText>
+            </View>
+          ) : <View />}
+
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs / 2 }}>
-            <Ionicons name="cash-outline" size={14} color={colors.textMuted} />
+            <Ionicons name="people-outline" size={14} color={colors.textMuted} />
             <AppText variant="caption" tone="muted">
-              {event.price_range}
+              {participantCount} {participantCount === 1 ? 'participant' : 'participants'}
             </AppText>
           </View>
-        ) : null}
+        </View>
       </View>
     </Card>
   );

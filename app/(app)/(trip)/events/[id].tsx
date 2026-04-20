@@ -1,0 +1,411 @@
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { AppText } from '@/components/ui/text';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useAppTheme } from '@/components/ui/theme-provider';
+import { getEvent } from '@/services/events.service';
+import type { EventWithCount } from '@/services/events.service';
+import { useEventsStore } from '@/store/events.store';
+import { useTripStore } from '@/store/trip.store';
+import { createEventSchema } from '@/types';
+
+// ─── helpers ────────────────────────────────────────────────────────────────
+
+function formatDisplay(date: Date | null): string {
+  if (!date) return 'Select date and time';
+  return date.toLocaleString([], {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function formatFull(iso: string | null): string {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleString([], {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+// ─── Date picker hook ────────────────────────────────────────────────────────
+
+type PickerTarget = 'start' | 'end' | null;
+type PickerMode = 'date' | 'time';
+
+function useDatePicker(initial: { start: Date | null; end: Date | null }) {
+  const [startDate, setStartDate] = useState<Date | null>(initial.start);
+  const [endDate, setEndDate] = useState<Date | null>(initial.end);
+  const [pickerTarget, setPickerTarget] = useState<PickerTarget>(null);
+  const [pickerMode, setPickerMode] = useState<PickerMode>('date');
+  const [tempDate, setTempDate] = useState<Date>(new Date());
+
+  function openPicker(target: PickerTarget) {
+    const current = target === 'start' ? startDate : endDate;
+    setTempDate(current ?? new Date());
+    setPickerMode('date');
+    setPickerTarget(target);
+  }
+
+  function commitDate(date: Date) {
+    if (pickerTarget === 'start') setStartDate(date);
+    else setEndDate(date);
+  }
+
+  function handleChange(_event: DateTimePickerEvent, selected?: Date) {
+    if (!selected) { setPickerTarget(null); return; }
+    if (Platform.OS === 'android') {
+      if (pickerMode === 'date') { setTempDate(selected); setPickerMode('time'); }
+      else {
+        const combined = new Date(tempDate);
+        combined.setHours(selected.getHours(), selected.getMinutes(), 0, 0);
+        commitDate(combined);
+        setPickerTarget(null);
+      }
+    } else {
+      setTempDate(selected);
+    }
+  }
+
+  function handleIOSDone() {
+    if (pickerMode === 'date') { setPickerMode('time'); }
+    else { commitDate(tempDate); setPickerTarget(null); }
+  }
+
+  return { startDate, endDate, pickerTarget, pickerMode, tempDate, openPicker, handleChange, handleIOSDone, setPickerTarget };
+}
+
+// ─── DatePickerOverlay ───────────────────────────────────────────────────────
+
+function DatePickerOverlay({
+  pickerTarget, pickerMode, tempDate, onClose, onChange, onIOSDone, insetBottom, colors, radius, spacing,
+}: {
+  pickerTarget: PickerTarget; pickerMode: PickerMode; tempDate: Date;
+  onClose: () => void; onChange: (_e: DateTimePickerEvent, d?: Date) => void;
+  onIOSDone: () => void; insetBottom: number;
+  colors: ReturnType<typeof useAppTheme>['theme']['colors'];
+  radius: ReturnType<typeof useAppTheme>['theme']['radius'];
+  spacing: ReturnType<typeof useAppTheme>['theme']['spacing'];
+}) {
+  if (pickerTarget === null) return null;
+  if (Platform.OS === 'android') {
+    return <DateTimePicker value={tempDate} mode={pickerMode} display="default" onChange={onChange} />;
+  }
+  return (
+    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
+      <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)' }} onPress={onClose} />
+      <View style={{ backgroundColor: colors.surface, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, paddingBottom: insetBottom }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.xs }}>
+          <Pressable onPress={onClose}><AppText tone="primary">Cancel</AppText></Pressable>
+          <AppText variant="subtitle">{pickerMode === 'date' ? 'Select date' : 'Select time'}</AppText>
+          <Pressable onPress={onIOSDone}><AppText tone="primary">{pickerMode === 'date' ? 'Next' : 'Done'}</AppText></Pressable>
+        </View>
+        <DateTimePicker value={tempDate} mode={pickerMode} display="spinner" onChange={onChange} style={{ height: 200 }} />
+      </View>
+    </Modal>
+  );
+}
+
+// ─── View screen ─────────────────────────────────────────────────────────────
+
+function ViewEvent({ event, onBack }: { event: EventWithCount; onBack: () => void }) {
+  const insets = useSafeAreaInsets();
+  const { theme: { colors, layout, spacing } } = useAppTheme();
+  const { currentParticipant } = useTripStore();
+  const { registerForEvent, unregisterFromEvent } = useEventsStore();
+
+  const participantId = currentParticipant?.id;
+  const isRegistered = !!participantId && event.event_participation.some(
+    (p) => p.participant_id === participantId,
+  );
+  const [isLoading, setIsLoading] = useState(false);
+
+  async function handleToggle() {
+    if (!participantId) return;
+    setIsLoading(true);
+    try {
+      if (isRegistered) {
+        unregisterFromEvent(event.id, participantId);
+      } else {
+        registerForEvent(event.id, participantId);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  const participantCount = event.event_participation.length;
+
+  function Row({ icon, children }: { icon: string; children: React.ReactNode }) {
+    return (
+      <View style={{ flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-start' }}>
+        <Ionicons name={icon as never} size={20} color={colors.textMuted} style={{ marginTop: 2 }} />
+        <View style={{ flex: 1 }}>{children}</View>
+      </View>
+    );
+  }
+
+  return (
+    <ScrollView contentContainerStyle={{ paddingTop: insets.top + spacing.sm, paddingHorizontal: layout.screenPadding, paddingBottom: insets.bottom + spacing.xl, gap: spacing.md }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <Pressable onPress={onBack} style={{ padding: spacing.xs / 2 }} accessibilityLabel="Back">
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
+        </Pressable>
+      </View>
+
+      <AppText variant="title">{event.title}</AppText>
+
+      {event.description ? (
+        <AppText variant="body" tone="muted">{event.description}</AppText>
+      ) : null}
+
+      <View style={{ gap: spacing.sm }}>
+        {event.location ? (
+          <Row icon="location-outline">
+            <AppText variant="caption" tone="muted">Location</AppText>
+            <AppText>{event.location}</AppText>
+          </Row>
+        ) : null}
+
+        <Row icon="time-outline">
+          <AppText variant="caption" tone="muted">Start</AppText>
+          <AppText>{formatFull(event.start_time)}</AppText>
+        </Row>
+
+        <Row icon="flag-outline">
+          <AppText variant="caption" tone="muted">End</AppText>
+          <AppText>{formatFull(event.end_time)}</AppText>
+        </Row>
+
+        {event.price_range ? (
+          <Row icon="cash-outline">
+            <AppText variant="caption" tone="muted">Price range</AppText>
+            <AppText>{event.price_range}</AppText>
+          </Row>
+        ) : null}
+
+        <Row icon="people-outline">
+          <AppText variant="caption" tone="muted">Participants</AppText>
+          <AppText>{participantCount} {participantCount === 1 ? 'participant' : 'participants'}</AppText>
+        </Row>
+      </View>
+
+      <Button
+        label={isRegistered ? 'Unregister' : 'Register'}
+        variant={isRegistered ? 'secondary' : 'primary'}
+        fullWidth
+        loading={isLoading}
+        onPress={() => { void handleToggle(); }}
+      />
+    </ScrollView>
+  );
+}
+
+// ─── Edit screen ─────────────────────────────────────────────────────────────
+
+function EditEvent({ event, onBack }: { event: EventWithCount; onBack: () => void }) {
+  const insets = useSafeAreaInsets();
+  const { theme: { colors, layout, radius, spacing, stroke } } = useAppTheme();
+  const { updateEvent } = useEventsStore();
+
+  const [title, setTitle] = useState(event.title ?? '');
+  const [description, setDescription] = useState(event.description ?? '');
+  const [location, setLocation] = useState(event.location ?? '');
+  const [priceRange, setPriceRange] = useState(event.price_range ?? '');
+  const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const picker = useDatePicker({
+    start: event.start_time ? new Date(event.start_time) : null,
+    end: event.end_time ? new Date(event.end_time) : null,
+  });
+
+  const dateFieldStyle = {
+    minHeight: 52,
+    borderRadius: radius.md,
+    borderWidth: stroke.thin,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm - spacing.xs / 2,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+  };
+
+  async function handleSave() {
+    setErrors({});
+    const result = createEventSchema.safeParse({
+      title, description, location,
+      start_time: picker.startDate ? picker.startDate.toISOString() : '',
+      end_time: picker.endDate ? picker.endDate.toISOString() : '',
+      price_range: priceRange || undefined,
+    });
+
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {};
+      for (const issue of result.error.issues) {
+        fieldErrors[issue.path[0] as string] = issue.message;
+      }
+      setErrors(fieldErrors);
+      return;
+    }
+
+    if (!picker.startDate || !picker.endDate) {
+      setErrors({
+        start_time: !picker.startDate ? 'Start time is required' : undefined,
+        end_time: !picker.endDate ? 'End time is required' : undefined,
+      });
+      return;
+    }
+
+    if (picker.endDate <= picker.startDate) {
+      setErrors({ end_time: 'End time must be after start time' });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await updateEvent(event.id, {
+        title: result.data.title,
+        description: result.data.description,
+        location: result.data.location,
+        start_time: picker.startDate.toISOString(),
+        end_time: picker.endDate.toISOString(),
+        price_range: result.data.price_range ?? null,
+      });
+      onBack();
+    } catch {
+      Alert.alert('Error', 'Could not save changes. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView contentContainerStyle={{ paddingTop: insets.top + spacing.sm, paddingHorizontal: layout.screenPadding, paddingBottom: insets.bottom + spacing.xl, gap: spacing.md }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Pressable onPress={onBack} style={{ padding: spacing.xs / 2 }} accessibilityLabel="Cancel">
+            <Ionicons name="close" size={24} color={colors.text} />
+          </Pressable>
+          <AppText variant="subtitle">Edit Event</AppText>
+          <View style={{ width: 32 }} />
+        </View>
+
+        <Input label="Title *" placeholder="Event title" value={title} onChangeText={setTitle} error={errors.title} />
+        <Input label="Description *" placeholder="What is this event about?" value={description} onChangeText={setDescription} multiline error={errors.description} />
+        <Input label="Location *" placeholder="Where is it?" value={location} onChangeText={setLocation} error={errors.location} />
+
+        <View style={{ gap: spacing.xs }}>
+          <AppText variant="caption">Start time *</AppText>
+          <Pressable style={dateFieldStyle} onPress={() => picker.openPicker('start')}>
+            <AppText style={{ color: picker.startDate ? colors.text : colors.textMuted }}>{formatDisplay(picker.startDate)}</AppText>
+            <Ionicons name="calendar-outline" size={18} color={colors.textMuted} />
+          </Pressable>
+          {errors.start_time ? <AppText variant="caption" tone="error">{errors.start_time}</AppText> : null}
+        </View>
+
+        <View style={{ gap: spacing.xs }}>
+          <AppText variant="caption">End time *</AppText>
+          <Pressable style={dateFieldStyle} onPress={() => picker.openPicker('end')}>
+            <AppText style={{ color: picker.endDate ? colors.text : colors.textMuted }}>{formatDisplay(picker.endDate)}</AppText>
+            <Ionicons name="calendar-outline" size={18} color={colors.textMuted} />
+          </Pressable>
+          {errors.end_time ? <AppText variant="caption" tone="error">{errors.end_time}</AppText> : null}
+        </View>
+
+        <Input label="Price range" placeholder="e.g. Free, 50–100 kr" value={priceRange} onChangeText={setPriceRange} error={errors.price_range} />
+
+        <Button label="Save changes" fullWidth loading={isSubmitting} onPress={() => { void handleSave(); }} />
+      </ScrollView>
+
+      <DatePickerOverlay
+        pickerTarget={picker.pickerTarget}
+        pickerMode={picker.pickerMode}
+        tempDate={picker.tempDate}
+        onClose={() => picker.setPickerTarget(null)}
+        onChange={picker.handleChange}
+        onIOSDone={picker.handleIOSDone}
+        insetBottom={insets.bottom}
+        colors={colors}
+        radius={radius}
+        spacing={spacing}
+      />
+    </KeyboardAvoidingView>
+  );
+}
+
+// ─── Main screen ─────────────────────────────────────────────────────────────
+
+export default function EventScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
+  const { currentParticipant } = useTripStore();
+  const { events } = useEventsStore();
+
+  const [event, setEvent] = useState<EventWithCount | null>(null);
+  const [loading, setLoading] = useState(true);
+  const { theme: { colors } } = useAppTheme();
+
+  useEffect(() => {
+    const cached = events.find((e) => e.id === id);
+    if (cached) { setEvent(cached); setLoading(false); return; }
+
+    getEvent(id).then((e) => {
+      setEvent(e ? { ...e, event_participation: [] } : null);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, [id]);
+
+  // Keep in sync when store updates (register/unregister, edit)
+  useEffect(() => {
+    const updated = events.find((e) => e.id === id);
+    if (updated) setEvent(updated);
+  }, [events, id]);
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (!event) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <AppText tone="muted">Event not found.</AppText>
+      </View>
+    );
+  }
+
+  const isCreator = !!currentParticipant?.id && event.created_by_id === currentParticipant.id;
+
+  if (isCreator) {
+    return <EditEvent event={event} onBack={() => router.back()} />;
+  }
+
+  return <ViewEvent event={event} onBack={() => router.back()} />;
+}
