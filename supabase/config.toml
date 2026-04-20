@@ -1,4 +1,12 @@
 
+[functions.generate-invite]
+verify_jwt = false
+entrypoint = "./functions/generate-invite/index.ts"
+
+[functions.redeem-invite]
+verify_jwt = false
+entrypoint = "./functions/redeem-invite/index.ts"
+
 [functions.test]
 enabled = true
 verify_jwt = true

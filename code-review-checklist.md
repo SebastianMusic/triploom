@@ -27,6 +27,13 @@ PASSES, FAILS, or is N/A, and explain why. If something fails, suggest the corre
 - Check: Are there any calls to `jest.mock(...)` targeting Supabase or its client?
 - Action if failing: Remove mocks and point tests at the real Supabase dev instance.
 
+
+## 4. Testing in general
+> All features must be tested, if something new has been added it must be
+> tested.
+- Check: Are there tests for all of the new functions added.
+- Action if failing: Require tests before proceeding.
+
 ## 4. Security — npm Audit
 > npm audit must be run and pass with no known vulnerabilities before merging,
 > low and moderate severity are fine.
