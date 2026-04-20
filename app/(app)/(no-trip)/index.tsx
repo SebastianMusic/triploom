@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,19 +7,37 @@ import {
   ActivityIndicator,
   StyleSheet,
   ScrollView,
+  RefreshControl,
 } from 'react-native';
 import { createTripSchema } from '@/types/trip.types';
 import { useTripStore } from '@/store/trip.store';
 import { useProfileStore } from '@/store/profile.store';
+import { useAuthStore } from '@/store/auth.store';
 
 export default function TripPickerScreen() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [selectionError, setSelectionError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [selectingTripId, setSelectingTripId] = useState<string | null>(null);
 
-  const { createTrip, trips, isLoading } = useTripStore();
-  const { setSelectedTrip, isLoading: profileLoading } = useProfileStore();
+  const { createTrip, fetchTrips, trips, isLoading } = useTripStore();
+  const { setSelectedTrip } = useProfileStore();
+  const { session } = useAuthStore();
+
+  useEffect(() => {
+    fetchTrips();
+  }, []);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await fetchTrips();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [fetchTrips]);
 
   async function handleCreate() {
     setError(null);
@@ -45,16 +63,22 @@ export default function TripPickerScreen() {
 
   async function handleSelectTrip(tripId: string) {
     setSelectionError(null);
+    setSelectingTripId(tripId);
     try {
       await setSelectedTrip(tripId);
-      // Navigation will happen automatically via layout
     } catch (error: any) {
       setSelectionError(error?.message ?? 'Failed to select trip');
+    } finally {
+      setSelectingTripId(null);
     }
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView
+      contentContainerStyle={styles.container}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+    >
+      <Text style={styles.debug}>DEBUG user id: {session?.user.id ?? 'no session'}</Text>
       <Text style={styles.title}>My Trips</Text>
       <Text style={styles.subtitle}>Create a new trip to get started</Text>
 
@@ -98,13 +122,13 @@ export default function TripPickerScreen() {
               key={trip.id}
               style={({ pressed }) => [styles.tripItem, pressed && styles.tripItemPressed]}
               onPress={() => handleSelectTrip(trip.id)}
-              disabled={profileLoading}
+              disabled={selectingTripId !== null}
             >
               <Text style={styles.tripName}>{trip.name}</Text>
               {trip.description && (
                 <Text style={styles.tripDescription}>{trip.description}</Text>
               )}
-              {profileLoading && <ActivityIndicator size="small" color="#3b82f6" />}
+              {selectingTripId === trip.id && <ActivityIndicator size="small" color="#3b82f6" />}
             </Pressable>
           ))}
         </View>
@@ -114,6 +138,12 @@ export default function TripPickerScreen() {
 }
 
 const styles = StyleSheet.create({
+  debug: {
+    fontSize: 11,
+    color: '#999',
+    fontFamily: 'monospace',
+    marginBottom: 8,
+  },
   container: {
     flexGrow: 1,
     padding: 24,

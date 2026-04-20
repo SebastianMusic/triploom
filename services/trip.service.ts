@@ -4,9 +4,27 @@ import type { CreateTripDTO } from '@/types/trip.types';
 import { TripRole } from '@/types/trip.types';
 
 export async function getTrips(): Promise<Trip[]> {
-  const { data, error } = await supabase.from('trip').select('*');
-  if (error) throw error;
-  return data;
+  const { data: { session } } = await supabase.auth.getSession();
+  const userId = session?.user.id;
+  if (!userId) return [];
+
+  const { data: participantRows, error: participantError } = await supabase
+    .from('trip_participant')
+    .select('trip_id')
+    .eq('user_id', userId);
+
+  if (participantError) throw participantError;
+
+  const tripIds = (participantRows ?? []).map((row) => row.trip_id).filter(Boolean) as string[];
+  if (tripIds.length === 0) return [];
+
+  const { data: trips, error: tripsError } = await supabase
+    .from('trip')
+    .select('*')
+    .in('id', tripIds);
+
+  if (tripsError) throw tripsError;
+  return trips ?? [];
 }
 
 export async function getTripById(id: string): Promise<Trip> {
