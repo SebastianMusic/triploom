@@ -18,6 +18,8 @@ export { updateSelectedTripSchema } from './profile.types';
 export type { UpdateSelectedTripDTO } from './profile.types';
 export { createTripSchema, TripRole } from './trip.types';
 export type { CreateTripDTO } from './trip.types';
+export { createTaskSchema, updateTaskSchema, createTaskFieldSchema, createTaskFieldOptionSchema, TaskFieldType, TASK_FIELD_TYPE_LABELS, TASK_FIELD_TYPE_OPTIONS, fieldNeedsOptions } from './tasks.types';
+export type { CreateTaskDTO, UpdateTaskDTO, CreateTaskFieldDTO, CreateTaskFieldOptionDTO, FieldDraft } from './tasks.types';
 
 import type { Tables, TablesInsert, TablesUpdate } from './database.types';
 
@@ -60,6 +62,21 @@ export type TaskUpdate = TablesUpdate<'task'>;
 export type TaskAssignment = Tables<'task_assignment'>;
 export type TaskAssignmentInsert = TablesInsert<'task_assignment'>;
 export type TaskAssignmentUpdate = TablesUpdate<'task_assignment'>;
+
+// Task field
+export type TaskField = Tables<'task_field'>;
+export type TaskFieldInsert = TablesInsert<'task_field'>;
+export type TaskFieldUpdate = TablesUpdate<'task_field'>;
+
+// Task field option
+export type TaskFieldOption = Tables<'task_field_option'>;
+export type TaskFieldOptionInsert = TablesInsert<'task_field_option'>;
+export type TaskFieldOptionUpdate = TablesUpdate<'task_field_option'>;
+
+// Task field response
+export type TaskFieldResponse = Tables<'task_field_response'>;
+export type TaskFieldResponseInsert = TablesInsert<'task_field_response'>;
+export type TaskFieldResponseUpdate = TablesUpdate<'task_field_response'>;
 
 // Message
 export type Message = Tables<'message'>;

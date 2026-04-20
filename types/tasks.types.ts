@@ -1,25 +1,57 @@
 import { z } from 'zod';
-import type { TaskInsert } from '@/types';
+import type { TaskInsert, TaskFieldInsert, TaskFieldOptionInsert } from '@/types';
 
-export enum TaskType {
+export enum TaskFieldType {
   Checkbox = 'checkbox',
   Dropdown = 'dropdown',
+  TextInput = 'text_input',
 }
 
-export const TASK_TYPE_LABELS: Record<TaskType, string> = {
-  [TaskType.Checkbox]: 'Avkrysning',
-  [TaskType.Dropdown]: 'Dropdown',
+export const TASK_FIELD_TYPE_LABELS: Record<TaskFieldType, string> = {
+  [TaskFieldType.Checkbox]: 'Checkbox',
+  [TaskFieldType.Dropdown]: 'Dropdown',
+  [TaskFieldType.TextInput]: 'Text input',
 };
+
+export const TASK_FIELD_TYPE_OPTIONS = [
+  TaskFieldType.Checkbox,
+  TaskFieldType.Dropdown,
+  TaskFieldType.TextInput,
+];
 
 export const createTaskSchema = z.object({
   title: z.string().min(1, 'Task title is required'),
   description: z.string().nullable().optional(),
-  type: z.enum(Object.values(TaskType) as [TaskType, ...TaskType[]]),
-  options: z.array(z.string()).nullable().optional(),
-  allow_note: z.boolean().optional(),
   due_time: z.string().nullable().optional(),
 }) satisfies z.ZodType<Omit<TaskInsert, 'id' | 'created_at' | 'trip_id' | 'phase'>>;
 
 export type CreateTaskDTO = z.infer<typeof createTaskSchema>;
 export const updateTaskSchema = createTaskSchema.partial();
 export type UpdateTaskDTO = z.infer<typeof updateTaskSchema>;
+
+export const createTaskFieldSchema = z.object({
+  type: z.enum(Object.values(TaskFieldType) as [TaskFieldType, ...TaskFieldType[]]),
+  label: z.string().min(1, 'Field label is required'),
+  sort_order: z.number().optional(),
+}) satisfies z.ZodType<Omit<TaskFieldInsert, 'id' | 'task_id'>>;
+
+export type CreateTaskFieldDTO = z.infer<typeof createTaskFieldSchema>;
+
+export const createTaskFieldOptionSchema = z.object({
+  label: z.string().min(1, 'Option label is required'),
+  sort_order: z.number().optional(),
+}) satisfies z.ZodType<Omit<TaskFieldOptionInsert, 'id' | 'task_field_id'>>;
+
+export type CreateTaskFieldOptionDTO = z.infer<typeof createTaskFieldOptionSchema>;
+
+// A field draft used when building a task in the UI
+export type FieldDraft = {
+  tempId: string;
+  type: TaskFieldType;
+  label: string;
+  options: string[];
+};
+
+export function fieldNeedsOptions(type: TaskFieldType): boolean {
+  return type === TaskFieldType.Checkbox || type === TaskFieldType.Dropdown;
+}

@@ -1,6 +1,6 @@
 import { getSupabaseAdmin } from '@/lib/supabase.admin';
-import { createTask, deleteTask, getTasks, updateTask } from '@/services/tasks.service';
-import { createTaskSchema, TaskType } from '@/types/tasks.types';
+import { createTask, deleteTask, getAllTasks, updateTask, getAssignments, getAllAssignments, upsertAssignment } from '@/services/tasks.service';
+import { createTaskSchema } from '@/types/tasks.types';
 import { createTrip } from '@/services/trip.service';
 import { createTestUser, type TestUser } from './helpers/user';
 
@@ -32,51 +32,37 @@ describe('tasks (integration)', () => {
     const task = await createTask(trip.id, {
       title: 'Pack passport',
       description: 'Keep it in your backpack',
-      type: TaskType.Checkbox,
-      phase: 'Before flight',
       due_time: '2026-07-01T00:00:00Z',
     });
     createdTaskIds.push(task.id);
 
     expect(task.trip_id).toBe(trip.id);
     expect(task.title).toBe('Pack passport');
-    expect(task.phase).toBe('Before flight');
-    expect(task.type).toBe(TaskType.Checkbox);
   });
 
   it('fetches tasks for the selected trip only', async () => {
     const trip = await createTrip({ name: 'Task Filter Trip' });
     createdTripIds.push(trip.id);
 
-    const task = await createTask(trip.id, {
-      title: 'Check in online',
-      type: TaskType.YesNo,
-      phase: 'Before flight',
-    });
+    const task = await createTask(trip.id, { title: 'Check in online' });
     createdTaskIds.push(task.id);
 
-    const tasks = await getTasks(trip.id);
+    const tasks = await getAllTasks(trip.id);
 
-    expect(tasks.some((t) => t.id === task.id)).toBe(true);
+    expect(tasks.some((t: { id: string }) => t.id === task.id)).toBe(true);
   });
 
   it('updates an existing task', async () => {
     const trip = await createTrip({ name: 'Task Update Trip' });
     createdTripIds.push(trip.id);
 
-    const task = await createTask(trip.id, {
-      title: 'Bring adapter',
-      type: TaskType.Info,
-      phase: 'Before flight',
-    });
+    const task = await createTask(trip.id, { title: 'Bring adapter' });
     createdTaskIds.push(task.id);
 
     const updatedTask = await updateTask(task.id, {
-      phase: 'During trip',
       due_time: '2026-07-10T00:00:00Z',
     });
 
-    expect(updatedTask.phase).toBe('During trip');
     expect(updatedTask.due_time).toBe('2026-07-10T00:00:00+00:00');
   });
 
@@ -84,11 +70,7 @@ describe('tasks (integration)', () => {
     const trip = await createTrip({ name: 'Task Delete Trip' });
     createdTripIds.push(trip.id);
 
-    const task = await createTask(trip.id, {
-      title: 'Cancel roaming',
-      type: TaskType.Checkbox,
-      phase: 'Before flight',
-    });
+    const task = await createTask(trip.id, { title: 'Cancel roaming' });
 
     await deleteTask(task.id);
 
@@ -102,12 +84,75 @@ describe('tasks (integration)', () => {
     expect(data).toBeNull();
   });
 
+  it('upserts an assignment and returns the persisted row', async () => {
+    const trip = await createTrip({ name: 'Assignment Upsert Trip' });
+    createdTripIds.push(trip.id);
+
+    const task = await createTask(trip.id, { title: 'Upsert task' });
+    createdTaskIds.push(task.id);
+
+    const { data: participant } = await getSupabaseAdmin()
+      .from('trip_participant')
+      .select('id')
+      .eq('trip_id', trip.id)
+      .eq('user_id', user.id)
+      .single();
+
+    const assignment = await upsertAssignment(task.id, participant!.id, { is_completed: true });
+
+    expect(assignment.task_id).toBe(task.id);
+    expect(assignment.participant_id).toBe(participant!.id);
+    expect(assignment.is_completed).toBe(true);
+  });
+
+  it('getAssignments returns assignments for the current participant', async () => {
+    const trip = await createTrip({ name: 'Assignment Fetch Trip' });
+    createdTripIds.push(trip.id);
+
+    const task = await createTask(trip.id, { title: 'Fetch task' });
+    createdTaskIds.push(task.id);
+
+    const { data: participant } = await getSupabaseAdmin()
+      .from('trip_participant')
+      .select('id')
+      .eq('trip_id', trip.id)
+      .eq('user_id', user.id)
+      .single();
+
+    await upsertAssignment(task.id, participant!.id, { is_completed: false });
+
+    const assignments = await getAssignments(participant!.id, [task.id]);
+
+    expect(assignments).toHaveLength(1);
+    expect(assignments[0].task_id).toBe(task.id);
+  });
+
+  it('getAllAssignments returns assignments with participant info', async () => {
+    const trip = await createTrip({ name: 'All Assignments Trip' });
+    createdTripIds.push(trip.id);
+
+    const task = await createTask(trip.id, { title: 'All assignments task' });
+    createdTaskIds.push(task.id);
+
+    const { data: participant } = await getSupabaseAdmin()
+      .from('trip_participant')
+      .select('id')
+      .eq('trip_id', trip.id)
+      .eq('user_id', user.id)
+      .single();
+
+    await upsertAssignment(task.id, participant!.id, { is_completed: true });
+
+    const all = await getAllAssignments([task.id]);
+    const found = all.find((a) => a.task_id === task.id);
+
+    expect(found).toBeDefined();
+    expect(found?.trip_participant).toBeDefined();
+    expect(found?.trip_participant.user_id).toBe(user.id);
+  });
+
   it('rejects invalid input before the DB call', () => {
-    const result = createTaskSchema.safeParse({
-      title: '',
-      type: TaskType.Checkbox,
-      phase: 'Before flight',
-    });
+    const result = createTaskSchema.safeParse({ title: '' });
 
     expect(result.success).toBe(false);
     if (!result.success) {
