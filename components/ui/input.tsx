@@ -52,7 +52,9 @@ export function Input({ label, hint, error, multiline = false, containerStyle, s
             paddingVertical: spacing.sm - spacing.xs / 2,
           }),
           color: colors.text,
+          includeFontPadding: false,
           ...typography.body,
+          lineHeight: undefined,
         },
         style,
       ]}

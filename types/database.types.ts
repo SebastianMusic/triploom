@@ -369,40 +369,28 @@ export type Database = {
       }
       task: {
         Row: {
-          allow_note: boolean | null
           created_at: string
           description: string | null
           due_time: string | null
           id: string
-          options: Json | null
-          phase: string | null
           title: string | null
           trip_id: string | null
-          type: string | null
         }
         Insert: {
-          allow_note?: boolean | null
           created_at?: string
           description?: string | null
           due_time?: string | null
           id?: string
-          options?: Json | null
-          phase?: string | null
           title?: string | null
           trip_id?: string | null
-          type?: string | null
         }
         Update: {
-          allow_note?: boolean | null
           created_at?: string
           description?: string | null
           due_time?: string | null
           id?: string
-          options?: Json | null
-          phase?: string | null
           title?: string | null
           trip_id?: string | null
-          type?: string | null
         }
         Relationships: [
           {
@@ -449,6 +437,116 @@ export type Database = {
             columns: ["task_id"]
             isOneToOne: false
             referencedRelation: "task"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_field: {
+        Row: {
+          id: string
+          label: string
+          sort_order: number
+          task_id: string
+          type: string
+        }
+        Insert: {
+          id?: string
+          label: string
+          sort_order?: number
+          task_id: string
+          type: string
+        }
+        Update: {
+          id?: string
+          label?: string
+          sort_order?: number
+          task_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_field_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "task"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_field_option: {
+        Row: {
+          id: string
+          label: string
+          sort_order: number
+          task_field_id: string
+        }
+        Insert: {
+          id?: string
+          label: string
+          sort_order?: number
+          task_field_id: string
+        }
+        Update: {
+          id?: string
+          label?: string
+          sort_order?: number
+          task_field_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_field_option_task_field_id_fkey"
+            columns: ["task_field_id"]
+            isOneToOne: false
+            referencedRelation: "task_field"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_field_response: {
+        Row: {
+          id: string
+          is_checked: boolean | null
+          option_id: string | null
+          participant_id: string
+          task_field_id: string
+          value: string | null
+        }
+        Insert: {
+          id?: string
+          is_checked?: boolean | null
+          option_id?: string | null
+          participant_id: string
+          task_field_id: string
+          value?: string | null
+        }
+        Update: {
+          id?: string
+          is_checked?: boolean | null
+          option_id?: string | null
+          participant_id?: string
+          task_field_id?: string
+          value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_field_response_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "task_field_option"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_field_response_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "trip_participant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_field_response_task_field_id_fkey"
+            columns: ["task_field_id"]
+            isOneToOne: false
+            referencedRelation: "task_field"
             referencedColumns: ["id"]
           },
         ]
@@ -555,7 +653,7 @@ export type Database = {
           {
             foreignKeyName: "trip_invite_url_trip_id_fkey"
             columns: ["trip_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "trip"
             referencedColumns: ["id"]
           },
