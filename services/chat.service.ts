@@ -119,15 +119,15 @@ export function subscribeToMessages(
           .select('*, profile:user_id(user_name)')
           .eq('id', raw.id)
           .single();
-        if (!data) return;
+        const source = data ?? raw;
         onMessage(
           mapToMessageWithSender({
-            id: data.id,
-            content: data.content,
-            created_at: data.created_at,
-            group_chat_id: data.group_chat_id,
-            user_id: data.user_id,
-            profile: Array.isArray(data.profile) ? (data.profile[0] ?? null) : data.profile,
+            id: source.id,
+            content: source.content,
+            created_at: source.created_at,
+            group_chat_id: source.group_chat_id,
+            user_id: source.user_id,
+            profile: data ? (Array.isArray(data.profile) ? (data.profile[0] ?? null) : data.profile) : null,
           })
         );
       }
