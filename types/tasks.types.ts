@@ -12,7 +12,7 @@ export const TASK_TYPE_LABELS: Record<TaskType, string> = {
 };
 
 export const createTaskSchema = z.object({
-  title: z.string().min(1, 'Tittel er påkrevd'),
+  title: z.string().min(1, 'Task title is required'),
   description: z.string().nullable().optional(),
   type: z.enum(Object.values(TaskType) as [TaskType, ...TaskType[]]),
   options: z.array(z.string()).nullable().optional(),
