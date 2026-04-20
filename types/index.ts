@@ -3,19 +3,21 @@
  * Import from here rather than from individual files to keep imports clean.
  */
 
-export type { Database, Json, Tables, TablesInsert, TablesUpdate, Enums } from './database.types';
-export { createTripSchema, TripRole } from './trip.types';
-export type { CreateTripDTO } from './trip.types';
-export { signInSchema, signUpSchema } from './auth.types';
-export type { SignInDTO, SignUpDTO } from './auth.types';
-export { updateSelectedTripSchema } from './profile.types';
-export type { UpdateSelectedTripDTO } from './profile.types';
 export { createAnnouncementSchema, updateAnnouncementSchema } from './announcement.types';
 export type { CreateAnnouncementDTO, UpdateAnnouncementDTO } from './announcement.types';
-export { generateInviteSchema, redeemInviteSchema } from './invite.types';
-export type { GenerateInviteDTO, RedeemInviteDTO, GenerateInviteResponse, RedeemInviteResponse } from './invite.types';
+export { signInSchema, signUpSchema } from './auth.types';
+export type { SignInDTO, SignUpDTO } from './auth.types';
 export { sendMessageSchema } from './chat.types';
-export type { SendMessageDTO, MessageWithSender, ChatRoomWithMeta } from './chat.types';
+export type { ChatRoomWithMeta, MessageWithSender, SendMessageDTO } from './chat.types';
+export type { Database, Enums, Json, Tables, TablesInsert, TablesUpdate } from './database.types';
+export { createEventSchema } from './events.types';
+export type { CreateEventDTO } from './events.types';
+export { generateInviteSchema, redeemInviteSchema } from './invite.types';
+export type { GenerateInviteDTO, GenerateInviteDTO, GenerateInviteResponse, GenerateInviteResponse, RedeemInviteDTO, RedeemInviteDTO, RedeemInviteResponse, RedeemInviteResponse } from './invite.types';
+export { updateSelectedTripSchema } from './profile.types';
+export type { UpdateSelectedTripDTO } from './profile.types';
+export { createTripSchema, TripRole } from './trip.types';
+export type { CreateTripDTO } from './trip.types';
 
 import type { Tables, TablesInsert, TablesUpdate } from './database.types';
 
