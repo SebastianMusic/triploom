@@ -82,14 +82,17 @@ export type Database = {
       chat_participant: {
         Row: {
           group_chat_id: string
+          last_read_at: string | null
           participant_id: string
         }
         Insert: {
           group_chat_id: string
+          last_read_at?: string | null
           participant_id: string
         }
         Update: {
           group_chat_id?: string
+          last_read_at?: string | null
           participant_id?: string
         }
         Relationships: [
@@ -366,30 +369,36 @@ export type Database = {
       }
       task: {
         Row: {
+          allow_note: boolean | null
           created_at: string
           description: string | null
           due_time: string | null
           id: string
+          options: Json | null
           phase: string | null
           title: string | null
           trip_id: string | null
           type: string | null
         }
         Insert: {
+          allow_note?: boolean | null
           created_at?: string
           description?: string | null
           due_time?: string | null
           id?: string
+          options?: Json | null
           phase?: string | null
           title?: string | null
           trip_id?: string | null
           type?: string | null
         }
         Update: {
+          allow_note?: boolean | null
           created_at?: string
           description?: string | null
           due_time?: string | null
           id?: string
+          options?: Json | null
           phase?: string | null
           title?: string | null
           trip_id?: string | null
@@ -596,7 +605,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_chat_rooms_for_trip: {
+        Args: { trip_id_param: string }
+        Returns: {
+          chat_name: string
+          created_at: string
+          event_id: string
+          has_unread: boolean
+          id: string
+          last_activity_at: string
+          trip_group_id: string
+          trip_id: string
+        }[]
+      }
+      is_trip_member: { Args: { p_trip_id: string }; Returns: boolean }
+      is_trip_organizer_or_co: { Args: { p_trip_id: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
