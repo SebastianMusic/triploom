@@ -1,8 +1,9 @@
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { Text, View } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import * as Linking from 'expo-linking';
 
 import { ThemeProvider, useAppTheme } from '@/components/ui/theme-provider';
 import { useAuthStore } from '@/store/auth.store';
@@ -23,6 +24,26 @@ function RootNavigator() {
 	useEffect(() => {
 		initialize();
 	}, [initialize]);
+
+	useEffect(() => {
+		function navigateToJoinWithCode(url: string) {
+			const { path } = Linking.parse(url);
+			if (path?.startsWith('join/')) {
+				const code = path.replace('join/', '');
+				router.push(`/(app)/(no-trip)/join?code=${code}`);
+			}
+		}
+
+		Linking.getInitialURL().then((url) => {
+			if (url) navigateToJoinWithCode(url);
+		});
+
+		const subscription = Linking.addEventListener('url', ({ url }) => {
+			navigateToJoinWithCode(url);
+		});
+
+		return () => subscription.remove();
+	}, []);
 
 	if (isLoading) {
 		return (

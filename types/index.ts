@@ -12,6 +12,8 @@ export { updateSelectedTripSchema } from './profile.types';
 export type { UpdateSelectedTripDTO } from './profile.types';
 export { createAnnouncementSchema, updateAnnouncementSchema } from './announcement.types';
 export type { CreateAnnouncementDTO, UpdateAnnouncementDTO } from './announcement.types';
+export { generateInviteSchema, redeemInviteSchema } from './invite.types';
+export type { GenerateInviteDTO, RedeemInviteDTO, GenerateInviteResponse, RedeemInviteResponse } from './invite.types';
 
 import type { Tables, TablesInsert, TablesUpdate } from './database.types';
 

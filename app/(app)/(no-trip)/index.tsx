@@ -5,10 +5,12 @@ import {
   TextInput,
   Pressable,
   ActivityIndicator,
+  Alert,
   StyleSheet,
   ScrollView,
   RefreshControl,
 } from 'react-native';
+import { router } from 'expo-router';
 import { createTripSchema } from '@/types/trip.types';
 import { useTripStore } from '@/store/trip.store';
 import { useProfileStore } from '@/store/profile.store';
@@ -21,8 +23,9 @@ export default function TripPickerScreen() {
   const [selectionError, setSelectionError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [selectingTripId, setSelectingTripId] = useState<string | null>(null);
+  const [leavingTripId, setLeavingTripId] = useState<string | null>(null);
 
-  const { createTrip, fetchTrips, trips, isLoading } = useTripStore();
+  const { createTrip, fetchTrips, trips, isLoading, leaveTrip } = useTripStore();
   const { setSelectedTrip } = useProfileStore();
   const { session } = useAuthStore();
 
@@ -73,6 +76,34 @@ export default function TripPickerScreen() {
     }
   }
 
+  function handleLeaveTrip(tripId: string, tripName: string) {
+    Alert.alert(
+      'Leave Trip',
+      `Are you sure you want to leave "${tripName}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Leave',
+          style: 'destructive',
+          onPress: async () => {
+            setLeavingTripId(tripId);
+            try {
+              await leaveTrip(tripId);
+            } catch {
+              setSelectionError('Failed to leave trip. Please try again.');
+            } finally {
+              setLeavingTripId(null);
+            }
+          },
+        },
+      ],
+    );
+  }
+
+  function handleJoinWithCode() {
+    router.push('/join');
+  }
+
   return (
     <ScrollView
       contentContainerStyle={styles.container}
@@ -111,6 +142,13 @@ export default function TripPickerScreen() {
         }
       </Pressable>
 
+      <Pressable
+        style={({ pressed }) => [styles.secondaryButton, pressed && styles.secondaryButtonPressed]}
+        onPress={handleJoinWithCode}
+      >
+        <Text style={styles.secondaryButtonText}>Have an invite code?</Text>
+      </Pressable>
+
       {selectionError && <Text style={styles.error}>{selectionError}</Text>}
 
       {trips.length > 0 && (
@@ -118,18 +156,29 @@ export default function TripPickerScreen() {
           <Text style={styles.listTitle}>Select a trip</Text>
           <Text style={styles.listSubtitle}>Tap a trip to start planning</Text>
           {trips.map((trip) => (
-            <Pressable
-              key={trip.id}
-              style={({ pressed }) => [styles.tripItem, pressed && styles.tripItemPressed]}
-              onPress={() => handleSelectTrip(trip.id)}
-              disabled={selectingTripId !== null}
-            >
-              <Text style={styles.tripName}>{trip.name}</Text>
-              {trip.description && (
-                <Text style={styles.tripDescription}>{trip.description}</Text>
-              )}
-              {selectingTripId === trip.id && <ActivityIndicator size="small" color="#3b82f6" />}
-            </Pressable>
+            <View key={trip.id} style={styles.tripRow}>
+              <Pressable
+                style={({ pressed }) => [styles.tripItem, pressed && styles.tripItemPressed]}
+                onPress={() => handleSelectTrip(trip.id)}
+                disabled={selectingTripId !== null || leavingTripId !== null}
+              >
+                <Text style={styles.tripName}>{trip.name}</Text>
+                {trip.description && (
+                  <Text style={styles.tripDescription}>{trip.description}</Text>
+                )}
+                {selectingTripId === trip.id && <ActivityIndicator size="small" color="#3b82f6" />}
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => [styles.leaveButton, pressed && styles.leaveButtonPressed]}
+                onPress={() => handleLeaveTrip(trip.id, trip.name)}
+                disabled={selectingTripId !== null || leavingTripId !== null}
+              >
+                {leavingTripId === trip.id
+                  ? <ActivityIndicator size="small" color="#e53e3e" />
+                  : <Text style={styles.leaveButtonText}>Leave</Text>
+                }
+              </Pressable>
+            </View>
           ))}
         </View>
       )}
@@ -192,6 +241,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  secondaryButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#3b82f6',
+    borderRadius: 8,
+    padding: 14,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  secondaryButtonPressed: {
+    opacity: 0.7,
+    backgroundColor: '#f0f7ff',
+  },
+  secondaryButtonText: {
+    color: '#3b82f6',
+    fontSize: 16,
+    fontWeight: '600',
+  },
   tripList: {
     marginTop: 40,
   },
@@ -206,17 +273,42 @@ const styles = StyleSheet.create({
     color: '#666',
     marginBottom: 16,
   },
+  tripRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 8,
+  },
   tripItem: {
+    flex: 1,
     padding: 14,
     backgroundColor: '#f9f9f9',
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#eee',
-    marginBottom: 8,
   },
   tripItemPressed: {
     opacity: 0.7,
     backgroundColor: '#e8f0fe',
+  },
+  leaveButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e53e3e',
+    backgroundColor: '#fff5f5',
+    minWidth: 60,
+    alignItems: 'center',
+  },
+  leaveButtonPressed: {
+    opacity: 0.7,
+    backgroundColor: '#fed7d7',
+  },
+  leaveButtonText: {
+    color: '#e53e3e',
+    fontSize: 13,
+    fontWeight: '600',
   },
   tripName: {
     fontSize: 16,
