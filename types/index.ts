@@ -13,7 +13,7 @@ export type { Database, Enums, Json, Tables, TablesInsert, TablesUpdate } from '
 export { createEventSchema } from './events.types';
 export type { CreateEventDTO } from './events.types';
 export { generateInviteSchema, redeemInviteSchema } from './invite.types';
-export type { GenerateInviteDTO, GenerateInviteDTO, GenerateInviteResponse, GenerateInviteResponse, RedeemInviteDTO, RedeemInviteDTO, RedeemInviteResponse, RedeemInviteResponse } from './invite.types';
+export type { GenerateInviteDTO, GenerateInviteResponse, RedeemInviteDTO, RedeemInviteResponse } from './invite.types';
 export { updateSelectedTripSchema } from './profile.types';
 export type { UpdateSelectedTripDTO } from './profile.types';
 export { createTripSchema, TripRole } from './trip.types';
