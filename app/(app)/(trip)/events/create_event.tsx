@@ -5,7 +5,6 @@ import { useRef, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -415,7 +414,7 @@ export default function CreateEventScreen() {
         />
       </ScrollView>
 
-      {/* Android: picker renders directly (it's a native dialog) */}
+      {/* Android: native dialog */}
       {Platform.OS === 'android' && showPicker && (
         <DateTimePicker
           value={tempDate}
@@ -425,25 +424,24 @@ export default function CreateEventScreen() {
         />
       )}
 
-      {/* iOS: picker in a modal sheet */}
-      {Platform.OS === 'ios' && (
-        <Modal
-          visible={showPicker}
-          transparent
-          animationType="slide"
-          onRequestClose={() => setPickerTarget(null)}>
+      {/* iOS: absolute bottom sheet — no transparent Modal (avoids black screen bug) */}
+      {Platform.OS === 'ios' && showPicker && (
+        <>
           <Pressable
-            style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)' }}
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.35)' }}
             onPress={() => setPickerTarget(null)}
           />
           <View
             style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
               backgroundColor: colors.surface,
               borderTopLeftRadius: radius.lg,
               borderTopRightRadius: radius.lg,
               paddingBottom: insets.bottom,
             }}>
-            {/* Modal header */}
             <View
               style={{
                 flexDirection: 'row',
@@ -465,7 +463,6 @@ export default function CreateEventScreen() {
                 </AppText>
               </Pressable>
             </View>
-
             <DateTimePicker
               value={tempDate}
               mode={pickerMode}
@@ -474,7 +471,7 @@ export default function CreateEventScreen() {
               style={{ height: 200 }}
             />
           </View>
-        </Modal>
+        </>
       )}
     </KeyboardAvoidingView>
   );
