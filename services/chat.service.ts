@@ -40,8 +40,11 @@ export async function getAllChatRooms(tripId: string): Promise<ChatRoomWithMeta[
     .sort((a, b) => {
       const aIsGeneral = a.event_id === null && a.trip_group_id === null;
       const bIsGeneral = b.event_id === null && b.trip_group_id === null;
-      if (aIsGeneral === bIsGeneral) return 0;
-      return aIsGeneral ? -1 : 1;
+      if (aIsGeneral !== bIsGeneral) return aIsGeneral ? -1 : 1;
+      if (!a.lastActivityAt && !b.lastActivityAt) return 0;
+      if (!a.lastActivityAt) return 1;
+      if (!b.lastActivityAt) return -1;
+      return b.lastActivityAt.localeCompare(a.lastActivityAt);
     });
 }
 
