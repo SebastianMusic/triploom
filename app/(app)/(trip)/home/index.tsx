@@ -8,6 +8,7 @@ import { ParticipantList } from '@/components/participant-ui/participant-list';
 import { TripInfoCard } from '@/components/trip/trip-info-card';
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
+import { usePushNotifications } from '@/hooks/use-push-notifications';
 import { useAuthStore } from '@/store/auth.store';
 import { useProfileStore } from '@/store/profile.store';
 import { useTripStore } from '@/store/trip.store';
@@ -20,6 +21,8 @@ export default function HomeScreen() {
 	const { headerContentOffset, bottomOverlayOffset } = useTripChromeInsets();
 	const { theme: { colors, layout, spacing } } = useAppTheme();
 	const [isSwitching, setIsSwitching] = useState(false);
+
+	usePushNotifications(session?.user.id);
 
 	useEffect(() => {
 		if (selectedTrip && session?.user.id) {

@@ -61,7 +61,7 @@ export async function getProfileImageUrl(imageId: string): Promise<string | null
   return data.signedUrl;
 }
 
-type UpdateProfileData = Partial<Pick<Profile, 'user_name' | 'profile_picture_url' | 'phonenumber'>>;
+type UpdateProfileData = Partial<Pick<Profile, 'user_name' | 'profile_picture_url' | 'phonenumber' | 'expo_push_token'>>;
 
 export async function updateSelectedTrip(tripId: string | null): Promise<Profile> {
   const { data: { session } } = await supabase.auth.getSession();
@@ -141,6 +141,7 @@ export async function updateProfile(
       ? { profile_picture_url: data.profile_picture_url?.trim() || null }
       : {}),
     ...(data.phonenumber !== undefined ? { phonenumber: data.phonenumber?.trim() || null } : {}),
+    ...(data.expo_push_token !== undefined ? { expo_push_token: data.expo_push_token } : {}),
   };
 
   const authMetadataUpdates = {
