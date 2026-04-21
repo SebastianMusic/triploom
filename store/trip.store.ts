@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { Trip, TripParticipant } from '@/types';
+import { TripRole } from '@/types';
 import type { CreateTripDTO, TripWithRole } from '@/types/trip.types';
 import type { RedeemInviteResponse } from '@/types/invite.types';
 import {
@@ -8,7 +9,9 @@ import {
   deleteTrip as deleteTripService,
   getTripParticipant,
   getTripParticipantsWithProfiles,
+  kickParticipant as kickParticipantService,
   leaveTrip as leaveTripService,
+  updateParticipantRole as updateParticipantRoleService,
   type TripParticipantWithProfile,
 } from '@/services/trip.service';
 import {
@@ -37,6 +40,8 @@ interface TripState {
   deleteTrip: (tripId: string) => Promise<void>;
   fetchCurrentParticipant: (tripId: string, userId: string) => Promise<void>;
   fetchParticipants: (tripId: string) => Promise<void>;
+  updateParticipantRole: (tripId: string, actorUserId: string, targetUserId: string, newRole: TripRole) => Promise<void>;
+  kickParticipant: (tripId: string, targetUserId: string) => Promise<void>;
   generateInvite: (tripId: string) => Promise<string>;
   redeemInvite: (code: string) => Promise<RedeemInviteResponse>;
   leaveTrip: (tripId: string) => Promise<void>;
@@ -110,6 +115,24 @@ export const useTripStore = create<TripState>()((set) => ({
       set({ isLoadingParticipants: false });
       throw error;
     }
+  },
+
+  updateParticipantRole: async (tripId, actorUserId, targetUserId, newRole) => {
+    const updated = await updateParticipantRoleService(tripId, actorUserId, targetUserId, newRole);
+    set((state) => ({
+      participantsWithProfiles: state.participantsWithProfiles.map((p) =>
+        p.user_id === targetUserId ? { ...p, role: updated.role } : p,
+      ),
+    }));
+  },
+
+  kickParticipant: async (tripId, targetUserId) => {
+    await kickParticipantService(tripId, targetUserId);
+    set((state) => ({
+      participantsWithProfiles: state.participantsWithProfiles.filter(
+        (p) => p.user_id !== targetUserId,
+      ),
+    }));
   },
 
   generateInvite: async (tripId: string) => {

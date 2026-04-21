@@ -122,6 +122,15 @@ export async function getTripParticipant(tripId: string, userId: string): Promis
 //   coOrganizer  → can promote participant → coOrganizer, demote coOrganizer → participant
 //                  cannot touch organizers or grant organizer
 //   participant  → no permission
+export async function kickParticipant(tripId: string, targetUserId: string): Promise<void> {
+  const { error } = await supabase
+    .from('trip_participant')
+    .delete()
+    .eq('trip_id', tripId)
+    .eq('user_id', targetUserId);
+  if (error) throw error;
+}
+
 export async function leaveTrip(tripId: string): Promise<void> {
   const { data: { session } } = await supabase.auth.getSession();
   const userId = session?.user.id;
