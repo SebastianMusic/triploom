@@ -131,7 +131,7 @@ function DatePickerOverlay({
 
 // ─── View screen ─────────────────────────────────────────────────────────────
 
-function ViewEvent({ event, onBack }: { event: EventWithCount; onBack: () => void }) {
+function ViewEvent({ event, onBack, isCreator, onEdit }: { event: EventWithCount; onBack: () => void; isCreator?: boolean; onEdit?: () => void }) {
   const insets = useSafeAreaInsets();
   const { theme: { colors, layout, spacing } } = useAppTheme();
   const { currentParticipant } = useTripStore();
@@ -147,6 +147,8 @@ function ViewEvent({ event, onBack }: { event: EventWithCount; onBack: () => voi
   useEffect(() => {
     if (event.banner_image_url) {
       getEventBannerUrl(event.banner_image_url).then(setBannerUrl).catch(() => {});
+    } else {
+      setBannerUrl(null);
     }
   }, [event.banner_image_url]);
 
@@ -226,13 +228,17 @@ function ViewEvent({ event, onBack }: { event: EventWithCount; onBack: () => voi
         </Row>
       </View>
 
-      <Button
-        label={isRegistered ? 'Unregister' : 'Register'}
-        variant={isRegistered ? 'secondary' : 'primary'}
-        fullWidth
-        loading={isLoading}
-        onPress={() => { void handleToggle(); }}
-      />
+      {isCreator && onEdit ? (
+        <Button label="Edit event" fullWidth onPress={onEdit} />
+      ) : (
+        <Button
+          label={isRegistered ? 'Unregister' : 'Register'}
+          variant={isRegistered ? 'secondary' : 'primary'}
+          fullWidth
+          loading={isLoading}
+          onPress={() => { void handleToggle(); }}
+        />
+      )}
     </ScrollView>
   );
 }
@@ -254,12 +260,21 @@ function EditEvent({ event, onBack }: { event: EventWithCount; onBack: () => voi
   const [isMandatory, setIsMandatory] = useState(event.is_optional === false);
   const [bannerLocalUri, setBannerLocalUri] = useState<string | null>(null);
   const [existingBannerUrl, setExistingBannerUrl] = useState<string | null>(null);
+  const [bannerRemoved, setBannerRemoved] = useState(false);
 
   useEffect(() => {
     if (event.banner_image_url) {
       getEventBannerUrl(event.banner_image_url).then(setExistingBannerUrl).catch(() => {});
+    } else {
+      setExistingBannerUrl(null);
     }
   }, [event.banner_image_url]);
+
+  function handleRemoveBanner() {
+    setBannerRemoved(true);
+    setBannerLocalUri(null);
+    setExistingBannerUrl(null);
+  }
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -314,7 +329,7 @@ function EditEvent({ event, onBack }: { event: EventWithCount; onBack: () => voi
 
     setIsSubmitting(true);
     try {
-      let bannerPath = event.banner_image_url ?? null;
+      let bannerPath: string | null = bannerRemoved ? null : (event.banner_image_url ?? null);
       if (bannerLocalUri && currentParticipant?.id) {
         bannerPath = await uploadEventBanner(bannerLocalUri, currentParticipant.id);
       }
@@ -350,7 +365,8 @@ function EditEvent({ event, onBack }: { event: EventWithCount; onBack: () => voi
 
         <EventBannerPicker
           uri={bannerLocalUri ?? existingBannerUrl}
-          onSelect={setBannerLocalUri}
+          onSelect={(uri) => { setBannerLocalUri(uri); setBannerRemoved(false); }}
+          onRemove={handleRemoveBanner}
         />
 
         <Input label="Title *" placeholder="Event title" value={title} onChangeText={setTitle} error={errors.title} />
@@ -449,6 +465,7 @@ export default function EventScreen() {
 
   const [event, setEvent] = useState<EventWithCount | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
   const { theme: { colors } } = useAppTheme();
 
   useEffect(() => {
@@ -485,9 +502,16 @@ export default function EventScreen() {
 
   const isCreator = !!currentParticipant?.id && event.created_by_id === currentParticipant.id;
 
-  if (isCreator) {
-    return <EditEvent event={event} onBack={() => router.back()} />;
+  if (isEditing && isCreator) {
+    return <EditEvent event={event} onBack={() => setIsEditing(false)} />;
   }
 
-  return <ViewEvent event={event} onBack={() => router.back()} />;
+  return (
+    <ViewEvent
+      event={event}
+      onBack={() => router.navigate('/(app)/(trip)/events')}
+      isCreator={isCreator}
+      onEdit={() => setIsEditing(true)}
+    />
+  );
 }

@@ -10,9 +10,10 @@ import { useAppTheme } from '@/components/ui/theme-provider';
 type EventBannerPickerProps = {
   uri: string | null;
   onSelect: (uri: string) => void;
+  onRemove?: () => void;
 };
 
-export function EventBannerPicker({ uri, onSelect }: EventBannerPickerProps) {
+export function EventBannerPicker({ uri, onSelect, onRemove }: EventBannerPickerProps) {
   const { theme: { colors, radius, spacing } } = useAppTheme();
   const [showCamera, setShowCamera] = useState(false);
 
@@ -46,7 +47,24 @@ export function EventBannerPicker({ uri, onSelect }: EventBannerPickerProps) {
           borderColor: colors.border,
         }}>
           {uri ? (
-            <Image source={{ uri }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+            <>
+              <Image source={{ uri }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+              {onRemove ? (
+                <Pressable
+                  onPress={onRemove}
+                  accessibilityLabel="Remove banner"
+                  style={{
+                    position: 'absolute',
+                    top: spacing.xs,
+                    right: spacing.xs,
+                    backgroundColor: 'rgba(0,0,0,0.55)',
+                    borderRadius: 999,
+                    padding: 6,
+                  }}>
+                  <Ionicons name="trash-outline" size={16} color="#fff" />
+                </Pressable>
+              ) : null}
+            </>
           ) : (
             <Ionicons name="image-outline" size={40} color={colors.textMuted} />
           )}
