@@ -108,6 +108,28 @@ export async function getParticipatedTripCount(userId: string): Promise<number> 
   return count ?? 0;
 }
 
+export type CurrentEmailTripCount = {
+  email: string;
+  userId: string;
+  count: number;
+};
+
+export async function getParticipatedTripCountForCurrentEmail(): Promise<CurrentEmailTripCount> {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session?.user.email) {
+    throw new Error('No authenticated email');
+  }
+
+  const count = await getParticipatedTripCount(session.user.id);
+
+  return {
+    email: session.user.email,
+    userId: session.user.id,
+    count,
+  };
+}
+
 export async function updateProfile(
   userId: string,
   data: UpdateProfileData,

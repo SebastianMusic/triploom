@@ -163,6 +163,7 @@ type ThemeColors = {
   icon: string;
   shadow: string;
   overlay: string;
+  overlayStrong: string;
   success: string;
   warning: string;
   error: string;
@@ -208,6 +209,7 @@ const lightColors: ThemeColors = {
   icon: '#6B7C90',
   shadow: 'rgba(20, 32, 43, 0.14)',
   overlay: 'rgba(20, 32, 43, 0.08)',
+  overlayStrong: 'rgba(20, 32, 43, 0.58)',
   success: '#2F8B5E',
   warning: '#B98634',
   error: '#C85A54',
@@ -232,6 +234,7 @@ const darkColors: ThemeColors = {
   icon: '#A0AEC0',
   shadow: 'rgba(0, 0, 0, 0.56)',
   overlay: 'rgba(0, 0, 0, 0.42)',
+  overlayStrong: 'rgba(0, 0, 0, 0.72)',
   success: '#61B07F',
   warning: '#D2A04A',
   error: '#E07A73',

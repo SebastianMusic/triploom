@@ -8,11 +8,13 @@ import { isPrimaryTripTab, TRIP_TAB_ITEMS } from '@/components/layout/trip-navig
 import { useAppTheme } from '@/components/ui/theme-provider';
 import { useTripStore } from '@/store/trip.store';
 import { TripRole } from '@/types/trip.types';
+import { useTripChromeStore } from '@/store/trip-chrome.store';
 
 export function TripTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const [barWidth, setBarWidth] = useState(0);
   const translateIndex = useRef(new Animated.Value(0)).current;
+  const isNavigationHidden = useTripChromeStore((store) => store.isNavigationHidden);
   const {
     theme: { colors, layout, opacity, radius, shadows, sizes, spacing },
   } = useAppTheme();
@@ -55,6 +57,10 @@ export function TripTabBar({ state, descriptors, navigation }: BottomTabBarProps
   if (isHidden) return null;
 
   if (activeRouteName === 'chat/[roomId]') return null;
+
+  if (isNavigationHidden) {
+    return null;
+  }
 
   return (
     <View

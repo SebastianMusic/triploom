@@ -48,6 +48,7 @@ export default function EditProfileScreen({
   const [activeModal, setActiveModal] = useState<AvatarModal>('none');
   const insets = useSafeAreaInsets();
   const {
+    mode,
     theme: { colors, layout, opacity, radius, shadows, spacing, typography },
   } = useAppTheme();
   const { bottomOverlayOffset, headerContentOffset } = useTripChromeInsets();
@@ -92,7 +93,9 @@ export default function EditProfileScreen({
     borderColor: colors.border,
     backgroundColor: colors.surfaceMuted,
     paddingHorizontal: spacing.sm,
+    paddingVertical: 0,
     color: colors.text,
+    textAlignVertical: 'center' as const,
     ...typography.body,
   };
 
@@ -112,7 +115,12 @@ export default function EditProfileScreen({
         visible={activeModal === 'view'}
         animationType="fade"
         onRequestClose={() => setActiveModal('none')}>
-        <View style={{ flex: 1, backgroundColor: '#000000', justifyContent: 'center' }}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: mode === 'dark' ? colors.background : colors.text,
+            justifyContent: 'center',
+          }}>
           <Image source={{ uri: avatarUrl }} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
           <Pressable
             style={({ pressed }) => ({
@@ -146,9 +154,6 @@ export default function EditProfileScreen({
         <View style={{ alignItems: 'center', gap: spacing.xs }}>
           <AppText variant="subtitle" style={{ textAlign: 'center' }}>
             Edit Profile
-          </AppText>
-          <AppText variant="caption" tone="muted" style={{ textAlign: 'center' }}>
-            Keep your profile details ready for every trip.
           </AppText>
         </View>
 
@@ -215,24 +220,6 @@ export default function EditProfileScreen({
               </View>
             </Pressable>
 
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => setActiveModal('menu')}
-              style={({ pressed }) => ({
-                minHeight: 36,
-                borderRadius: radius.full,
-                paddingHorizontal: spacing.sm,
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: spacing.xs,
-                backgroundColor: colors.secondarySoft,
-                opacity: pressed ? opacity.pressed : 1,
-              })}>
-              <Ionicons name="image-outline" size={16} color={colors.secondary} />
-              <AppText variant="caption" tone="secondary">
-                Change photo
-              </AppText>
-            </Pressable>
           </View>
 
           <View style={{ gap: spacing.xs }}>

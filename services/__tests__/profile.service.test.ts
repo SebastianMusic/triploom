@@ -1,8 +1,9 @@
-import { createTestUser, type TestUser } from '@/__integration__/helpers/user';
+import { createTestUser, TEST_PASSWORD, type TestUser } from '@/__integration__/helpers/user';
+import { supabase } from '@/lib/supabase';
 import { getSupabaseAdmin } from '@/lib/supabase.admin';
 import { createTrip } from '@/services/trip.service';
 import {
-  getParticipatedTripCount,
+  getParticipatedTripCountForCurrentEmail,
   getProfile,
   getProfileImageUrl,
   updateProfile,
@@ -15,6 +16,7 @@ jest.setTimeout(20000);
 let user: TestUser;
 let realFetch: typeof global.fetch;
 const createdTripIds: string[] = [];
+const extraUsers: TestUser[] = [];
 
 beforeAll(async () => {
   realFetch = global.fetch;
@@ -29,6 +31,9 @@ afterAll(async () => {
     await admin.from('trip').delete().in('id', createdTripIds);
   }
   await user.cleanup();
+  for (const extraUser of extraUsers) {
+    await extraUser.cleanup();
+  }
 });
 
 afterEach(() => {
@@ -65,14 +70,35 @@ describe('getProfile', () => {
 // -- getParticipatedTripCount -------------------------------------------------
 
 describe('getParticipatedTripCount', () => {
-  it('counts trip participation rows for the user', async () => {
-    const startingCount = await getParticipatedTripCount(user.id);
+  it('counts trip participation rows for the signed-in email only', async () => {
+    const startingCount = await getParticipatedTripCountForCurrentEmail();
+    expect(startingCount.email).toBe(user.email);
+
     const firstTrip = await createTrip({ name: 'Profile Count Test 1' });
     const secondTrip = await createTrip({ name: 'Profile Count Test 2' });
     createdTripIds.push(firstTrip.id, secondTrip.id);
 
-    const count = await getParticipatedTripCount(user.id);
-    expect(count).toBe(startingCount + 2);
+    const userCount = await getParticipatedTripCountForCurrentEmail();
+    expect(userCount.email).toBe(user.email);
+    expect(userCount.count).toBe(startingCount.count + 2);
+
+    const otherUser = await createTestUser();
+    extraUsers.push(otherUser);
+
+    const otherStartingCount = await getParticipatedTripCountForCurrentEmail();
+    expect(otherStartingCount.email).toBe(otherUser.email);
+
+    const otherTrip = await createTrip({ name: 'Other Email Count Test' });
+    createdTripIds.push(otherTrip.id);
+
+    const otherCount = await getParticipatedTripCountForCurrentEmail();
+    expect(otherCount.email).toBe(otherUser.email);
+    expect(otherCount.count).toBe(otherStartingCount.count + 1);
+
+    await supabase.auth.signInWithPassword({ email: user.email, password: TEST_PASSWORD });
+    const refreshedUserCount = await getParticipatedTripCountForCurrentEmail();
+    expect(refreshedUserCount.email).toBe(user.email);
+    expect(refreshedUserCount.count).toBe(startingCount.count + 2);
   });
 });
 

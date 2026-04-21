@@ -1,13 +1,25 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Easing, Image, Pressable, ScrollView, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Animated,
+  Easing,
+  Modal,
+  Pressable,
+  ScrollView,
+  View,
+} from 'react-native';
 
 import EditProfileScreen from '@/components/profile/edit-profile-screen';
+import { PassportCard, PassportCardBack } from '@/components/profile/passport-card';
+import { usePassportPreviewMotion } from '@/components/profile/use-passport-preview-motion';
+import { useTripChromeInsets } from '@/components/layout/use-trip-chrome';
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
-import { useTripChromeInsets } from '@/components/layout/use-trip-chrome';
+import { getProfileBadge, getProfileBadgePalette } from '@/constants/profile-badges';
 import { useAuthStore } from '@/store/auth.store';
 import { useProfileStore } from '@/store/profile.store';
+import { useTripChromeStore } from '@/store/trip-chrome.store';
 import { type ThemePreference, useThemeStore } from '@/store/theme.store';
 
 type ProfileActionRowProps = {
@@ -25,45 +37,27 @@ const themeOptions: { value: ThemePreference; label: string; icon: keyof typeof 
   { value: 'dark', label: 'Dark', icon: 'moon-outline' },
 ];
 
-function getBadge(tripCount: number) {
-  const level = Math.floor(tripCount / 10);
-
-  if (level >= 5) {
-    return { title: 'World Builder', icon: 'planet' as const };
-  }
-
-  if (level >= 3) {
-    return { title: 'Route Master', icon: 'compass' as const };
-  }
-
-  if (level >= 2) {
-    return { title: 'Trip Captain', icon: 'trophy' as const };
-  }
-
-  if (level >= 1) {
-    return { title: 'Trail Keeper', icon: 'medal' as const };
-  }
-
-  return { title: 'First Steps', icon: 'sparkles' as const };
-}
-
 export default function ProfileScreen() {
   const { session, signOut } = useAuthStore();
   const {
     profile,
     displayAvatarUrl,
     participatedTripCount,
+    participatedTripCountEmail,
     isLoading,
     fetchProfile,
     fetchParticipatedTripCount,
     saveProfileChanges,
   } = useProfileStore();
   const {
+    mode,
     theme: { colors, layout, opacity, radius, shadows, spacing, typography },
   } = useAppTheme();
   const themePreference = useThemeStore((state) => state.preference);
   const setThemePreference = useThemeStore((state) => state.setPreference);
+  const setNavigationHidden = useTripChromeStore((state) => state.setNavigationHidden);
   const { bottomOverlayOffset, headerContentOffset } = useTripChromeInsets();
+  const passportPreview = usePassportPreviewMotion();
 
   const [showEditScreen, setShowEditScreen] = useState(false);
   const [pendingLocalUri, setPendingLocalUri] = useState<string | null>(null);
@@ -101,10 +95,17 @@ export default function ProfileScreen() {
   const mobileNumber = resolvedMobileNumber;
   const avatarSource = pendingLocalUri ?? displayAvatarUrl;
   const resolvedTripCount = participatedTripCount ?? 0;
-  const badge = getBadge(resolvedTripCount);
-  const nextBadgeAt = (Math.floor(resolvedTripCount / 10) + 1) * 10;
-  const tripsUntilNextBadge = nextBadgeAt - resolvedTripCount;
-  const badgeProgress = resolvedTripCount % 10;
+  const badge = getProfileBadge(resolvedTripCount);
+  const badgeColors = getProfileBadgePalette(mode, badge.level);
+  const heroBackground = mode === 'dark' ? colors.primarySoft : colors.primary;
+  const heroText = mode === 'dark' ? colors.text : colors.textOnPrimary;
+  const heroMutedText = mode === 'dark' ? colors.secondary : colors.primarySoft;
+  const passportLineColor = mode === 'dark' ? colors.focusRing : colors.primarySoft;
+  const tripsUntilNextBadge = badge.nextAt === null ? 0 : badge.nextAt - resolvedTripCount;
+  const badgeProgress =
+    badge.nextAt === null
+      ? 100
+      : ((resolvedTripCount - badge.startAt) / (badge.nextAt - badge.startAt)) * 100;
   const activeAppearanceIndex = Math.max(
     themeOptions.findIndex((option) => option.value === themePreference),
     0,
@@ -119,6 +120,14 @@ export default function ProfileScreen() {
       useNativeDriver: true,
     }).start();
   }, [activeAppearanceIndex, appearanceTranslateIndex]);
+
+  useEffect(() => {
+    setNavigationHidden(passportPreview.isPreviewVisible);
+
+    return () => {
+      setNavigationHidden(false);
+    };
+  }, [passportPreview.isPreviewVisible, setNavigationHidden]);
 
   useEffect(() => {
     setEditableFullName(resolvedFullName === 'Not added yet' ? '' : resolvedFullName);
@@ -258,328 +267,357 @@ export default function ProfileScreen() {
   }
 
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: colors.background }}
-      contentContainerStyle={{
-        flexGrow: 1,
-        paddingTop: headerContentOffset,
-        paddingBottom: bottomOverlayOffset,
-        paddingHorizontal: layout.screenPadding,
-        gap: spacing.md,
-      }}>
-      <View style={{ alignItems: 'center', gap: spacing.xs }}>
-        <AppText variant="subtitle" style={{ textAlign: 'center' }}>
-          My Profile
-        </AppText>
-        <AppText variant="caption" tone="muted" style={{ textAlign: 'center' }}>
-          Your Triploom identity and travel progress.
-        </AppText>
-      </View>
+    <>
+      {passportPreview.isPreviewVisible ? (
+        <Modal
+          transparent
+          visible
+          animationType="fade"
+          onRequestClose={passportPreview.closePreview}>
+          <Pressable
+            style={{
+              flex: 1,
+              justifyContent: 'center',
+              padding: spacing.md,
+              backgroundColor: colors.overlayStrong,
+            }}
+            onPress={passportPreview.closePreview}>
+            <Pressable>
+              <Animated.View
+                {...passportPreview.panHandlers}
+                style={{
+                  width: '100%',
+                  minHeight: 260,
+                  transform: [
+                    { perspective: 900 },
+                    { rotateX: passportPreview.rotateX },
+                    { rotateY: passportPreview.rotateY },
+                    { scale: passportPreview.scale },
+                  ],
+                }}>
+                <View style={{ minHeight: 260 }}>
+                  <View
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      transform: [{ rotateY: '180deg' }],
+                    }}>
+                    <PassportCardBack
+                      large
+                      badgeColors={badgeColors}
+                      colors={colors}
+                      heroBackground={heroBackground}
+                      heroText={heroText}
+                      lineColor={passportLineColor}
+                      mode={mode}
+                      radius={radius}
+                      resolvedTripCount={resolvedTripCount}
+                      shadows={shadows}
+                      spacing={spacing}
+                      typography={typography}
+                    />
+                  </View>
+                  <PassportCard
+                    large
+                    avatarSource={avatarSource}
+                    badgeColors={badgeColors}
+                    badgeIcon={badge.icon}
+                    colors={colors}
+                    email={email}
+                    fullName={fullName}
+                    heroBackground={heroBackground}
+                    heroMutedText={heroMutedText}
+                    heroText={heroText}
+                    initials={initials}
+                    lineColor={passportLineColor}
+                    mode={mode}
+                    radius={radius}
+                    resolvedTripCount={resolvedTripCount}
+                    shadows={shadows}
+                    spacing={spacing}
+                    typography={typography}
+                  />
+                </View>
+              </Animated.View>
+            </Pressable>
+          </Pressable>
+        </Modal>
+      ) : null}
 
-      <View
-        style={[
-          {
+      <ScrollView
+        style={{ flex: 1, backgroundColor: colors.background }}
+        contentContainerStyle={{
+          flexGrow: 1,
+          paddingTop: headerContentOffset,
+          paddingBottom: bottomOverlayOffset,
+          paddingHorizontal: layout.screenPadding,
+          gap: spacing.md,
+        }}>
+        <View style={{ alignItems: 'center', gap: spacing.xs }}>
+          <AppText variant="subtitle" style={{ textAlign: 'center', color: colors.primary }}>
+            Triploom Passport
+          </AppText>
+        </View>
+
+        <Pressable
+          accessibilityRole="button"
+          onPress={passportPreview.openPreview}
+          style={({ pressed }) => ({
+            opacity: pressed ? opacity.pressed : 1,
+          })}>
+          <PassportCard
+            avatarSource={avatarSource}
+            badgeColors={badgeColors}
+            badgeIcon={badge.icon}
+            colors={colors}
+            email={email}
+            fullName={fullName}
+            heroBackground={heroBackground}
+            heroMutedText={heroMutedText}
+            heroText={heroText}
+            initials={initials}
+            lineColor={passportLineColor}
+            mode={mode}
+            radius={radius}
+            resolvedTripCount={resolvedTripCount}
+            shadows={shadows}
+            spacing={spacing}
+            typography={typography}
+          />
+        </Pressable>
+
+        <View
+          style={{
+            borderRadius: radius.lg,
+            backgroundColor: badgeColors.soft,
+            padding: spacing.md,
+            gap: spacing.sm,
+          }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+            <View
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: radius.full,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: colors.surface,
+              }}>
+              <Ionicons name={badge.icon} size={24} color={badgeColors.background} />
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <AppText
+                style={[
+                  typography.label,
+                  { color: colors.text, fontSize: typography.label.fontSize + 1 },
+                ]}
+                numberOfLines={1}>
+                {badge.title} Badge
+              </AppText>
+              {participatedTripCount === null ? (
+                <AppText variant="caption" tone="muted">
+                  Loading trip progress
+                </AppText>
+              ) : badge.nextAt === null ? (
+                <AppText variant="caption" tone="muted">
+                  Highest tier for {participatedTripCountEmail ?? email}
+                </AppText>
+              ) : (
+                <AppText variant="caption" tone="muted">
+                  {tripsUntilNextBadge} trips until next tier
+                </AppText>
+              )}
+            </View>
+            <View
+              style={{
+                minWidth: 58,
+                borderRadius: radius.full,
+                paddingVertical: spacing.xs,
+                paddingHorizontal: spacing.sm,
+                alignItems: 'center',
+                backgroundColor: colors.surface,
+              }}>
+              {participatedTripCount === null ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <>
+                  <AppText style={[typography.subtitle, { color: colors.primary }]}>
+                    {participatedTripCount}
+                  </AppText>
+                  <AppText variant="caption" tone="muted">
+                    trips
+                  </AppText>
+                </>
+              )}
+            </View>
+          </View>
+
+          <View
+            style={{
+              height: 10,
+              borderRadius: radius.full,
+              overflow: 'hidden',
+              backgroundColor: colors.surface,
+            }}>
+            <View
+              style={{
+                width: `${badgeProgress}%`,
+                height: '100%',
+                borderRadius: radius.full,
+                backgroundColor: badgeColors.background,
+              }}
+            />
+          </View>
+        </View>
+
+        <View
+          style={{
             borderRadius: radius.lg,
             backgroundColor: colors.surface,
             borderWidth: 1,
             borderColor: colors.border,
-            padding: spacing.md,
-            gap: spacing.md,
-          },
-          shadows.sm,
-        ]}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-          <View>
-            {avatarSource ? (
-              <Image
-                source={{ uri: avatarSource }}
-                style={{
-                  width: 86,
-                  height: 86,
-                  borderRadius: radius.full,
-                  backgroundColor: colors.surfaceMuted,
-                }}
-              />
-            ) : (
-              <View
-                style={{
-                  width: 86,
-                  height: 86,
-                  borderRadius: radius.full,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: colors.primarySoft,
-                }}>
-                <AppText style={[typography.subtitle, { color: colors.primary }]}>
-                  {initials}
-                </AppText>
-              </View>
-            )}
-            <View
-              style={{
-                position: 'absolute',
-                right: 0,
-                bottom: 0,
-                width: 30,
-                height: 30,
-                borderRadius: radius.full,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: colors.accent,
-                borderWidth: 2,
-                borderColor: colors.surface,
-              }}>
-              <Ionicons name={badge.icon} size={16} color={colors.text} />
-            </View>
-          </View>
-
-          <View style={{ flex: 1, minWidth: 0, gap: spacing.xs }}>
-            <AppText variant="subtitle" numberOfLines={2}>
-              {fullName}
-            </AppText>
-            <AppText variant="caption" tone="muted" numberOfLines={1}>
-              {email}
-            </AppText>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => {
-                setSaveError(null);
-                setSaveSuccess(null);
-                setShowEditScreen(true);
-              }}
-              style={({ pressed }) => ({
-                alignSelf: 'flex-start',
-                minHeight: 38,
-                borderRadius: radius.full,
-                paddingHorizontal: spacing.sm,
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: spacing.xs,
-                backgroundColor: colors.primary,
-                opacity: pressed ? opacity.pressed : 1,
-              })}>
-              <Ionicons name="create-outline" size={16} color={colors.textOnPrimary} />
-              <AppText style={[typography.label, { color: colors.textOnPrimary }]}>
-                Edit Profile
-              </AppText>
-            </Pressable>
-          </View>
+            paddingHorizontal: spacing.md,
+          }}>
+          <ProfileActionRow
+            icon="create-outline"
+            label="Edit profile"
+            onPress={() => {
+              setSaveError(null);
+              setSaveSuccess(null);
+              setShowEditScreen(true);
+            }}
+          />
+          <View style={{ height: 1, backgroundColor: colors.border }} />
+          <ProfileActionRow icon="person-outline" label="Name" value={fullName} />
+          <View style={{ height: 1, backgroundColor: colors.border }} />
+          <ProfileActionRow icon="mail-outline" label="Email" value={email} />
+          <View style={{ height: 1, backgroundColor: colors.border }} />
+          <ProfileActionRow icon="call-outline" label="Phone" value={mobileNumber} />
         </View>
-      </View>
 
-      <View
-        style={{
-          borderRadius: radius.lg,
-          backgroundColor: colors.primarySoft,
-          padding: spacing.md,
-          gap: spacing.sm,
-        }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-          <View
-            style={{
-              width: 48,
-              height: 48,
-              borderRadius: radius.full,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: colors.surface,
-            }}>
-            <Ionicons name={badge.icon} size={24} color={colors.primary} />
-          </View>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <AppText style={[typography.label, { color: colors.text }]} numberOfLines={1}>
-              {badge.title}
-            </AppText>
-            {participatedTripCount === null ? (
-              <AppText variant="caption" tone="muted">
-                Loading trip progress
-              </AppText>
-            ) : (
-              <AppText variant="caption" tone="muted">
-                {tripsUntilNextBadge} trips until the next badge
-              </AppText>
-            )}
+        <View
+          style={{
+            borderRadius: radius.lg,
+            backgroundColor: colors.surface,
+            borderWidth: 1,
+            borderColor: colors.border,
+            padding: spacing.sm,
+            gap: spacing.sm,
+          }}>
+          <View style={{ paddingHorizontal: spacing.xs }}>
+            <AppText style={typography.label}>Appearance</AppText>
           </View>
           <View
+            onLayout={(event) => {
+              setAppearanceWidth(event.nativeEvent.layout.width);
+            }}
             style={{
-              minWidth: 58,
+              minHeight: 48,
               borderRadius: radius.full,
-              paddingVertical: spacing.xs,
-              paddingHorizontal: spacing.sm,
-              alignItems: 'center',
-              backgroundColor: colors.surface,
+              padding: 4,
+              flexDirection: 'row',
+              backgroundColor: colors.surfaceMuted,
             }}>
-            {participatedTripCount === null ? (
-              <ActivityIndicator size="small" color={colors.primary} />
-            ) : (
-              <>
-                <AppText style={[typography.subtitle, { color: colors.primary }]}>
-                  {participatedTripCount}
-                </AppText>
-                <AppText variant="caption" tone="muted">
-                  trips
-                </AppText>
-              </>
-            )}
+            {appearanceSegmentWidth > 0 ? (
+              <Animated.View
+                pointerEvents="none"
+                style={[
+                  {
+                    position: 'absolute',
+                    top: 4,
+                    left: 4,
+                    width: Math.max(appearanceSegmentWidth, 0),
+                    height: 40,
+                    borderRadius: radius.full,
+                    backgroundColor: colors.surface,
+                    transform: [
+                      {
+                        translateX: Animated.multiply(appearanceTranslateIndex, appearanceSegmentWidth),
+                      },
+                    ],
+                  },
+                  shadows.sm,
+                ]}
+              />
+            ) : null}
+            {themeOptions.map((option) => {
+              const selected = themePreference === option.value;
+
+              return (
+                <Pressable
+                  key={option.value}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                  onPress={() => setThemePreference(option.value)}
+                  style={({ pressed }) => ({
+                    flex: 1,
+                    minHeight: 40,
+                    borderRadius: radius.full,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: spacing.xs,
+                    backgroundColor: colors.transparent,
+                    opacity: pressed ? opacity.pressed : 1,
+                  })}>
+                  <Ionicons
+                    name={option.icon}
+                    size={16}
+                    color={selected ? colors.primary : colors.icon}
+                  />
+                  <AppText
+                    variant="caption"
+                    style={{
+                      color: selected ? colors.primary : colors.textMuted,
+                    }}>
+                    {option.label}
+                  </AppText>
+                </Pressable>
+              );
+            })}
           </View>
         </View>
 
         <View
           style={{
-            height: 10,
-            borderRadius: radius.full,
-            overflow: 'hidden',
+            borderRadius: radius.lg,
             backgroundColor: colors.surface,
+            borderWidth: 1,
+            borderColor: colors.border,
+            paddingHorizontal: spacing.md,
           }}>
-          <View
-            style={{
-              width: `${badgeProgress * 10}%`,
-              height: '100%',
-              borderRadius: radius.full,
-              backgroundColor: colors.accent,
+          <ProfileActionRow
+            icon="log-out-outline"
+            label="Sign Out"
+            destructive
+            loading={isSigningOut}
+            onPress={() => {
+              void handleSignOut();
             }}
           />
         </View>
-      </View>
 
-      <View
-        style={{
-          borderRadius: radius.lg,
-          backgroundColor: colors.surface,
-          borderWidth: 1,
-          borderColor: colors.border,
-          paddingHorizontal: spacing.md,
-        }}>
-        <ProfileActionRow icon="person-outline" label="Name" value={fullName} />
-        <View style={{ height: 1, backgroundColor: colors.border }} />
-        <ProfileActionRow icon="mail-outline" label="Email" value={email} />
-        <View style={{ height: 1, backgroundColor: colors.border }} />
-        <ProfileActionRow icon="call-outline" label="Phone" value={mobileNumber} />
-      </View>
-
-      <View
-        style={{
-          borderRadius: radius.lg,
-          backgroundColor: colors.surface,
-          borderWidth: 1,
-          borderColor: colors.border,
-          padding: spacing.sm,
-          gap: spacing.sm,
-        }}>
-        <View style={{ paddingHorizontal: spacing.xs }}>
-          <AppText style={typography.label}>Appearance</AppText>
-          <AppText variant="caption" tone="muted">
-            Choose how Triploom should look on this device.
+        {saveSuccess ? (
+          <AppText variant="caption" tone="success">
+            {saveSuccess}
           </AppText>
-        </View>
-        <View
-          onLayout={(event) => {
-            setAppearanceWidth(event.nativeEvent.layout.width);
-          }}
-          style={{
-            minHeight: 48,
-            borderRadius: radius.full,
-            padding: 4,
-            flexDirection: 'row',
-            backgroundColor: colors.surfaceMuted,
-          }}>
-          {appearanceSegmentWidth > 0 ? (
-            <Animated.View
-              pointerEvents="none"
-              style={[
-                {
-                  position: 'absolute',
-                  top: 4,
-                  left: 4,
-                  width: Math.max(appearanceSegmentWidth, 0),
-                  height: 40,
-                  borderRadius: radius.full,
-                  backgroundColor: colors.surface,
-                  transform: [
-                    {
-                      translateX: Animated.multiply(appearanceTranslateIndex, appearanceSegmentWidth),
-                    },
-                  ],
-                },
-                shadows.sm,
-              ]}
-            />
-          ) : null}
-          {themeOptions.map((option) => {
-            const selected = themePreference === option.value;
-
-            return (
-              <Pressable
-                key={option.value}
-                accessibilityRole="button"
-                accessibilityState={{ selected }}
-                onPress={() => setThemePreference(option.value)}
-                style={({ pressed }) => ({
-                  flex: 1,
-                  minHeight: 40,
-                  borderRadius: radius.full,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: spacing.xs,
-                  backgroundColor: colors.transparent,
-                  opacity: pressed ? opacity.pressed : 1,
-                })}>
-                <Ionicons
-                  name={option.icon}
-                  size={16}
-                  color={selected ? colors.primary : colors.icon}
-                />
-                <AppText
-                  variant="caption"
-                  style={{
-                    color: selected ? colors.primary : colors.textMuted,
-                  }}>
-                  {option.label}
-                </AppText>
-              </Pressable>
-            );
-          })}
-        </View>
-      </View>
-
-      <View
-        style={{
-          borderRadius: radius.lg,
-          backgroundColor: colors.surface,
-          borderWidth: 1,
-          borderColor: colors.border,
-          paddingHorizontal: spacing.md,
-        }}>
-        <ProfileActionRow
-          icon="log-out-outline"
-          label="Sign Out"
-          destructive
-          loading={isSigningOut}
-          onPress={() => {
-            void handleSignOut();
-          }}
-        />
-      </View>
-
-      {saveSuccess ? (
-        <AppText variant="caption" tone="success">
-          {saveSuccess}
-        </AppText>
-      ) : null}
-      {saveError ? (
-        <AppText variant="caption" tone="error">
-          {saveError}
-        </AppText>
-      ) : null}
-      {isLoading ? (
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
-          <ActivityIndicator size="small" color={colors.primary} />
-          <AppText variant="caption" tone="muted">
-            Loading profile...
+        ) : null}
+        {saveError ? (
+          <AppText variant="caption" tone="error">
+            {saveError}
           </AppText>
-        </View>
-      ) : null}
-    </ScrollView>
+        ) : null}
+        {isLoading ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+            <ActivityIndicator size="small" color={colors.primary} />
+            <AppText variant="caption" tone="muted">
+              Loading profile...
+            </AppText>
+          </View>
+        ) : null}
+      </ScrollView>
+    </>
   );
 }

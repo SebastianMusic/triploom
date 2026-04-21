@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
 import type { Profile } from '@/types';
 import {
-  getParticipatedTripCount,
+  getParticipatedTripCountForCurrentEmail,
   updateSelectedTrip,
   getProfile,
   updateProfile,
@@ -15,6 +15,7 @@ interface ProfileState {
   displayAvatarUrl: string;
   selectedTrip: string | null;
   participatedTripCount: number | null;
+  participatedTripCountEmail: string | null;
   isLoading: boolean;
   setProfile: (profile: Profile | null) => void;
   setLoading: (isLoading: boolean) => void;
@@ -29,6 +30,7 @@ export const useProfileStore = create<ProfileState>()((set) => ({
   displayAvatarUrl: '',
   selectedTrip: null,
   participatedTripCount: null,
+  participatedTripCountEmail: null,
   isLoading: false,
 
   setProfile: (profile) => set({ profile, selectedTrip: profile?.selected_trip ?? null }),
@@ -41,7 +43,7 @@ export const useProfileStore = create<ProfileState>()((set) => ({
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         const profile = await getProfile(session.user.id);
-        const participatedTripCount = await getParticipatedTripCount(session.user.id);
+        const participatedTripCountResult = await getParticipatedTripCountForCurrentEmail();
         const displayAvatarUrl = profile?.profile_picture_url
           ? (await getProfileImageUrl(profile.profile_picture_url).catch(() => null)) ?? ''
           : '';
@@ -49,7 +51,8 @@ export const useProfileStore = create<ProfileState>()((set) => ({
           profile,
           displayAvatarUrl,
           selectedTrip: profile?.selected_trip ?? null,
-          participatedTripCount,
+          participatedTripCount: participatedTripCountResult.count,
+          participatedTripCountEmail: participatedTripCountResult.email,
           isLoading: false,
         });
       } else {
@@ -67,8 +70,12 @@ export const useProfileStore = create<ProfileState>()((set) => ({
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) throw new Error('No authenticated user');
 
-      const participatedTripCount = await getParticipatedTripCount(session.user.id);
-      set({ participatedTripCount, isLoading: false });
+      const participatedTripCountResult = await getParticipatedTripCountForCurrentEmail();
+      set({
+        participatedTripCount: participatedTripCountResult.count,
+        participatedTripCountEmail: participatedTripCountResult.email,
+        isLoading: false,
+      });
     } catch (error) {
       set({ isLoading: false });
       throw error;
