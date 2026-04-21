@@ -271,7 +271,7 @@ function ViewEvent({ event, onBack, isCreator, isOrganizer, onEdit, onDelete }: 
 
 // ─── Edit screen ─────────────────────────────────────────────────────────────
 
-function EditEvent({ event, onBack }: { event: EventWithCount; onBack: () => void }) {
+function EditEvent({ event, onBack, onDeleteSuccess }: { event: EventWithCount; onBack: () => void; onDeleteSuccess: () => void }) {
   const insets = useSafeAreaInsets();
   const { theme: { colors, layout, radius, spacing, stroke } } = useAppTheme();
   const { updateEvent, deleteEvent } = useEventsStore();
@@ -448,7 +448,7 @@ function EditEvent({ event, onBack }: { event: EventWithCount; onBack: () => voi
                 {
                   text: 'Delete',
                   style: 'destructive',
-                  onPress: () => { void deleteEvent(event.id).then(() => onBack()); },
+                  onPress: () => { void deleteEvent(event.id).then(() => onDeleteSuccess()); },
                 },
               ],
             );
@@ -530,7 +530,7 @@ export default function EventScreen() {
   const isOrganizer = currentParticipant?.role === TripRole.Organizer;
 
   if (isEditing && isCreator) {
-    return <EditEvent event={event} onBack={() => setIsEditing(false)} />;
+    return <EditEvent event={event} onBack={() => setIsEditing(false)} onDeleteSuccess={() => router.navigate('/(app)/(trip)/events')} />;
   }
 
   return (
