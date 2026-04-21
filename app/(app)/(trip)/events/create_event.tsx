@@ -212,7 +212,18 @@ export default function CreateEventScreen() {
         is_optional: isOrganizer ? !isMandatory : null,
         banner_image_url: bannerPath,
       });
-      router.back();
+
+      setTitle('');
+      setDescription('');
+      setLocation('');
+      setStartDate(null);
+      setEndDate(null);
+      setPriceRange('');
+      setBannerUri(null);
+      setIsMandatory(false);
+      setLocationSuggestions([]);
+
+      router.replace('/(app)/(trip)/events');
     } catch {
       Alert.alert('Error', 'Could not create event. Please try again.');
     } finally {
