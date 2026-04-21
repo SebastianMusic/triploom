@@ -10,9 +10,10 @@ export type InputProps = TextInputProps & {
   error?: string;
   multiline?: boolean;
   containerStyle?: StyleProp<ViewStyle>;
+  rightElement?: React.ReactNode;
 };
 
-export function Input({ label, hint, error, multiline = false, containerStyle, style, ...props }: InputProps) {
+export function Input({ label, hint, error, multiline = false, containerStyle, style, rightElement, ...props }: InputProps) {
   const [isFocused, setIsFocused] = useState(false);
   const {
     theme: { colors, radius, sizes, spacing, stroke, typography },
@@ -21,37 +22,65 @@ export function Input({ label, hint, error, multiline = false, containerStyle, s
   const borderColor = error ? colors.error : isFocused ? colors.focusRing : colors.border;
   const borderWidth = isFocused ? stroke.focus : stroke.thin;
 
-  return (
-    <View style={[{ gap: spacing.xs }, containerStyle]}>
-      {label ? <AppText variant="caption">{label}</AppText> : null}
-      <TextInput
-        onFocus={(event) => {
-          setIsFocused(true);
-          props.onFocus?.(event);
-        }}
-        onBlur={(event) => {
-          setIsFocused(false);
-          props.onBlur?.(event);
-        }}
-        placeholderTextColor={colors.textMuted}
-        multiline={multiline}
-        textAlignVertical={multiline ? 'top' : 'center'}
-        style={[
-          {
-            minHeight: multiline ? sizes.input.lg : sizes.input.md,
+  const textInputEl = (
+    <TextInput
+      onFocus={(event) => {
+        setIsFocused(true);
+        props.onFocus?.(event);
+      }}
+      onBlur={(event) => {
+        setIsFocused(false);
+        props.onBlur?.(event);
+      }}
+      placeholderTextColor={colors.textMuted}
+      multiline={multiline}
+      textAlignVertical={multiline ? 'top' : 'center'}
+      style={[
+        {
+          minHeight: multiline ? sizes.input.lg : sizes.input.md,
+          ...(!rightElement && {
             borderRadius: radius.md,
             borderWidth,
             borderColor,
             backgroundColor: colors.surface,
             paddingHorizontal: spacing.sm,
             paddingVertical: spacing.sm - spacing.xs / 2,
-            color: colors.text,
-            ...typography.body,
-          },
-          style,
-        ]}
-        {...props}
-      />
+          }),
+          ...(rightElement && {
+            flex: 1,
+            paddingHorizontal: spacing.sm,
+            paddingVertical: spacing.sm - spacing.xs / 2,
+          }),
+          color: colors.text,
+          ...typography.body,
+        },
+        style,
+      ]}
+      {...props}
+    />
+  );
+
+  return (
+    <View style={[{ gap: spacing.xs }, containerStyle]}>
+      {label ? <AppText variant="caption">{label}</AppText> : null}
+      {rightElement ? (
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            minHeight: sizes.input.md,
+            borderRadius: radius.md,
+            borderWidth,
+            borderColor,
+            backgroundColor: colors.surface,
+            overflow: 'hidden',
+          }}>
+          {textInputEl}
+          {rightElement}
+        </View>
+      ) : (
+        textInputEl
+      )}
       {error ? (
         <AppText variant="caption" tone="error">
           {error}

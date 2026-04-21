@@ -11,12 +11,15 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSCameraUsageDescription": "Triploom uses the camera to take profile pictures and photos for trips."
-      }
+        "NSCameraUsageDescription": "Triploom uses the camera to take profile pictures and photos for trips.",
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "bundleIdentifier": "com.triploomapp.triploom"
     },
     "android": {
       "permissions": [
-        "android.permission.CAMERA"
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
       ],
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
