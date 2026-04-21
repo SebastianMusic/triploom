@@ -1,17 +1,24 @@
 import { useEffect, useState } from 'react';
-import { ScrollView, View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useAuthStore } from '@/store/auth.store';
-import { useTripStore } from '@/store/trip.store';
-import { useProfileStore } from '@/store/profile.store';
+
 import { AnnouncementList } from '@/components/announcement/AnnouncementList';
+import { useTripChromeInsets } from '@/components/layout/use-trip-chrome';
 import { ParticipantList } from '@/components/participant-ui/participant-list';
+import { TripInfoCard } from '@/components/trip/trip-info-card';
+import { AppText } from '@/components/ui/text';
+import { useAppTheme } from '@/components/ui/theme-provider';
+import { useAuthStore } from '@/store/auth.store';
+import { useProfileStore } from '@/store/profile.store';
+import { useTripStore } from '@/store/trip.store';
 
 export default function HomeScreen() {
 	const router = useRouter();
 	const { session } = useAuthStore();
 	const { currentParticipant, fetchCurrentParticipant } = useTripStore();
 	const { selectedTrip, setSelectedTrip } = useProfileStore();
+	const { headerContentOffset, bottomOverlayOffset } = useTripChromeInsets();
+	const { theme: { colors, layout, spacing } } = useAppTheme();
 	const [isSwitching, setIsSwitching] = useState(false);
 
 	useEffect(() => {
@@ -31,52 +38,53 @@ export default function HomeScreen() {
 	}
 
 	return (
-		<ScrollView contentContainerStyle={styles.container}>
-			<Text style={styles.title}>Home</Text>
-			<Text style={styles.role}>Your role: {currentParticipant?.role ?? '...'}</Text>
+		<View style={{ flex: 1 }}>
+			<ScrollView
+				keyboardShouldPersistTaps="handled"
+				contentContainerStyle={{
+					paddingTop: headerContentOffset,
+					paddingBottom: bottomOverlayOffset,
+					paddingHorizontal: layout.screenPadding,
+					gap: spacing.md,
+				}}>
 
-			<Pressable
-				style={({ pressed }) => [styles.switchButton, pressed && styles.switchButtonPressed]}
-				onPress={handleSwitchTrip}
-				disabled={isSwitching}
-			>
-				{isSwitching
-					? <ActivityIndicator size="small" color="#6b7280" />
-					: <Text style={styles.switchButtonText}>Switch trip</Text>
-				}
-			</Pressable>
+				<TripInfoCard />
 
-			<View style={styles.section}>
-				<AnnouncementList />
-			</View>
+				<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+					<AppText variant="caption" tone="muted">
+						Your role: {currentParticipant?.role ?? '…'}
+					</AppText>
+					<Pressable
+						onPress={handleSwitchTrip}
+						disabled={isSwitching}
+						style={({ pressed }) => ({
+							paddingVertical: 6,
+							paddingHorizontal: 12,
+							borderRadius: 8,
+							backgroundColor: colors.surfaceMuted,
+							opacity: pressed ? 0.7 : 1,
+						})}>
+						{isSwitching
+							? <ActivityIndicator size="small" color={colors.textMuted} />
+							: <AppText variant="caption" tone="muted">Switch trip</AppText>}
+					</Pressable>
+				</View>
 
-			<View style={styles.section}>
-				<Text style={styles.sectionTitle}>Participants</Text>
-				<ParticipantList />
-			</View>
-		</ScrollView>
+				<View style={{ gap: spacing.xs }}>
+					<AppText variant="caption" tone="muted" style={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
+						Announcements
+					</AppText>
+					<AnnouncementList />
+				</View>
+
+				<View style={{ gap: spacing.xs }}>
+					<AppText variant="caption" tone="muted" style={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
+						Participants
+					</AppText>
+					<ParticipantList />
+				</View>
+
+			</ScrollView>
+		</View>
 	);
 }
-
-const styles = StyleSheet.create({
-	container: { padding: 16, gap: 8 },
-	title: { fontSize: 24, fontWeight: 'bold' },
-	role: { fontSize: 14, color: '#444' },
-	switchButton: {
-		alignSelf: 'flex-start',
-		paddingVertical: 6,
-		paddingHorizontal: 12,
-		borderRadius: 8,
-		backgroundColor: '#f3f4f6',
-	},
-	switchButtonPressed: {
-		backgroundColor: '#e5e7eb',
-	},
-	switchButtonText: {
-		fontSize: 13,
-		color: '#6b7280',
-		fontWeight: '500',
-	},
-	section: { marginTop: 8 },
-	sectionTitle: { fontSize: 16, fontWeight: '600', marginBottom: 8, color: '#111' },
-});

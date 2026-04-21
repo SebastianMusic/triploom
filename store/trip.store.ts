@@ -12,6 +12,7 @@ import {
   kickParticipant as kickParticipantService,
   leaveTrip as leaveTripService,
   updateParticipantRole as updateParticipantRoleService,
+  updateTrip as updateTripService,
   type TripParticipantWithProfile,
 } from '@/services/trip.service';
 import {
@@ -37,6 +38,7 @@ interface TripState {
   setParticipants: (participants: TripParticipant[]) => void;
   setLoading: (isLoading: boolean) => void;
   createTrip: (dto: CreateTripDTO) => Promise<Trip>;
+  updateTrip: (tripId: string, updates: Partial<Pick<Trip, 'name' | 'description' | 'start_date' | 'end_date' | 'banner_image_url'>>) => Promise<void>;
   deleteTrip: (tripId: string) => Promise<void>;
   fetchCurrentParticipant: (tripId: string, userId: string) => Promise<void>;
   fetchParticipants: (tripId: string) => Promise<void>;
@@ -85,6 +87,14 @@ export const useTripStore = create<TripState>()((set) => ({
       set({ isLoading: false });
       throw error;
     }
+  },
+
+  updateTrip: async (tripId, updates) => {
+    const updated = await updateTripService(tripId, updates);
+    set((state) => ({
+      currentTrip: state.currentTrip?.id === tripId ? updated : state.currentTrip,
+      trips: state.trips.map((t) => (t.id === tripId ? { ...t, ...updated } : t)),
+    }));
   },
 
   deleteTrip: async (tripId) => {
