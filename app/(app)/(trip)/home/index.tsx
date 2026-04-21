@@ -5,6 +5,7 @@ import { useAuthStore } from '@/store/auth.store';
 import { useTripStore } from '@/store/trip.store';
 import { useProfileStore } from '@/store/profile.store';
 import { AnnouncementList } from '@/components/announcement/AnnouncementList';
+import { ParticipantList } from '@/components/participant-ui/participant-list';
 
 export default function HomeScreen() {
 	const router = useRouter();
@@ -48,6 +49,11 @@ export default function HomeScreen() {
 			<View style={styles.section}>
 				<AnnouncementList />
 			</View>
+
+			<View style={styles.section}>
+				<Text style={styles.sectionTitle}>Participants</Text>
+				<ParticipantList />
+			</View>
 		</ScrollView>
 	);
 }
@@ -72,4 +78,5 @@ const styles = StyleSheet.create({
 		fontWeight: '500',
 	},
 	section: { marginTop: 8 },
+	sectionTitle: { fontSize: 16, fontWeight: '600', marginBottom: 8, color: '#111' },
 });
