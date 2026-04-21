@@ -74,6 +74,7 @@ describe('sendMessage store action', () => {
     let isSendingDuringCall = false;
     (chatService.sendMessage as jest.Mock).mockImplementation(async () => {
       isSendingDuringCall = useChatStore.getState().isSending;
+      return mockMessage;
     });
 
     await act(async () => {
@@ -85,6 +86,19 @@ describe('sendMessage store action', () => {
 
     expect(isSendingDuringCall).toBe(true);
     expect(useChatStore.getState().isSending).toBe(false);
+  });
+
+  it('adds the sent message to state immediately', async () => {
+    (chatService.sendMessage as jest.Mock).mockResolvedValue(mockMessage);
+
+    await act(async () => {
+      await useChatStore.getState().sendMessage({
+        content: 'Hello',
+        group_chat_id: VALID_UUID,
+      });
+    });
+
+    expect(useChatStore.getState().messages[0]).toEqual(mockMessage);
   });
 });
 
@@ -257,5 +271,15 @@ describe('addMessage store action', () => {
     });
 
     expect(chatService.markChatRead).toHaveBeenCalledWith('room-1');
+  });
+
+  it('does not add a duplicate message with the same id', () => {
+    useChatStore.setState({ messages: [mockMessage] });
+
+    act(() => {
+      useChatStore.getState().addMessage(mockMessage);
+    });
+
+    expect(useChatStore.getState().messages).toHaveLength(1);
   });
 });

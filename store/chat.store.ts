@@ -72,7 +72,8 @@ export const useChatStore = create<ChatState>()((set, get) => ({
   sendMessage: async (dto) => {
     set({ isSending: true });
     try {
-      await chatService.sendMessage(dto);
+      const message = await chatService.sendMessage(dto);
+      get().addMessage(message);
       chatService.markChatRead(dto.group_chat_id).catch(() => {});
       set({ isSending: false });
     } catch (error) {
@@ -142,7 +143,10 @@ export const useChatStore = create<ChatState>()((set, get) => ({
 
   addMessage: (message) => {
     const { activeChatRoomId } = get();
-    set((state) => ({ messages: [message, ...state.messages] }));
+    set((state) => {
+      if (state.messages.some((m) => m.id === message.id)) return state;
+      return { messages: [message, ...state.messages] };
+    });
     if (activeChatRoomId) {
       chatService.markChatRead(activeChatRoomId).catch(() => {});
     }
