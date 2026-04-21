@@ -112,4 +112,3 @@ export type ProfileUpdate = TablesUpdate<'profile'>;
 export type GroupMembership = Tables<'group_membership'>;
 export type GroupMembershipInsert = TablesInsert<'group_membership'>;
 export type GroupMembershipUpdate = TablesUpdate<'group_membership'>;
-

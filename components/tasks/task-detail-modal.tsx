@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Modal, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -9,7 +10,11 @@ import { Stack } from '@/components/ui/stack';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import { TaskFieldType } from '@/types/tasks.types';
 import type { Task, TaskAssignment, TaskFieldResponse } from '@/types';
-import type { AssignmentWithParticipant, TaskFieldWithOptions, FieldResponseWithParticipant } from '@/services/tasks.service';
+import type { AssignmentWithParticipant, TaskFieldWithOptions } from '@/services/tasks.service';
+
+export type PendingResponseMap = Record<string, { option_id?: string | null; is_checked?: boolean | null; value?: string | null }[]>;
+
+type ResponseLike = { option_id?: string | null; is_checked?: boolean | null; value?: string | null };
 
 export function TaskDetailModal({
   task,
@@ -17,12 +22,9 @@ export function TaskDetailModal({
   assignment,
   allAssignments,
   myFieldResponses,
-  allFieldResponses,
   onClose,
-  onToggleComplete,
-  onToggleCheckbox,
-  onSelectDropdown,
-  onChangeTextInput,
+  onMarkComplete,
+  onUndoComplete,
   onEdit,
   onDelete,
 }: {
@@ -31,19 +33,52 @@ export function TaskDetailModal({
   assignment: TaskAssignment | null;
   allAssignments?: AssignmentWithParticipant[];
   myFieldResponses: Record<string, TaskFieldResponse[]>;
-  allFieldResponses?: Record<string, FieldResponseWithParticipant[]>;
   onClose: () => void;
-  onToggleComplete: () => void;
-  onToggleCheckbox: (fieldId: string, optionId: string, current: boolean) => void;
-  onSelectDropdown: (fieldId: string, optionId: string) => void;
-  onChangeTextInput: (fieldId: string, value: string) => void;
+  onMarkComplete: (pending: PendingResponseMap) => Promise<void>;
+  onUndoComplete: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
 }) {
   const { theme: { colors, spacing, sizes, radius, stroke } } = useAppTheme();
+  const [pending, setPending] = useState<PendingResponseMap>({});
+  const [completing, setCompleting] = useState(false);
   const isCompleted = assignment?.is_completed ?? false;
 
+  useEffect(() => {
+    setPending({});
+  }, [task?.id]);
+
   if (!task) return null;
+
+  function getResponses(fieldId: string): ResponseLike[] {
+    if (isCompleted) return myFieldResponses[fieldId] ?? [];
+    return pending[fieldId] ?? [];
+  }
+
+  function handleToggleCheckbox(fieldId: string, optionId: string, current: boolean) {
+    setPending((prev) => {
+      const existing = prev[fieldId] ?? [];
+      const other = existing.filter((r) => r.option_id !== optionId);
+      return { ...prev, [fieldId]: [...other, { option_id: optionId, is_checked: !current }] };
+    });
+  }
+
+  function handleSelectDropdown(fieldId: string, optionId: string) {
+    setPending((prev) => ({ ...prev, [fieldId]: [{ option_id: optionId }] }));
+  }
+
+  function handleChangeText(fieldId: string, value: string) {
+    setPending((prev) => ({ ...prev, [fieldId]: [{ value }] }));
+  }
+
+  async function handleMarkComplete() {
+    setCompleting(true);
+    try {
+      await onMarkComplete(pending);
+    } finally {
+      setCompleting(false);
+    }
+  }
 
   return (
     <Modal visible={!!task} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
@@ -89,7 +124,7 @@ export function TaskDetailModal({
 
           {/* Fields */}
           {fields.map((field) => {
-            const responses = myFieldResponses[field.id] ?? [];
+            const responses = getResponses(field.id);
 
             if (field.type === TaskFieldType.Checkbox) {
               return (
@@ -100,7 +135,7 @@ export function TaskDetailModal({
                     return (
                       <Pressable
                         key={opt.id}
-                        onPress={() => onToggleCheckbox(field.id, opt.id, checked)}
+                        onPress={() => !isCompleted && handleToggleCheckbox(field.id, opt.id, checked)}
                         style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
                         <View style={{
                           width: 22, height: 22, borderRadius: 6, borderWidth: 2,
@@ -128,7 +163,7 @@ export function TaskDetailModal({
                     return (
                       <Pressable
                         key={opt.id}
-                        onPress={() => onSelectDropdown(field.id, opt.id)}
+                        onPress={() => !isCompleted && handleSelectDropdown(field.id, opt.id)}
                         style={{
                           borderRadius: radius.md, borderWidth: 1.5,
                           borderColor: active ? colors.primary : colors.border,
@@ -144,13 +179,14 @@ export function TaskDetailModal({
             }
 
             if (field.type === TaskFieldType.TextInput) {
-              const value = responses[0]?.value ?? '';
+              const value = (responses[0]?.value ?? '') as string;
               return (
                 <Stack key={field.id} space="xs">
                   <AppText variant="caption" tone="muted">{field.label}</AppText>
                   <TextInput
                     value={value}
-                    onChangeText={(text) => onChangeTextInput(field.id, text)}
+                    onChangeText={(text) => !isCompleted && handleChangeText(field.id, text)}
+                    editable={!isCompleted}
                     placeholder="Skriv her..."
                     multiline
                     placeholderTextColor={colors.textMuted}
@@ -171,7 +207,7 @@ export function TaskDetailModal({
           {/* Complete toggle */}
           {isCompleted ? (
             <Pressable
-              onPress={onToggleComplete}
+              onPress={onUndoComplete}
               style={({ pressed }) => ({
                 flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
                 borderRadius: radius.full, borderWidth: 1.5, borderColor: colors.success,
@@ -185,7 +221,12 @@ export function TaskDetailModal({
               <AppText variant="caption" tone="muted">Trykk for å angre</AppText>
             </Pressable>
           ) : (
-            <Button label="Marker som ferdig" fullWidth onPress={onToggleComplete} />
+            <Button
+              label={completing ? 'Lagrer...' : 'Marker som ferdig'}
+              fullWidth
+              loading={completing}
+              onPress={handleMarkComplete}
+            />
           )}
 
           {/* Organizer: participant overview */}
