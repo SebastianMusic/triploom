@@ -131,7 +131,7 @@ function DatePickerOverlay({
 
 // ─── View screen ─────────────────────────────────────────────────────────────
 
-function ViewEvent({ event, onBack, isCreator, onEdit }: { event: EventWithCount; onBack: () => void; isCreator?: boolean; onEdit?: () => void }) {
+function ViewEvent({ event, onBack, isCreator, isOrganizer, onEdit, onDelete }: { event: EventWithCount; onBack: () => void; isCreator?: boolean; isOrganizer?: boolean; onEdit?: () => void; onDelete?: () => void }) {
   const insets = useSafeAreaInsets();
   const { theme: { colors, layout, spacing } } = useAppTheme();
   const { currentParticipant } = useTripStore();
@@ -239,6 +239,30 @@ function ViewEvent({ event, onBack, isCreator, onEdit }: { event: EventWithCount
           onPress={() => { void handleToggle(); }}
         />
       )}
+
+      {isOrganizer && !isCreator && onDelete ? (
+        <Pressable
+          onPress={() => {
+            Alert.alert(
+              'Delete event',
+              'Are you sure you want to delete this event? This cannot be undone.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Delete', style: 'destructive', onPress: onDelete },
+              ],
+            );
+          }}
+          style={({ pressed }) => ({
+            width: '100%',
+            minHeight: 48,
+            borderRadius: 999,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: pressed ? '#c0392b' : '#e74c3c',
+          })}>
+          <AppText style={{ color: '#fff', fontWeight: '600' }}>Delete event</AppText>
+        </Pressable>
+      ) : null}
     </ScrollView>
   );
 }
@@ -461,7 +485,7 @@ export default function EventScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { currentParticipant } = useTripStore();
-  const { events } = useEventsStore();
+  const { events, deleteEvent } = useEventsStore();
 
   const [event, setEvent] = useState<EventWithCount | null>(null);
   const [loading, setLoading] = useState(true);
@@ -501,6 +525,7 @@ export default function EventScreen() {
   }
 
   const isCreator = !!currentParticipant?.id && event.created_by_id === currentParticipant.id;
+  const isOrganizer = currentParticipant?.role === TripRole.Organizer;
 
   if (isEditing && isCreator) {
     return <EditEvent event={event} onBack={() => setIsEditing(false)} />;
@@ -511,7 +536,11 @@ export default function EventScreen() {
       event={event}
       onBack={() => router.navigate('/(app)/(trip)/events')}
       isCreator={isCreator}
+      isOrganizer={isOrganizer}
       onEdit={() => setIsEditing(true)}
+      onDelete={() => {
+        void deleteEvent(event.id).then(() => router.navigate('/(app)/(trip)/events'));
+      }}
     />
   );
 }
