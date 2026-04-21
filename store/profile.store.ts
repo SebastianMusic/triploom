@@ -1,16 +1,25 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
 import type { Profile } from '@/types';
-import { updateSelectedTrip, getProfile, updateProfile, uploadProfileImage, getProfileImageUrl } from '@/services/profile.service';
+import {
+  getParticipatedTripCount,
+  updateSelectedTrip,
+  getProfile,
+  updateProfile,
+  uploadProfileImage,
+  getProfileImageUrl,
+} from '@/services/profile.service';
 
 interface ProfileState {
   profile: Profile | null;
   displayAvatarUrl: string;
   selectedTrip: string | null;
+  participatedTripCount: number | null;
   isLoading: boolean;
   setProfile: (profile: Profile | null) => void;
   setLoading: (isLoading: boolean) => void;
   fetchProfile: () => Promise<void>;
+  fetchParticipatedTripCount: () => Promise<void>;
   setSelectedTrip: (tripId: string | null) => Promise<void>;
   saveProfileChanges: (changes: { localImageUri?: string; userName?: string | null; phoneNumber?: string | null }) => Promise<void>;
 }
@@ -19,6 +28,7 @@ export const useProfileStore = create<ProfileState>()((set) => ({
   profile: null,
   displayAvatarUrl: '',
   selectedTrip: null,
+  participatedTripCount: null,
   isLoading: false,
 
   setProfile: (profile) => set({ profile, selectedTrip: profile?.selected_trip ?? null }),
@@ -31,6 +41,7 @@ export const useProfileStore = create<ProfileState>()((set) => ({
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         const profile = await getProfile(session.user.id);
+        const participatedTripCount = await getParticipatedTripCount(session.user.id);
         const displayAvatarUrl = profile?.profile_picture_url
           ? (await getProfileImageUrl(profile.profile_picture_url).catch(() => null)) ?? ''
           : '';
@@ -38,9 +49,26 @@ export const useProfileStore = create<ProfileState>()((set) => ({
           profile,
           displayAvatarUrl,
           selectedTrip: profile?.selected_trip ?? null,
+          participatedTripCount,
           isLoading: false,
         });
+      } else {
+        set({ isLoading: false });
       }
+    } catch (error) {
+      set({ isLoading: false });
+      throw error;
+    }
+  },
+
+  fetchParticipatedTripCount: async () => {
+    set({ isLoading: true });
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) throw new Error('No authenticated user');
+
+      const participatedTripCount = await getParticipatedTripCount(session.user.id);
+      set({ participatedTripCount, isLoading: false });
     } catch (error) {
       set({ isLoading: false });
       throw error;

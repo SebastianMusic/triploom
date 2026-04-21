@@ -7,6 +7,7 @@ import * as Linking from 'expo-linking';
 
 import { ThemeProvider, useAppTheme } from '@/components/ui/theme-provider';
 import { useAuthStore } from '@/store/auth.store';
+import { useThemeStore } from '@/store/theme.store';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -75,8 +76,11 @@ function RootNavigator() {
 }
 
 export default function RootLayout() {
+  const themePreference = useThemeStore((state) => state.preference);
+  const modeOverride = themePreference === 'native' ? undefined : themePreference;
+
   return (
-    <ThemeProvider>
+    <ThemeProvider modeOverride={modeOverride}>
       <RootNavigator />
     </ThemeProvider>
   );

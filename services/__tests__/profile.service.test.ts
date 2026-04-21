@@ -1,5 +1,8 @@
 import { createTestUser, type TestUser } from '@/__integration__/helpers/user';
+import { getSupabaseAdmin } from '@/lib/supabase.admin';
+import { createTrip } from '@/services/trip.service';
 import {
+  getParticipatedTripCount,
   getProfile,
   getProfileImageUrl,
   updateProfile,
@@ -11,6 +14,7 @@ jest.setTimeout(20000);
 
 let user: TestUser;
 let realFetch: typeof global.fetch;
+const createdTripIds: string[] = [];
 
 beforeAll(async () => {
   realFetch = global.fetch;
@@ -19,6 +23,11 @@ beforeAll(async () => {
 
 afterAll(async () => {
   global.fetch = realFetch;
+  const admin = getSupabaseAdmin();
+  if (createdTripIds.length > 0) {
+    await admin.from('trip_participant').delete().in('trip_id', createdTripIds);
+    await admin.from('trip').delete().in('id', createdTripIds);
+  }
   await user.cleanup();
 });
 
@@ -50,6 +59,20 @@ describe('getProfile', () => {
   it('returns null for a non-existent user id', async () => {
     const profile = await getProfile('00000000-0000-0000-0000-000000000000');
     expect(profile).toBeNull();
+  });
+});
+
+// -- getParticipatedTripCount -------------------------------------------------
+
+describe('getParticipatedTripCount', () => {
+  it('counts trip participation rows for the user', async () => {
+    const startingCount = await getParticipatedTripCount(user.id);
+    const firstTrip = await createTrip({ name: 'Profile Count Test 1' });
+    const secondTrip = await createTrip({ name: 'Profile Count Test 2' });
+    createdTripIds.push(firstTrip.id, secondTrip.id);
+
+    const count = await getParticipatedTripCount(user.id);
+    expect(count).toBe(startingCount + 2);
   });
 });
 

@@ -1,44 +1,92 @@
-import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Animated, Easing, Image, Pressable, ScrollView, View } from 'react-native';
 
 import EditProfileScreen from '@/components/profile/edit-profile-screen';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import { AppText } from '@/components/ui/text';
+import { useAppTheme } from '@/components/ui/theme-provider';
+import { useTripChromeInsets } from '@/components/layout/use-trip-chrome';
 import { useAuthStore } from '@/store/auth.store';
 import { useProfileStore } from '@/store/profile.store';
+import { type ThemePreference, useThemeStore } from '@/store/theme.store';
 
-function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.infoRow}>
-      <ThemedText type="defaultSemiBold" style={styles.infoLabel}>
-        {label}
-      </ThemedText>
-      <ThemedText style={styles.infoValue}>{value}</ThemedText>
-    </View>
-  );
+type ProfileActionRowProps = {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  value?: string;
+  destructive?: boolean;
+  loading?: boolean;
+  onPress?: () => void;
+};
+
+const themeOptions: { value: ThemePreference; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { value: 'native', label: 'Native', icon: 'phone-portrait-outline' },
+  { value: 'light', label: 'Light', icon: 'sunny-outline' },
+  { value: 'dark', label: 'Dark', icon: 'moon-outline' },
+];
+
+function getBadge(tripCount: number) {
+  const level = Math.floor(tripCount / 10);
+
+  if (level >= 5) {
+    return { title: 'World Builder', icon: 'planet' as const };
+  }
+
+  if (level >= 3) {
+    return { title: 'Route Master', icon: 'compass' as const };
+  }
+
+  if (level >= 2) {
+    return { title: 'Trip Captain', icon: 'trophy' as const };
+  }
+
+  if (level >= 1) {
+    return { title: 'Trail Keeper', icon: 'medal' as const };
+  }
+
+  return { title: 'First Steps', icon: 'sparkles' as const };
 }
 
 export default function ProfileScreen() {
   const { session, signOut } = useAuthStore();
-  const { profile, displayAvatarUrl, isLoading, fetchProfile, saveProfileChanges } = useProfileStore();
+  const {
+    profile,
+    displayAvatarUrl,
+    participatedTripCount,
+    isLoading,
+    fetchProfile,
+    fetchParticipatedTripCount,
+    saveProfileChanges,
+  } = useProfileStore();
+  const {
+    theme: { colors, layout, opacity, radius, shadows, spacing, typography },
+  } = useAppTheme();
+  const themePreference = useThemeStore((state) => state.preference);
+  const setThemePreference = useThemeStore((state) => state.setPreference);
+  const { bottomOverlayOffset, headerContentOffset } = useTripChromeInsets();
 
   const [showEditScreen, setShowEditScreen] = useState(false);
-
-  // Local file URI from camera — set when user takes a new photo, cleared on save/cancel
   const [pendingLocalUri, setPendingLocalUri] = useState<string | null>(null);
-
   const [editableFullName, setEditableFullName] = useState('');
   const [editablePhoneNumber, setEditablePhoneNumber] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
+  const [appearanceWidth, setAppearanceWidth] = useState(0);
+  const appearanceTranslateIndex = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (!profile && session?.user) {
       fetchProfile().catch(() => undefined);
     }
   }, [fetchProfile, profile, session]);
+
+  useEffect(() => {
+    if (session?.user) {
+      fetchParticipatedTripCount().catch(() => undefined);
+    }
+  }, [fetchParticipatedTripCount, session?.user]);
 
   const resolvedFullName =
     profile?.user_name ??
@@ -49,6 +97,28 @@ export default function ProfileScreen() {
   const email = session?.user.email ?? 'Not available';
   const resolvedMobileNumber =
     profile?.phonenumber ?? session?.user.phone ?? session?.user.user_metadata?.phone ?? 'Not added yet';
+  const fullName = editableFullName.trim() || 'Not added yet';
+  const mobileNumber = resolvedMobileNumber;
+  const avatarSource = pendingLocalUri ?? displayAvatarUrl;
+  const resolvedTripCount = participatedTripCount ?? 0;
+  const badge = getBadge(resolvedTripCount);
+  const nextBadgeAt = (Math.floor(resolvedTripCount / 10) + 1) * 10;
+  const tripsUntilNextBadge = nextBadgeAt - resolvedTripCount;
+  const badgeProgress = resolvedTripCount % 10;
+  const activeAppearanceIndex = Math.max(
+    themeOptions.findIndex((option) => option.value === themePreference),
+    0,
+  );
+  const appearanceSegmentWidth = appearanceWidth > 0 ? (appearanceWidth - 8) / themeOptions.length : 0;
+
+  useEffect(() => {
+    Animated.timing(appearanceTranslateIndex, {
+      toValue: activeAppearanceIndex,
+      duration: 260,
+      easing: Easing.bezier(0.22, 1, 0.36, 1),
+      useNativeDriver: true,
+    }).start();
+  }, [activeAppearanceIndex, appearanceTranslateIndex]);
 
   useEffect(() => {
     setEditableFullName(resolvedFullName === 'Not added yet' ? '' : resolvedFullName);
@@ -58,9 +128,6 @@ export default function ProfileScreen() {
     setEditablePhoneNumber(profile?.phonenumber ?? '');
   }, [profile?.phonenumber]);
 
-  const fullName = editableFullName.trim() || 'Not added yet';
-  const mobileNumber = resolvedMobileNumber;
-
   const initials = useMemo(() => {
     const source = fullName !== 'Not added yet' ? fullName : email;
     return (
@@ -68,7 +135,7 @@ export default function ProfileScreen() {
         .split(/[\s@._-]+/)
         .filter(Boolean)
         .slice(0, 2)
-        .map((part: string) => part[0]?.toUpperCase())
+        .map((part) => part[0]?.toUpperCase())
         .join('') || 'U'
     );
   }, [email, fullName]);
@@ -91,12 +158,10 @@ export default function ProfileScreen() {
       });
 
       setPendingLocalUri(null);
-      setSaveSuccess('Profile updated successfully.');
+      setSaveSuccess('Profile updated.');
       setShowEditScreen(false);
     } catch (error) {
-      setSaveError(
-        error instanceof Error ? error.message : 'Unable to save your profile changes.',
-      );
+      setSaveError(error instanceof Error ? error.message : 'Unable to save your profile changes.');
     } finally {
       setIsSaving(false);
     }
@@ -106,6 +171,7 @@ export default function ProfileScreen() {
     setIsSigningOut(true);
     setSaveError(null);
     setSaveSuccess(null);
+
     try {
       await signOut();
     } catch (error) {
@@ -115,11 +181,65 @@ export default function ProfileScreen() {
     }
   }
 
+  function ProfileActionRow({
+    icon,
+    label,
+    value,
+    destructive = false,
+    loading = false,
+    onPress,
+  }: ProfileActionRowProps) {
+    const toneColor = destructive ? colors.error : colors.text;
+    const iconColor = destructive ? colors.error : colors.icon;
+
+    return (
+      <Pressable
+        accessibilityRole={onPress ? 'button' : undefined}
+        disabled={!onPress || loading}
+        onPress={onPress}
+        style={({ pressed }) => ({
+          minHeight: 58,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: spacing.sm,
+          opacity: pressed ? opacity.pressed : 1,
+        })}>
+        <View
+          style={{
+            width: 38,
+            height: 38,
+            borderRadius: radius.full,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: destructive ? colors.surfaceMuted : colors.secondarySoft,
+          }}>
+          <Ionicons name={icon} size={19} color={iconColor} />
+        </View>
+
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <AppText style={[typography.label, { color: toneColor }]} numberOfLines={1}>
+            {label}
+          </AppText>
+          {value ? (
+            <AppText variant="caption" tone="muted" numberOfLines={1}>
+              {value}
+            </AppText>
+          ) : null}
+        </View>
+
+        {loading ? (
+          <ActivityIndicator color={colors.error} />
+        ) : onPress ? (
+          <Ionicons name="chevron-forward" size={18} color={colors.icon} />
+        ) : null}
+      </Pressable>
+    );
+  }
+
   if (showEditScreen) {
     return (
       <EditProfileScreen
-        // Show the pending local photo if taken, otherwise the current signed URL
-        avatarUrl={pendingLocalUri ?? displayAvatarUrl}
+        avatarUrl={avatarSource}
         fullName={editableFullName}
         mobileNumber={editablePhoneNumber}
         onAvatarUrlChange={setPendingLocalUri}
@@ -138,173 +258,328 @@ export default function ProfileScreen() {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.content}>
-      <ThemedText type="title" style={styles.heading}>
-        My Profile
-      </ThemedText>
-      <ThemedText style={styles.subtitle}>
-        View your personal information here.
-      </ThemedText>
+    <ScrollView
+      style={{ flex: 1, backgroundColor: colors.background }}
+      contentContainerStyle={{
+        flexGrow: 1,
+        paddingTop: headerContentOffset,
+        paddingBottom: bottomOverlayOffset,
+        paddingHorizontal: layout.screenPadding,
+        gap: spacing.md,
+      }}>
+      <View style={{ alignItems: 'center', gap: spacing.xs }}>
+        <AppText variant="subtitle" style={{ textAlign: 'center' }}>
+          My Profile
+        </AppText>
+        <AppText variant="caption" tone="muted" style={{ textAlign: 'center' }}>
+          Your Triploom identity and travel progress.
+        </AppText>
+      </View>
 
-      <ThemedView style={styles.card}>
-        <View style={styles.avatarWrapper}>
-          {displayAvatarUrl ? (
-            <Image source={{ uri: displayAvatarUrl }} style={styles.avatar} />
-          ) : (
-            <View style={styles.avatarPlaceholder}>
-              <ThemedText style={styles.avatarText}>{initials}</ThemedText>
+      <View
+        style={[
+          {
+            borderRadius: radius.lg,
+            backgroundColor: colors.surface,
+            borderWidth: 1,
+            borderColor: colors.border,
+            padding: spacing.md,
+            gap: spacing.md,
+          },
+          shadows.sm,
+        ]}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+          <View>
+            {avatarSource ? (
+              <Image
+                source={{ uri: avatarSource }}
+                style={{
+                  width: 86,
+                  height: 86,
+                  borderRadius: radius.full,
+                  backgroundColor: colors.surfaceMuted,
+                }}
+              />
+            ) : (
+              <View
+                style={{
+                  width: 86,
+                  height: 86,
+                  borderRadius: radius.full,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: colors.primarySoft,
+                }}>
+                <AppText style={[typography.subtitle, { color: colors.primary }]}>
+                  {initials}
+                </AppText>
+              </View>
+            )}
+            <View
+              style={{
+                position: 'absolute',
+                right: 0,
+                bottom: 0,
+                width: 30,
+                height: 30,
+                borderRadius: radius.full,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: colors.accent,
+                borderWidth: 2,
+                borderColor: colors.surface,
+              }}>
+              <Ionicons name={badge.icon} size={16} color={colors.text} />
             </View>
-          )}
+          </View>
+
+          <View style={{ flex: 1, minWidth: 0, gap: spacing.xs }}>
+            <AppText variant="subtitle" numberOfLines={2}>
+              {fullName}
+            </AppText>
+            <AppText variant="caption" tone="muted" numberOfLines={1}>
+              {email}
+            </AppText>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => {
+                setSaveError(null);
+                setSaveSuccess(null);
+                setShowEditScreen(true);
+              }}
+              style={({ pressed }) => ({
+                alignSelf: 'flex-start',
+                minHeight: 38,
+                borderRadius: radius.full,
+                paddingHorizontal: spacing.sm,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: spacing.xs,
+                backgroundColor: colors.primary,
+                opacity: pressed ? opacity.pressed : 1,
+              })}>
+              <Ionicons name="create-outline" size={16} color={colors.textOnPrimary} />
+              <AppText style={[typography.label, { color: colors.textOnPrimary }]}>
+                Edit Profile
+              </AppText>
+            </Pressable>
+          </View>
         </View>
-        <ThemedText type="subtitle" style={styles.profileName}>
-          {fullName}
-        </ThemedText>
-        <ThemedText style={styles.profileMeta}>Profile Picture</ThemedText>
-      </ThemedView>
+      </View>
 
-      <ThemedView style={styles.card}>
-        <InfoRow label="Full Name" value={fullName} />
-        <InfoRow label="Email" value={email} />
-        <InfoRow label="Mobile Number" value={mobileNumber} />
-      </ThemedView>
-
-      {saveSuccess ? <ThemedText style={styles.successText}>{saveSuccess}</ThemedText> : null}
-      {saveError ? <ThemedText style={styles.errorText}>{saveError}</ThemedText> : null}
-
-      <Pressable
-        style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
-        onPress={() => {
-          setSaveError(null);
-          setSaveSuccess(null);
-          setShowEditScreen(true);
-        }}
-      >
-        <ThemedText style={styles.buttonText}>Update Information</ThemedText>
-      </Pressable>
-
-      <Pressable
-        style={({ pressed }) => [styles.signOutButton, pressed && styles.buttonPressed]}
-        onPress={handleSignOut}
-        disabled={isSigningOut}
-      >
-        {isSigningOut ? (
-          <ActivityIndicator size="small" color="#dc2626" />
-        ) : (
-          <ThemedText style={styles.signOutButtonText}>Sign Out</ThemedText>
-        )}
-      </Pressable>
-
-      {isLoading && (
-        <View style={styles.loadingRow}>
-          <ActivityIndicator size="small" color="#3b82f6" />
-          <ThemedText style={styles.loadingText}>Loading profile...</ThemedText>
+      <View
+        style={{
+          borderRadius: radius.lg,
+          backgroundColor: colors.primarySoft,
+          padding: spacing.md,
+          gap: spacing.sm,
+        }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+          <View
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: radius.full,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: colors.surface,
+            }}>
+            <Ionicons name={badge.icon} size={24} color={colors.primary} />
+          </View>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <AppText style={[typography.label, { color: colors.text }]} numberOfLines={1}>
+              {badge.title}
+            </AppText>
+            {participatedTripCount === null ? (
+              <AppText variant="caption" tone="muted">
+                Loading trip progress
+              </AppText>
+            ) : (
+              <AppText variant="caption" tone="muted">
+                {tripsUntilNextBadge} trips until the next badge
+              </AppText>
+            )}
+          </View>
+          <View
+            style={{
+              minWidth: 58,
+              borderRadius: radius.full,
+              paddingVertical: spacing.xs,
+              paddingHorizontal: spacing.sm,
+              alignItems: 'center',
+              backgroundColor: colors.surface,
+            }}>
+            {participatedTripCount === null ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <>
+                <AppText style={[typography.subtitle, { color: colors.primary }]}>
+                  {participatedTripCount}
+                </AppText>
+                <AppText variant="caption" tone="muted">
+                  trips
+                </AppText>
+              </>
+            )}
+          </View>
         </View>
-      )}
+
+        <View
+          style={{
+            height: 10,
+            borderRadius: radius.full,
+            overflow: 'hidden',
+            backgroundColor: colors.surface,
+          }}>
+          <View
+            style={{
+              width: `${badgeProgress * 10}%`,
+              height: '100%',
+              borderRadius: radius.full,
+              backgroundColor: colors.accent,
+            }}
+          />
+        </View>
+      </View>
+
+      <View
+        style={{
+          borderRadius: radius.lg,
+          backgroundColor: colors.surface,
+          borderWidth: 1,
+          borderColor: colors.border,
+          paddingHorizontal: spacing.md,
+        }}>
+        <ProfileActionRow icon="person-outline" label="Name" value={fullName} />
+        <View style={{ height: 1, backgroundColor: colors.border }} />
+        <ProfileActionRow icon="mail-outline" label="Email" value={email} />
+        <View style={{ height: 1, backgroundColor: colors.border }} />
+        <ProfileActionRow icon="call-outline" label="Phone" value={mobileNumber} />
+      </View>
+
+      <View
+        style={{
+          borderRadius: radius.lg,
+          backgroundColor: colors.surface,
+          borderWidth: 1,
+          borderColor: colors.border,
+          padding: spacing.sm,
+          gap: spacing.sm,
+        }}>
+        <View style={{ paddingHorizontal: spacing.xs }}>
+          <AppText style={typography.label}>Appearance</AppText>
+          <AppText variant="caption" tone="muted">
+            Choose how Triploom should look on this device.
+          </AppText>
+        </View>
+        <View
+          onLayout={(event) => {
+            setAppearanceWidth(event.nativeEvent.layout.width);
+          }}
+          style={{
+            minHeight: 48,
+            borderRadius: radius.full,
+            padding: 4,
+            flexDirection: 'row',
+            backgroundColor: colors.surfaceMuted,
+          }}>
+          {appearanceSegmentWidth > 0 ? (
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                {
+                  position: 'absolute',
+                  top: 4,
+                  left: 4,
+                  width: Math.max(appearanceSegmentWidth, 0),
+                  height: 40,
+                  borderRadius: radius.full,
+                  backgroundColor: colors.surface,
+                  transform: [
+                    {
+                      translateX: Animated.multiply(appearanceTranslateIndex, appearanceSegmentWidth),
+                    },
+                  ],
+                },
+                shadows.sm,
+              ]}
+            />
+          ) : null}
+          {themeOptions.map((option) => {
+            const selected = themePreference === option.value;
+
+            return (
+              <Pressable
+                key={option.value}
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
+                onPress={() => setThemePreference(option.value)}
+                style={({ pressed }) => ({
+                  flex: 1,
+                  minHeight: 40,
+                  borderRadius: radius.full,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: spacing.xs,
+                  backgroundColor: colors.transparent,
+                  opacity: pressed ? opacity.pressed : 1,
+                })}>
+                <Ionicons
+                  name={option.icon}
+                  size={16}
+                  color={selected ? colors.primary : colors.icon}
+                />
+                <AppText
+                  variant="caption"
+                  style={{
+                    color: selected ? colors.primary : colors.textMuted,
+                  }}>
+                  {option.label}
+                </AppText>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+
+      <View
+        style={{
+          borderRadius: radius.lg,
+          backgroundColor: colors.surface,
+          borderWidth: 1,
+          borderColor: colors.border,
+          paddingHorizontal: spacing.md,
+        }}>
+        <ProfileActionRow
+          icon="log-out-outline"
+          label="Sign Out"
+          destructive
+          loading={isSigningOut}
+          onPress={() => {
+            void handleSignOut();
+          }}
+        />
+      </View>
+
+      {saveSuccess ? (
+        <AppText variant="caption" tone="success">
+          {saveSuccess}
+        </AppText>
+      ) : null}
+      {saveError ? (
+        <AppText variant="caption" tone="error">
+          {saveError}
+        </AppText>
+      ) : null}
+      {isLoading ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+          <ActivityIndicator size="small" color={colors.primary} />
+          <AppText variant="caption" tone="muted">
+            Loading profile...
+          </AppText>
+        </View>
+      ) : null}
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  content: {
-    flexGrow: 1,
-    padding: 20,
-    gap: 16,
-  },
-  heading: {
-    marginTop: 8,
-  },
-  subtitle: {
-    color: '#6b7280',
-    marginTop: -4,
-  },
-  card: {
-    borderRadius: 16,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    gap: 14,
-  },
-  avatarWrapper: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatar: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-  },
-  avatarPlaceholder: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#dbeafe',
-  },
-  avatarText: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#1d4ed8',
-  },
-  profileName: {
-    textAlign: 'center',
-  },
-  profileMeta: {
-    textAlign: 'center',
-    color: '#6b7280',
-  },
-  infoRow: {
-    gap: 2,
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
-  },
-  infoLabel: {
-    fontSize: 14,
-  },
-  infoValue: {
-    color: '#6b7280',
-  },
-  successText: {
-    color: '#15803d',
-    fontSize: 14,
-  },
-  errorText: {
-    color: '#dc2626',
-    fontSize: 14,
-  },
-  button: {
-    backgroundColor: '#2563eb',
-    borderRadius: 10,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  signOutButton: {
-    borderRadius: 10,
-    paddingVertical: 14,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#fecaca',
-    backgroundColor: '#fef2f2',
-  },
-  buttonPressed: {
-    opacity: 0.85,
-  },
-  buttonText: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-  signOutButtonText: {
-    color: '#dc2626',
-    fontWeight: '600',
-  },
-  loadingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 4,
-  },
-  loadingText: {
-    color: '#6b7280',
-  },
-});
