@@ -7,7 +7,9 @@ import {
   getTrips as getTripsService,
   deleteTrip as deleteTripService,
   getTripParticipant,
+  getTripParticipantsWithProfiles,
   leaveTrip as leaveTripService,
+  type TripParticipantWithProfile,
 } from '@/services/trip.service';
 import {
   generateInviteLink as generateInviteLinkService,
@@ -19,6 +21,8 @@ interface TripState {
   currentParticipant: TripParticipant | null;
   trips: TripWithRole[];
   participants: TripParticipant[];
+  participantsWithProfiles: TripParticipantWithProfile[];
+  isLoadingParticipants: boolean;
   isLoading: boolean;
   inviteUrl: string | null;
   isGeneratingInvite: boolean;
@@ -32,6 +36,7 @@ interface TripState {
   createTrip: (dto: CreateTripDTO) => Promise<Trip>;
   deleteTrip: (tripId: string) => Promise<void>;
   fetchCurrentParticipant: (tripId: string, userId: string) => Promise<void>;
+  fetchParticipants: (tripId: string) => Promise<void>;
   generateInvite: (tripId: string) => Promise<string>;
   redeemInvite: (code: string) => Promise<RedeemInviteResponse>;
   leaveTrip: (tripId: string) => Promise<void>;
@@ -42,6 +47,8 @@ export const useTripStore = create<TripState>()((set) => ({
   currentParticipant: null,
   trips: [],
   participants: [],
+  participantsWithProfiles: [],
+  isLoadingParticipants: false,
   isLoading: false,
   inviteUrl: null,
   isGeneratingInvite: false,
@@ -92,6 +99,17 @@ export const useTripStore = create<TripState>()((set) => ({
   fetchCurrentParticipant: async (tripId, userId) => {
     const participant = await getTripParticipant(tripId, userId);
     set({ currentParticipant: participant });
+  },
+
+  fetchParticipants: async (tripId) => {
+    set({ isLoadingParticipants: true });
+    try {
+      const participantsWithProfiles = await getTripParticipantsWithProfiles(tripId);
+      set({ participantsWithProfiles, isLoadingParticipants: false });
+    } catch (error) {
+      set({ isLoadingParticipants: false });
+      throw error;
+    }
   },
 
   generateInvite: async (tripId: string) => {

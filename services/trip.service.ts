@@ -1,7 +1,9 @@
 import { supabase } from '@/lib/supabase';
-import type { Trip, TripParticipant, TripUpdate } from '@/types';
+import type { Profile, Trip, TripParticipant, TripUpdate } from '@/types';
 import type { CreateTripDTO, TripWithRole } from '@/types/trip.types';
 import { TripRole } from '@/types/trip.types';
+
+export type TripParticipantWithProfile = TripParticipant & { profile: Profile | null };
 
 export async function getTrips(): Promise<TripWithRole[]> {
   const { data: { session } } = await supabase.auth.getSession();
@@ -93,6 +95,15 @@ export async function getTripParticipants(tripId: string): Promise<TripParticipa
     .eq('trip_id', tripId);
   if (error) throw error;
   return data;
+}
+
+export async function getTripParticipantsWithProfiles(tripId: string): Promise<TripParticipantWithProfile[]> {
+  const { data, error } = await supabase
+    .from('trip_participant')
+    .select('*, profile(*)')
+    .eq('trip_id', tripId);
+  if (error) throw error;
+  return (data ?? []) as TripParticipantWithProfile[];
 }
 
 export async function getTripParticipant(tripId: string, userId: string): Promise<TripParticipant> {
