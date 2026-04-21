@@ -26,16 +26,23 @@ export async function getAllChatRooms(tripId: string): Promise<ChatRoomWithMeta[
     trip_id_param: tripId,
   });
   if (error) throw error;
-  return (data ?? []).map((row) => ({
-    id: row.id,
-    chat_name: row.chat_name,
-    trip_id: row.trip_id,
-    trip_group_id: row.trip_group_id,
-    event_id: row.event_id,
-    created_at: row.created_at,
-    hasUnread: row.has_unread,
-    lastActivityAt: row.last_activity_at,
-  }));
+  return (data ?? [])
+    .map((row) => ({
+      id: row.id,
+      chat_name: row.chat_name,
+      trip_id: row.trip_id,
+      trip_group_id: row.trip_group_id,
+      event_id: row.event_id,
+      created_at: row.created_at,
+      hasUnread: row.has_unread,
+      lastActivityAt: row.last_activity_at,
+    }))
+    .sort((a, b) => {
+      const aIsGeneral = a.event_id === null && a.trip_group_id === null;
+      const bIsGeneral = b.event_id === null && b.trip_group_id === null;
+      if (aIsGeneral === bIsGeneral) return 0;
+      return aIsGeneral ? -1 : 1;
+    });
 }
 
 export async function getAllMessages(
