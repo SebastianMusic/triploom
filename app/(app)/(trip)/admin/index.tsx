@@ -1,24 +1,25 @@
+import * as Clipboard from 'expo-clipboard';
+import { useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+
 import { AnnouncementForm } from '@/components/announcement/AnnouncementForm';
+import { useTripChromeInsets } from '@/components/layout/use-trip-chrome';
+import { TripEditForm } from '@/components/trip/trip-edit-form';
+import { AppText } from '@/components/ui/text';
+import { useAppTheme } from '@/components/ui/theme-provider';
 import { useProfileStore } from '@/store/profile.store';
 import { useTripStore } from '@/store/trip.store';
 import { TripRole } from '@/types/trip.types';
-import * as Clipboard from 'expo-clipboard';
-import { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 export default function AdminScreen() {
 	const [copied, setCopied] = useState(false);
+	const { headerContentOffset, bottomOverlayOffset } = useTripChromeInsets();
+	const { theme: { colors, layout, spacing } } = useAppTheme();
 
 	const selectedTrip = useProfileStore((state) => state.selectedTrip);
-	const {
-		inviteUrl,
-		isGeneratingInvite,
-		inviteError,
-		generateInvite,
-		currentParticipant,
-	} = useTripStore();
+	const { inviteUrl, isGeneratingInvite, inviteError, generateInvite, currentParticipant } = useTripStore();
 
-	const canGenerateInvites =
+	const canManage =
 		currentParticipant?.role === TripRole.Organizer ||
 		currentParticipant?.role === TripRole.CoOrganizer;
 
@@ -37,117 +38,90 @@ export default function AdminScreen() {
 	}
 
 	return (
-		<ScrollView style={styles.container}>
-			<Text style={styles.title}>Admin</Text>
-			<Text style={styles.subtitle}>Manage your trip</Text>
+		<View style={{ flex: 1 }}>
+			<ScrollView
+				keyboardShouldPersistTaps="handled"
+				contentContainerStyle={{
+					paddingTop: headerContentOffset,
+					paddingBottom: bottomOverlayOffset,
+					paddingHorizontal: layout.screenPadding,
+					gap: spacing.lg,
+				}}>
 
-			<View style={styles.section}>
-				<Text style={styles.sectionTitle}>Create Announcement</Text>
-				<AnnouncementForm />
-			</View>
+				{canManage && (
+					<View style={{ gap: spacing.sm }}>
+						<AppText variant="caption" tone="muted" style={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
+							Trip details
+						</AppText>
+						<TripEditForm />
+					</View>
+				)}
 
-			{canGenerateInvites && (
-				<View style={styles.section}>
-					<Text style={styles.sectionTitle}>Invite</Text>
-
-					{inviteError && (
-						<Text style={styles.errorText}>{inviteError}</Text>
-					)}
-
-					{isGeneratingInvite ? (
-						<View style={styles.loadingContainer}>
-							<ActivityIndicator size="small" color="#3b82f6" />
-							<Text style={styles.loadingText}>Generating invite link...</Text>
-						</View>
-					) : inviteUrl ? (
-						<View style={styles.inviteContainer}>
-							<Text style={styles.inviteUrl} numberOfLines={1} ellipsizeMode="middle">
-								{inviteUrl}
-							</Text>
-							<Pressable
-								style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
-								onPress={handleCopyInviteLink}
-							>
-								<Text style={styles.buttonText}>{copied ? 'Copied!' : 'Copy'}</Text>
-							</Pressable>
-						</View>
-					) : (
-						<Pressable
-							style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
-							onPress={handleGenerateInvite}
-							disabled={!selectedTrip}
-						>
-							<Text style={styles.buttonText}>Generate Invite Link</Text>
-						</Pressable>
-					)}
+				<View style={{ gap: spacing.sm }}>
+					<AppText variant="caption" tone="muted" style={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
+						Create Announcement
+					</AppText>
+					<AnnouncementForm />
 				</View>
-			)}
-		</ScrollView>
+
+				{canManage && (
+					<View style={{ gap: spacing.sm }}>
+						<AppText variant="caption" tone="muted" style={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
+							Invite
+						</AppText>
+
+						{inviteError ? (
+							<AppText variant="caption" tone="error">{inviteError}</AppText>
+						) : null}
+
+						{isGeneratingInvite ? (
+							<View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+								<ActivityIndicator size="small" color={colors.primary} />
+								<AppText variant="caption" tone="muted">Generating invite link…</AppText>
+							</View>
+						) : inviteUrl ? (
+							<View style={{ gap: spacing.sm }}>
+								<View style={{
+									backgroundColor: colors.surfaceMuted,
+									borderRadius: 8,
+									padding: spacing.sm,
+								}}>
+									<AppText variant="caption" tone="muted" numberOfLines={1}>
+										{inviteUrl}
+									</AppText>
+								</View>
+								<Pressable
+									onPress={handleCopyInviteLink}
+									style={({ pressed }) => ({
+										backgroundColor: colors.primary,
+										borderRadius: 10,
+										padding: spacing.sm,
+										alignItems: 'center',
+										opacity: pressed ? 0.8 : 1,
+									})}>
+									<AppText style={{ color: colors.textOnPrimary }}>
+										{copied ? 'Copied!' : 'Copy link'}
+									</AppText>
+								</Pressable>
+							</View>
+						) : (
+							<Pressable
+								onPress={handleGenerateInvite}
+								disabled={!selectedTrip}
+								style={({ pressed }) => ({
+									backgroundColor: colors.primary,
+									borderRadius: 10,
+									padding: spacing.sm,
+									alignItems: 'center',
+									opacity: pressed ? 0.8 : 1,
+								})}>
+								<AppText style={{ color: colors.textOnPrimary }}>Generate invite link</AppText>
+							</Pressable>
+						)}
+					</View>
+				)}
+
+			</ScrollView>
+		</View>
 	);
 }
-
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		padding: 24,
-		paddingTop: 80,
-		backgroundColor: '#fff',
-	},
-	title: {
-		fontSize: 28,
-		fontWeight: 'bold',
-		marginBottom: 4,
-	},
-	subtitle: {
-		fontSize: 14,
-		color: '#666',
-		marginBottom: 40,
-	},
-	section: {
-		marginBottom: 32,
-	},
-	sectionTitle: {
-		fontSize: 16,
-		fontWeight: '600',
-		color: '#333',
-		marginBottom: 12,
-	},
-	button: {
-		backgroundColor: '#3b82f6',
-		borderRadius: 10,
-		padding: 14,
-		alignItems: 'center',
-	},
-	buttonPressed: {
-		opacity: 0.8,
-	},
-	buttonText: {
-		color: '#fff',
-		fontSize: 16,
-		fontWeight: '600',
-	},
-	errorText: {
-		color: '#ef4444',
-		fontSize: 14,
-		marginBottom: 12,
-	},
-	loadingContainer: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		gap: 8,
-	},
-	loadingText: {
-		fontSize: 14,
-		color: '#666',
-	},
-	inviteContainer: {
-		gap: 12,
-	},
-	inviteUrl: {
-		fontSize: 14,
-		color: '#333',
-		backgroundColor: '#f3f4f6',
-		padding: 12,
-		borderRadius: 8,
-	},
-});
