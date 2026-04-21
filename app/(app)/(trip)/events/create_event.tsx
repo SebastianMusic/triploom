@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import { EventBannerPicker } from '@/components/events/event-banner-picker';
+import { LocationMapPicker } from '@/components/events/location-map-picker';
 import { useEventsStore } from '@/store/events.store';
 import { useProfileStore } from '@/store/profile.store';
 import { useTripStore } from '@/store/trip.store';
@@ -56,6 +57,7 @@ export default function CreateEventScreen() {
   const [priceRange, setPriceRange] = useState('');
   const [bannerUri, setBannerUri] = useState<string | null>(null);
   const [isMandatory, setIsMandatory] = useState(false);
+  const [mapVisible, setMapVisible] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
 
   const isOrganizer = currentParticipant?.role === TripRole.Organizer;
@@ -248,6 +250,23 @@ export default function CreateEventScreen() {
           value={location}
           onChangeText={setLocation}
           error={errors.location}
+          rightElement={
+            <Pressable
+              onPress={() => setMapVisible(true)}
+              style={{ paddingHorizontal: spacing.sm }}
+              accessibilityLabel="Pick location on map">
+              <Ionicons name="map-outline" size={20} color={colors.textMuted} />
+            </Pressable>
+          }
+        />
+
+        <LocationMapPicker
+          visible={mapVisible}
+          onClose={() => setMapVisible(false)}
+          onSelectLocation={(address) => {
+            setLocation(address);
+            setErrors((e) => ({ ...e, location: undefined }));
+          }}
         />
 
         {/* Start time */}
