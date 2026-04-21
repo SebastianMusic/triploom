@@ -98,6 +98,16 @@ export async function getProfile(userId: string): Promise<Profile | null> {
   return data;
 }
 
+export async function getParticipatedTripCount(userId: string): Promise<number> {
+  const { count, error } = await supabase
+    .from('trip_participant')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId);
+
+  if (error) throw error;
+  return count ?? 0;
+}
+
 export async function updateProfile(
   userId: string,
   data: UpdateProfileData,

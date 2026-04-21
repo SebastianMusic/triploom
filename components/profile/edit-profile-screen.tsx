@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
 import {
@@ -13,8 +14,9 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import GeneralCamera from '@/components/camera/general-camera';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import { AppText } from '@/components/ui/text';
+import { useAppTheme } from '@/components/ui/theme-provider';
+import { useTripChromeInsets } from '@/components/layout/use-trip-chrome';
 
 type EditProfileScreenProps = {
   avatarUrl: string;
@@ -45,13 +47,17 @@ export default function EditProfileScreen({
 }: EditProfileScreenProps) {
   const [activeModal, setActiveModal] = useState<AvatarModal>('none');
   const insets = useSafeAreaInsets();
+  const {
+    theme: { colors, layout, opacity, radius, shadows, spacing, typography },
+  } = useAppTheme();
+  const { bottomOverlayOffset, headerContentOffset } = useTripChromeInsets();
 
   const initials =
     fullName
       .split(/[\s@._-]+/)
       .filter(Boolean)
       .slice(0, 2)
-      .map((part: string) => part[0]?.toUpperCase())
+      .map((part) => part[0]?.toUpperCase())
       .join('') || 'U';
 
   function handlePhotoTaken(uri: string) {
@@ -60,9 +66,6 @@ export default function EditProfileScreen({
   }
 
   async function handlePickFromLibrary() {
-    // Hide the overlay synchronously — it's a plain View, not a Modal,
-    // so there is no native ViewController/Activity to wait for.
-    // The image picker can open immediately and reliably on both platforms.
     setActiveModal('none');
 
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -82,352 +85,314 @@ export default function EditProfileScreen({
     }
   }
 
+  const inputStyle = {
+    minHeight: 62,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceMuted,
+    paddingHorizontal: spacing.sm,
+    color: colors.text,
+    ...typography.body,
+  };
+
   return (
-    <View style={styles.root}>
-      {/* ── Camera ── */}
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Modal
         visible={activeModal === 'camera'}
         animationType="slide"
-        onRequestClose={() => setActiveModal('none')}
-      >
+        onRequestClose={() => setActiveModal('none')}>
         <GeneralCamera
           onPhotoTaken={handlePhotoTaken}
           onClose={() => setActiveModal('none')}
         />
       </Modal>
 
-      {/* ── Full-screen photo viewer ── */}
       <Modal
         visible={activeModal === 'view'}
         animationType="fade"
-        onRequestClose={() => setActiveModal('none')}
-      >
-        <View style={styles.viewer}>
-          <Image source={{ uri: avatarUrl }} style={styles.viewerImage} resizeMode="contain" />
+        onRequestClose={() => setActiveModal('none')}>
+        <View style={{ flex: 1, backgroundColor: '#000000', justifyContent: 'center' }}>
+          <Image source={{ uri: avatarUrl }} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
           <Pressable
-            style={[styles.viewerClose, { top: insets.top + 12 }]}
+            style={({ pressed }) => ({
+              position: 'absolute',
+              top: insets.top + spacing.sm,
+              right: spacing.md,
+              width: 44,
+              height: 44,
+              borderRadius: radius.full,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: colors.overlay,
+              opacity: pressed ? opacity.pressed : 1,
+            })}
             onPress={() => setActiveModal('none')}
-            hitSlop={12}
-          >
-            <ThemedText style={styles.viewerCloseText}>✕</ThemedText>
+            hitSlop={12}>
+            <Ionicons name="close" size={22} color={colors.textOnPrimary} />
           </Pressable>
         </View>
       </Modal>
 
-      {/* ── Main form ── */}
-      <ScrollView contentContainerStyle={styles.content}>
-        <ThemedText type="title">Edit Profile</ThemedText>
-        <ThemedText style={styles.subtitle}>
-          Update your profile picture and full name.
-        </ThemedText>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{
+          flexGrow: 1,
+          paddingTop: headerContentOffset,
+          paddingBottom: bottomOverlayOffset,
+          paddingHorizontal: layout.screenPadding,
+          gap: spacing.md,
+        }}>
+        <View style={{ alignItems: 'center', gap: spacing.xs }}>
+          <AppText variant="subtitle" style={{ textAlign: 'center' }}>
+            Edit Profile
+          </AppText>
+          <AppText variant="caption" tone="muted" style={{ textAlign: 'center' }}>
+            Keep your profile details ready for every trip.
+          </AppText>
+        </View>
 
-        <ThemedView style={styles.card}>
-          <View style={styles.avatarWrapper}>
+        <View
+          style={[
+            {
+              borderRadius: radius.lg,
+              backgroundColor: colors.surface,
+              borderWidth: 1,
+              borderColor: colors.border,
+              padding: spacing.md,
+              gap: spacing.md,
+            },
+            shadows.sm,
+          ]}>
+          <View style={{ alignItems: 'center', gap: spacing.sm }}>
             <Pressable
-              style={({ pressed }) => [styles.avatarPressable, pressed && styles.buttonPressed]}
+              accessibilityRole="button"
               onPress={() => setActiveModal('menu')}
-            >
+              style={({ pressed }) => ({
+                position: 'relative',
+                opacity: pressed ? opacity.pressed : 1,
+              })}>
               {avatarUrl ? (
-                <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+                <Image
+                  source={{ uri: avatarUrl }}
+                  style={{
+                    width: 112,
+                    height: 112,
+                    borderRadius: radius.full,
+                    backgroundColor: colors.surfaceMuted,
+                  }}
+                />
               ) : (
-                <View style={styles.avatarPlaceholder}>
-                  <ThemedText style={styles.avatarText}>{initials}</ThemedText>
+                <View
+                  style={{
+                    width: 112,
+                    height: 112,
+                    borderRadius: radius.full,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: colors.primarySoft,
+                  }}>
+                  <AppText style={[typography.subtitle, { color: colors.primary }]}>
+                    {initials}
+                  </AppText>
                 </View>
               )}
-              <View style={styles.cameraBadge}>
-                <ThemedText style={styles.cameraBadgeText}>📷</ThemedText>
+              <View
+                style={{
+                  position: 'absolute',
+                  right: 4,
+                  bottom: 4,
+                  width: 34,
+                  height: 34,
+                  borderRadius: radius.full,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: colors.primary,
+                  borderWidth: 2,
+                  borderColor: colors.surface,
+                }}>
+                <Ionicons name="camera" size={17} color={colors.textOnPrimary} />
               </View>
+            </Pressable>
+
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => setActiveModal('menu')}
+              style={({ pressed }) => ({
+                minHeight: 36,
+                borderRadius: radius.full,
+                paddingHorizontal: spacing.sm,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: spacing.xs,
+                backgroundColor: colors.secondarySoft,
+                opacity: pressed ? opacity.pressed : 1,
+              })}>
+              <Ionicons name="image-outline" size={16} color={colors.secondary} />
+              <AppText variant="caption" tone="secondary">
+                Change photo
+              </AppText>
             </Pressable>
           </View>
 
-          <View style={styles.fieldGroup}>
-            <ThemedText type="defaultSemiBold">Full Name</ThemedText>
+          <View style={{ gap: spacing.xs }}>
+            <AppText style={typography.label}>Full name</AppText>
             <TextInput
-              style={styles.input}
+              style={inputStyle}
               placeholder="Enter your full name"
+              placeholderTextColor={colors.textMuted}
               value={fullName}
               onChangeText={onFullNameChange}
+              returnKeyType="next"
             />
           </View>
 
-          <View style={styles.fieldGroup}>
-            <ThemedText type="defaultSemiBold">Mobile Number</ThemedText>
+          <View style={{ gap: spacing.xs }}>
+            <AppText style={typography.label}>Mobile number</AppText>
             <TextInput
-              style={styles.input}
+              style={inputStyle}
               placeholder="Enter your mobile number"
+              placeholderTextColor={colors.textMuted}
               value={mobileNumber}
               onChangeText={onMobileNumberChange}
               keyboardType="phone-pad"
             />
           </View>
 
-          {errorMessage ? <ThemedText style={styles.errorText}>{errorMessage}</ThemedText> : null}
-        </ThemedView>
+          {errorMessage ? (
+            <View
+              style={{
+                borderRadius: radius.md,
+                backgroundColor: colors.surfaceMuted,
+                padding: spacing.sm,
+              }}>
+              <AppText variant="caption" tone="error">
+                {errorMessage}
+              </AppText>
+            </View>
+          ) : null}
+        </View>
 
-        <View style={styles.buttonRow}>
+        <View style={{ flexDirection: 'row', gap: spacing.sm }}>
           <Pressable
-            style={({ pressed }) => [styles.secondaryButton, pressed && styles.buttonPressed]}
+            accessibilityRole="button"
             onPress={onBack}
             disabled={isSaving}
-          >
-            <ThemedText style={styles.secondaryButtonText}>Back</ThemedText>
+            style={({ pressed }) => ({
+              flex: 1,
+              minHeight: 54,
+              borderRadius: radius.full,
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderWidth: 1,
+              borderColor: colors.border,
+              backgroundColor: colors.surface,
+              opacity: isSaving ? opacity.disabled : pressed ? opacity.pressed : 1,
+            })}>
+            <AppText style={typography.label}>Back</AppText>
           </Pressable>
 
           <Pressable
-            style={({ pressed }) => [styles.primaryButton, pressed && styles.buttonPressed]}
+            accessibilityRole="button"
             onPress={onSave}
             disabled={isSaving}
-          >
+            style={({ pressed }) => ({
+              flex: 1,
+              minHeight: 54,
+              borderRadius: radius.full,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: colors.primary,
+              opacity: isSaving ? opacity.disabled : pressed ? opacity.pressed : 1,
+              ...shadows.sm,
+            })}>
             {isSaving ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={colors.textOnPrimary} />
             ) : (
-              <ThemedText style={styles.primaryButtonText}>Save Changes</ThemedText>
+              <AppText style={[typography.label, { color: colors.textOnPrimary }]}>
+                Save Changes
+              </AppText>
             )}
           </Pressable>
         </View>
       </ScrollView>
 
-      {/* ── Bottom-sheet menu — AFTER ScrollView so it renders on top (React Native
-          paints later siblings on top). Plain View overlay instead of Modal so the
-          image picker can open immediately without waiting for a native ViewController
-          to dismiss. ── */}
       {activeModal === 'menu' && (
         <>
           <Pressable
-            style={[StyleSheet.absoluteFill, styles.backdrop]}
+            style={[StyleSheet.absoluteFill, { backgroundColor: colors.overlay }]}
             onPress={() => setActiveModal('none')}
           />
-          <View style={[styles.sheet, { paddingBottom: insets.bottom + 8 }]}>
-            <View style={styles.sheetHandle} />
+          <View
+            style={[
+              {
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                borderTopLeftRadius: radius.lg,
+                borderTopRightRadius: radius.lg,
+                backgroundColor: colors.surface,
+                paddingTop: spacing.sm,
+                paddingBottom: insets.bottom + spacing.xs,
+              },
+              shadows.lg,
+            ]}>
+            <View
+              style={{
+                alignSelf: 'center',
+                width: 38,
+                height: 4,
+                borderRadius: radius.full,
+                backgroundColor: colors.borderStrong,
+                marginBottom: spacing.sm,
+              }}
+            />
 
-            <ThemedText style={styles.sheetTitle}>Profile photo</ThemedText>
+            <AppText style={[typography.label, { textAlign: 'center', paddingBottom: spacing.xs }]}>
+              Profile photo
+            </AppText>
 
             {avatarUrl ? (
-              <Pressable
-                style={styles.sheetOption}
-                onPress={() => setActiveModal('view')}
-              >
-                <ThemedText style={styles.sheetOptionText}>View profile picture</ThemedText>
-              </Pressable>
+              <SheetOption icon="eye-outline" label="View profile picture" onPress={() => setActiveModal('view')} />
             ) : null}
-
-            <View style={styles.sheetDivider} />
-
-            <Pressable
-              style={styles.sheetOption}
-              onPress={() => setActiveModal('camera')}
-            >
-              <ThemedText style={styles.sheetOptionText}>Take photo</ThemedText>
-            </Pressable>
-
-            <View style={styles.sheetDivider} />
-
-            <Pressable
-              style={styles.sheetOption}
-              onPress={handlePickFromLibrary}
-            >
-              <ThemedText style={styles.sheetOptionText}>Choose from library</ThemedText>
-            </Pressable>
-
-            <View style={styles.sheetDivider} />
-
-            <Pressable
-              style={styles.sheetOption}
-              onPress={() => setActiveModal('none')}
-            >
-              <ThemedText style={styles.sheetCancelText}>Cancel</ThemedText>
-            </Pressable>
+            <SheetOption icon="camera-outline" label="Take photo" onPress={() => setActiveModal('camera')} />
+            <SheetOption icon="images-outline" label="Choose from library" onPress={handlePickFromLibrary} />
+            <SheetOption icon="close-outline" label="Cancel" muted onPress={() => setActiveModal('none')} />
           </View>
         </>
       )}
     </View>
   );
+
+  function SheetOption({
+    icon,
+    label,
+    muted = false,
+    onPress,
+  }: {
+    icon: keyof typeof Ionicons.glyphMap;
+    label: string;
+    muted?: boolean;
+    onPress: () => void;
+  }) {
+    return (
+      <Pressable
+        accessibilityRole="button"
+        onPress={onPress}
+        style={({ pressed }) => ({
+          minHeight: 56,
+          paddingHorizontal: spacing.md,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: spacing.sm,
+          opacity: pressed ? opacity.pressed : 1,
+        })}>
+        <Ionicons name={icon} size={20} color={muted ? colors.textMuted : colors.icon} />
+        <AppText style={[typography.label, { color: muted ? colors.textMuted : colors.text }]}>
+          {label}
+        </AppText>
+      </Pressable>
+    );
+  }
 }
-
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-  },
-  content: {
-    flexGrow: 1,
-    padding: 20,
-    gap: 16,
-  },
-  subtitle: {
-    color: '#6b7280',
-    marginTop: -4,
-  },
-  card: {
-    borderRadius: 16,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    gap: 16,
-  },
-  avatarWrapper: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-  },
-  avatarPressable: {
-    position: 'relative',
-  },
-  avatar: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-  },
-  avatarPlaceholder: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#dbeafe',
-  },
-  avatarText: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#1d4ed8',
-  },
-  cameraBadge: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#2563eb',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cameraBadgeText: {
-    fontSize: 14,
-  },
-  fieldGroup: {
-    gap: 6,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 16,
-    backgroundColor: '#fff',
-  },
-  errorText: {
-    color: '#dc2626',
-    fontSize: 14,
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  primaryButton: {
-    flex: 1,
-    backgroundColor: '#2563eb',
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 50,
-  },
-  secondaryButton: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    justifyContent: 'center',
-    minHeight: 50,
-  },
-  primaryButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-  secondaryButtonText: {
-    color: '#111827',
-    fontWeight: '600',
-  },
-  buttonPressed: {
-    opacity: 0.8,
-  },
-
-  /* Bottom-sheet */
-  backdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-  },
-  sheet: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingTop: 12,
-    paddingHorizontal: 0,
-  },
-  sheetHandle: {
-    alignSelf: 'center',
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#d1d5db',
-    marginBottom: 16,
-  },
-  sheetTitle: {
-    textAlign: 'center',
-    fontWeight: '600',
-    fontSize: 15,
-    color: '#6b7280',
-    paddingBottom: 12,
-  },
-  sheetDivider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: '#e5e7eb',
-  },
-  sheetOption: {
-    paddingVertical: 18,
-    paddingHorizontal: 24,
-    alignItems: 'center',
-  },
-  sheetOptionText: {
-    fontSize: 17,
-    color: '#111827',
-  },
-  sheetCancelText: {
-    fontSize: 17,
-    color: '#6b7280',
-  },
-
-  /* Full-screen photo viewer */
-  viewer: {
-    flex: 1,
-    backgroundColor: '#000',
-    justifyContent: 'center',
-  },
-  viewerImage: {
-    width: '100%',
-    height: '100%',
-  },
-  viewerClose: {
-    position: 'absolute',
-    right: 20,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  viewerCloseText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});
