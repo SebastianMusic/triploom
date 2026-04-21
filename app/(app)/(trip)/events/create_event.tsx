@@ -1,7 +1,7 @@
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -58,6 +58,9 @@ export default function CreateEventScreen() {
   const [bannerUri, setBannerUri] = useState<string | null>(null);
   const [isMandatory, setIsMandatory] = useState(false);
   const [mapVisible, setMapVisible] = useState(false);
+  const [locationSuggestions, setLocationSuggestions] = useState<string[]>([]);
+  const [isFetchingSuggestions, setIsFetchingSuggestions] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
 
   const isOrganizer = currentParticipant?.role === TripRole.Organizer;
@@ -118,6 +121,36 @@ export default function CreateEventScreen() {
       commitDate(tempDate);
       setPickerTarget(null);
     }
+  }
+
+  function handleLocationChange(text: string) {
+    setLocation(text);
+    setErrors((e) => ({ ...e, location: undefined }));
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    if (text.length < 3) {
+      setLocationSuggestions([]);
+      return;
+    }
+
+    debounceRef.current = setTimeout(() => {
+      void (async () => {
+        setIsFetchingSuggestions(true);
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(text)}&limit=5`,
+            { headers: { 'Accept-Language': 'en', 'User-Agent': 'Triploom/1.0' } }
+          );
+          const data = await res.json() as Array<{ display_name: string }>;
+          setLocationSuggestions(data.map((item) => item.display_name));
+        } catch {
+          // silently ignore network errors for suggestions
+        } finally {
+          setIsFetchingSuggestions(false);
+        }
+      })();
+    }, 400);
   }
 
   async function handleSubmit() {
@@ -248,23 +281,64 @@ export default function CreateEventScreen() {
           label="Location *"
           placeholder="Where is it?"
           value={location}
-          onChangeText={setLocation}
+          onChangeText={handleLocationChange}
           error={errors.location}
           rightElement={
             <Pressable
               onPress={() => setMapVisible(true)}
               style={{ paddingHorizontal: spacing.sm }}
               accessibilityLabel="Pick location on map">
-              <Ionicons name="map-outline" size={20} color={colors.textMuted} />
+              <Ionicons
+                name={isFetchingSuggestions ? 'reload-outline' : 'map-outline'}
+                size={20}
+                color={colors.textMuted}
+              />
             </Pressable>
           }
         />
+
+        {locationSuggestions.length > 0 && (
+          <View
+            style={{
+              borderRadius: radius.md,
+              borderWidth: stroke.thin,
+              borderColor: colors.border,
+              backgroundColor: colors.surface,
+              overflow: 'hidden',
+              marginTop: -spacing.xs,
+            }}>
+            {locationSuggestions.map((suggestion, index) => (
+              <Pressable
+                key={index}
+                onPress={() => {
+                  setLocation(suggestion);
+                  setLocationSuggestions([]);
+                  setErrors((e) => ({ ...e, location: undefined }));
+                }}
+                style={{
+                  paddingHorizontal: spacing.sm,
+                  paddingVertical: spacing.sm,
+                  borderTopWidth: index > 0 ? stroke.thin : 0,
+                  borderTopColor: colors.border,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: spacing.xs,
+                }}>
+                <Ionicons name="location-outline" size={14} color={colors.textMuted} />
+                <AppText numberOfLines={2} style={{ flex: 1, fontSize: 13 }}>
+                  {suggestion}
+                </AppText>
+              </Pressable>
+            ))}
+          </View>
+        )}
 
         <LocationMapPicker
           visible={mapVisible}
           onClose={() => setMapVisible(false)}
           onSelectLocation={(address) => {
             setLocation(address);
+            setLocationSuggestions([]);
             setErrors((e) => ({ ...e, location: undefined }));
           }}
         />
