@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, View } from 'react-native';
+import { useCallback, useState } from 'react';
+import { ActivityIndicator, FlatList, RefreshControl, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 
 import { ChatRoomListItem } from '@/components/chat/chat-room-list-item';
 import { useTripChromeInsets } from '@/components/layout/use-trip-chrome';
@@ -18,8 +19,9 @@ export default function ChatListScreen() {
   const currentTrip = useTripStore((s) => s.currentTrip);
   const { chatRooms, isLoading, getAllChatRooms } = useChatStore();
   const [error, setError] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  async function load() {
+  const load = useCallback(async () => {
     if (!currentTrip) return;
     setError(null);
     try {
@@ -27,11 +29,19 @@ export default function ChatListScreen() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load chats');
     }
-  }
-
-  useEffect(() => {
-    load();
   }, [currentTrip?.id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
+
+  async function refresh() {
+    setIsRefreshing(true);
+    await load();
+    setIsRefreshing(false);
+  }
 
   if (isLoading && chatRooms.length === 0) {
     return (
@@ -58,6 +68,14 @@ export default function ChatListScreen() {
     <FlatList
       data={chatRooms}
       keyExtractor={(item) => item.id}
+      refreshControl={
+        <RefreshControl
+          refreshing={isRefreshing}
+          onRefresh={refresh}
+          colors={[colors.primary]}
+          tintColor={colors.primary}
+        />
+      }
       contentContainerStyle={{
         paddingTop: headerContentOffset,
         paddingBottom: bottomOverlayOffset,
