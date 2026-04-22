@@ -334,6 +334,7 @@ export type Database = {
       }
       profile: {
         Row: {
+          email: string | null
           expo_push_token: string | null
           id: string
           phonenumber: string | null
@@ -342,6 +343,7 @@ export type Database = {
           user_name: string | null
         }
         Insert: {
+          email?: string | null
           expo_push_token?: string | null
           id?: string
           phonenumber?: string | null
@@ -350,6 +352,7 @@ export type Database = {
           user_name?: string | null
         }
         Update: {
+          email?: string | null
           expo_push_token?: string | null
           id?: string
           phonenumber?: string | null
