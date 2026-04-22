@@ -603,6 +603,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          max_members: number | null
           name: string | null
           trip_id: string | null
         }
@@ -610,6 +611,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          max_members?: number | null
           name?: string | null
           trip_id?: string | null
         }
@@ -617,6 +619,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          max_members?: number | null
           name?: string | null
           trip_id?: string | null
         }
