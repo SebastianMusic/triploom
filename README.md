@@ -396,6 +396,12 @@ The flow is always: **component → store action → service → Supabase**.
 
 These rules keep AI-generated code consistent across agents. Follow them strictly.
 
+### UI design system
+
+Before changing UI, screens, reusable components, layout, colors, spacing, cards, images, or navigation chrome, read `constants/README.md`.
+
+That file is the source of truth for design-token usage, the 60-30-10 visual balance, large image/content surfaces, and how Triploom should compose polished screens without becoming visually cluttered.
+
 ### Navigation (Expo Router)
 
 Expo Router uses **file-based routing**. The folder structure IS the navigation.
