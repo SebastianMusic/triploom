@@ -25,18 +25,19 @@ interface Props {
 export function ChatRoomListItem({ room, onPress }: Props) {
   const { theme: { colors, radius, stroke } } = useAppTheme();
   const isGeneral = room.event_id === null && room.trip_group_id === null;
+  const CARD_RADIUS = radius.sm;
+
+  const borderStyle = isGeneral
+    ? { borderRadius: CARD_RADIUS, borderWidth: stroke.focus, borderColor: colors.primary }
+    : { borderRadius: CARD_RADIUS, borderWidth: stroke.thin, borderColor: colors.border };
 
   return (
-    <View
-      style={
-        isGeneral
-          ? { borderRadius: radius.lg, borderWidth: stroke.focus, borderColor: colors.primary }
-          : undefined
-      }>
+    <View style={borderStyle}>
       <ListItem
+        borderRadius={CARD_RADIUS}
         title={room.chat_name ?? 'Chat'}
         subtitle={room.lastActivityAt ? formatRelativeTime(room.lastActivityAt) : undefined}
-        leading={<Avatar name={room.chat_name ?? 'C'} size="md" source={room.imageUrl ? { uri: room.imageUrl } : undefined} />}
+        leading={<Avatar name={room.chat_name ?? 'C'} size="md" borderRadius={CARD_RADIUS} source={room.imageUrl ? { uri: room.imageUrl } : undefined} />}
         trailing={room.hasUnread ? <Badge label="New" variant="info" /> : undefined}
         onPress={onPress}
       />

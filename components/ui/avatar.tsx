@@ -9,6 +9,7 @@ export type AvatarProps = {
   name?: string;
   source?: ImageSourcePropType;
   size?: AvatarSize;
+  borderRadius?: number;
 };
 
 function getInitials(name?: string) {
@@ -18,7 +19,7 @@ function getInitials(name?: string) {
   return parts.map((part) => part[0]?.toUpperCase() ?? '').join('') || '?';
 }
 
-export function Avatar({ name, source, size = 'md' }: AvatarProps) {
+export function Avatar({ name, source, size = 'md', borderRadius: borderRadiusProp }: AvatarProps) {
   const {
     theme: { colors, radius, sizes, typography },
   } = useAppTheme();
@@ -32,7 +33,7 @@ export function Avatar({ name, source, size = 'md' }: AvatarProps) {
         style={{
           width: dimension,
           height: dimension,
-          borderRadius: radius.full,
+          borderRadius: borderRadiusProp ?? radius.full,
           backgroundColor: colors.surfaceMuted,
         }}
       />
@@ -44,7 +45,7 @@ export function Avatar({ name, source, size = 'md' }: AvatarProps) {
       style={{
         width: dimension,
         height: dimension,
-        borderRadius: radius.full,
+        borderRadius: borderRadiusProp ?? radius.full,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: colors.primarySoft,

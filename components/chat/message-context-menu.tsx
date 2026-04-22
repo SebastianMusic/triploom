@@ -19,7 +19,7 @@ export function MessageContextMenu({ visible, onEdit, onDelete, onCopy, onDismis
 
   return (
     <Modal transparent visible={visible} animationType="fade" onRequestClose={onDismiss}>
-      <Pressable style={styles.backdrop} onPress={onDismiss} />
+      <Pressable style={[styles.backdrop, { backgroundColor: colors.overlayStrong }]} onPress={onDismiss} />
       <View
         style={[
           styles.sheet,
@@ -33,25 +33,25 @@ export function MessageContextMenu({ visible, onEdit, onDelete, onCopy, onDismis
         <View style={[styles.handle, { backgroundColor: colors.border }]} />
 
         <Pressable
-          style={({ pressed }) => [styles.row, { opacity: pressed ? 0.7 : 1, paddingHorizontal: spacing.sm }]}
+          style={({ pressed }) => [styles.row, { opacity: pressed ? 0.7 : 1, paddingHorizontal: spacing.sm, paddingVertical: spacing.sm }]}
           onPress={onEdit}>
           <Ionicons name="create-outline" size={20} color={colors.text} />
           <AppText style={{ marginLeft: spacing.xs }}>Edit</AppText>
         </Pressable>
 
-        <View style={[styles.divider, { backgroundColor: colors.border }]} />
+        <View style={[styles.divider, { backgroundColor: colors.border, marginHorizontal: spacing.sm }]} />
 
         <Pressable
-          style={({ pressed }) => [styles.row, { opacity: pressed ? 0.7 : 1, paddingHorizontal: spacing.sm }]}
+          style={({ pressed }) => [styles.row, { opacity: pressed ? 0.7 : 1, paddingHorizontal: spacing.sm, paddingVertical: spacing.sm }]}
           onPress={onCopy}>
           <Ionicons name="copy-outline" size={20} color={colors.text} />
           <AppText style={{ marginLeft: spacing.xs }}>Copy</AppText>
         </Pressable>
 
-        <View style={[styles.divider, { backgroundColor: colors.border }]} />
+        <View style={[styles.divider, { backgroundColor: colors.border, marginHorizontal: spacing.sm }]} />
 
         <Pressable
-          style={({ pressed }) => [styles.row, { opacity: pressed ? 0.7 : 1, paddingHorizontal: spacing.sm }]}
+          style={({ pressed }) => [styles.row, { opacity: pressed ? 0.7 : 1, paddingHorizontal: spacing.sm, paddingVertical: spacing.sm }]}
           onPress={onDelete}>
           <Ionicons name="trash-outline" size={20} color={colors.error} />
           <AppText style={{ marginLeft: spacing.xs, color: colors.error }}>Delete</AppText>
@@ -64,7 +64,6 @@ export function MessageContextMenu({ visible, onEdit, onDelete, onCopy, onDismis
 const styles = StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.45)',
   },
   sheet: {
     position: 'absolute',
@@ -83,10 +82,8 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 16,
   },
   divider: {
     height: StyleSheet.hairlineWidth,
-    marginHorizontal: 16,
   },
 });

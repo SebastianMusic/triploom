@@ -16,7 +16,7 @@ export default function ChatRoomScreen() {
   const { roomId } = useLocalSearchParams<{ roomId: string }>();
   const router = useRouter();
   const {
-    theme: { colors, spacing },
+    theme: { colors, spacing, sizes },
   } = useAppTheme();
   const {
     messages, chatRooms, isLoading, isSending,
@@ -120,11 +120,11 @@ export default function ChatRoomScreen() {
         <AppText variant="subtitle" style={styles.headerTitle} numberOfLines={1}>
           {roomName}
         </AppText>
-        <View style={styles.headerSpacer} />
+        <View style={{ width: sizes.iconButton.md }} />
       </View>
 
       {error ? (
-        <View style={styles.centered}>
+        <View style={[styles.centered, { padding: spacing.md }]}>
           <AppText tone="error" style={{ marginBottom: spacing.xs, textAlign: 'center' }}>
             {error}
           </AppText>
@@ -141,7 +141,7 @@ export default function ChatRoomScreen() {
           </AppText>
         </View>
       ) : isLoading && messages.length === 0 ? (
-        <View style={styles.centered} />
+        <View style={[styles.centered, { padding: spacing.md }]} />
       ) : (
         <FlatList
           data={messages}
@@ -159,7 +159,7 @@ export default function ChatRoomScreen() {
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.2}
           ListEmptyComponent={
-            <View style={styles.emptyContainer}>
+            <View style={[styles.emptyContainer, { padding: spacing.xxl }]}>
               <AppText tone="muted" style={{ textAlign: 'center' }}>
                 No messages yet — be the first to say something!
               </AppText>
@@ -172,7 +172,13 @@ export default function ChatRoomScreen() {
         <View
           style={[
             styles.sendErrorBar,
-            { backgroundColor: colors.primarySoft, borderTopColor: colors.border },
+            {
+              backgroundColor: colors.primarySoft,
+              borderTopColor: colors.border,
+              paddingHorizontal: spacing.sm,
+              paddingVertical: spacing.xs,
+              gap: spacing.xs,
+            },
           ]}>
           <AppText tone="error" style={{ flex: 1, fontSize: 13 }}>
             {sendError}
@@ -213,17 +219,11 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'center',
   },
-  headerSpacer: {
-    width: 44,
-  },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
-  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 48 },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   sendErrorBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
 });
