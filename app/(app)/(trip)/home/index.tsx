@@ -118,6 +118,8 @@ export default function HomeScreen() {
 				onClose={() => setPersonsVisible(false)}
 				participants={participantsWithProfiles}
 				isOrganizer={isOrganizer}
+				tripId={currentTrip?.id ?? null}
+				currentParticipantId={currentParticipant?.id ?? null}
 			/>
 		</View>
 	);
