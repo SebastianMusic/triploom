@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, Animated, Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { GroupWithMembers } from '@/services/group.service';
@@ -37,6 +37,7 @@ type Props = {
 
 export function PersonsSheet({ visible, onClose, participants, isOrganizer, tripId, currentParticipantId }: Props) {
   const insets = useSafeAreaInsets();
+  const { height: screenHeight } = useWindowDimensions();
   const { theme: { colors, spacing, radius, stroke } } = useAppTheme();
   const [tab, setTab] = useState<Tab>('persons');
   const [groups, setGroups] = useState<GroupWithMembers[]>([]);
@@ -44,6 +45,24 @@ export function PersonsSheet({ visible, onClose, participants, isOrganizer, trip
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  const slideAnim = useRef(new Animated.Value(screenHeight)).current;
+  const backdropAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (visible) {
+      Animated.parallel([
+        Animated.timing(slideAnim, { toValue: 0, duration: 300, useNativeDriver: true }),
+        Animated.timing(backdropAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
+      ]).start();
+      if (tripId) refreshGroups();
+    } else {
+      Animated.parallel([
+        Animated.timing(slideAnim, { toValue: screenHeight, duration: 250, useNativeDriver: true }),
+        Animated.timing(backdropAnim, { toValue: 0, duration: 250, useNativeDriver: true }),
+      ]).start();
+    }
+  }, [visible]);
 
   function refreshGroups() {
     if (!tripId) return;
@@ -53,10 +72,6 @@ export function PersonsSheet({ visible, onClose, participants, isOrganizer, trip
       .catch(() => {})
       .finally(() => setLoadingGroups(false));
   }
-
-  useEffect(() => {
-    if (visible && tripId) refreshGroups();
-  }, [visible, tripId]);
 
   const sortedParticipants = [...participants].sort((a, b) => {
     const roleA = ROLE_ORDER[a.role ?? ''] ?? 2;
@@ -132,8 +147,29 @@ export function PersonsSheet({ visible, onClose, participants, isOrganizer, trip
 
   return (
     <>
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <View style={{ flex: 1, backgroundColor: colors.background }}>
+      {/* Backdrop */}
+      <Animated.View
+        pointerEvents={visible ? 'auto' : 'none'}
+        style={{
+          position: 'absolute',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.45)',
+          opacity: backdropAnim,
+          zIndex: 10,
+        }}>
+        <Pressable style={{ flex: 1 }} onPress={onClose} />
+      </Animated.View>
+
+      {/* Sheet */}
+      <Animated.View
+        pointerEvents={visible ? 'auto' : 'none'}
+        style={{
+          position: 'absolute',
+          top: 0, left: 0, right: 0, bottom: 0,
+          transform: [{ translateY: slideAnim }],
+          zIndex: 11,
+          backgroundColor: colors.background,
+        }}>
 
         {/* Header */}
         <View
@@ -283,7 +319,6 @@ export function PersonsSheet({ visible, onClose, participants, isOrganizer, trip
                     overflow: 'hidden',
                     marginBottom: spacing.xs,
                   }}>
-                  {/* Group header — tappable to expand/collapse */}
                   <Pressable
                     onPress={() => setExpandedGroupId(expanded ? null : group.id)}
                     style={({ pressed }) => ({
@@ -309,14 +344,9 @@ export function PersonsSheet({ visible, onClose, participants, isOrganizer, trip
                         <AppText variant="caption" tone="muted">Full</AppText>
                       </View>
                     ) : null}
-                    <Ionicons
-                      name={expanded ? 'chevron-up' : 'chevron-down'}
-                      size={16}
-                      color={colors.textMuted}
-                    />
+                    <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={16} color={colors.textMuted} />
                   </Pressable>
 
-                  {/* Expanded: member list + join/leave/delete actions */}
                   {expanded ? (
                     <View style={{ borderTopWidth: stroke.thin, borderTopColor: colors.border }}>
                       {members.length === 0 ? (
@@ -345,7 +375,6 @@ export function PersonsSheet({ visible, onClose, participants, isOrganizer, trip
                         })
                       )}
 
-                      {/* Action row */}
                       <View
                         style={{
                           flexDirection: 'row',
@@ -417,21 +446,19 @@ export function PersonsSheet({ visible, onClose, participants, isOrganizer, trip
             })
           )}
         </ScrollView>
-      </View>
+      </Animated.View>
 
-    </Modal>
-
-    {createModalVisible && tripId ? (
-      <CreateGroupsModal
-        visible
-        tripId={tripId}
-        onClose={() => setCreateModalVisible(false)}
-        onCreated={() => {
-          setCreateModalVisible(false);
-          refreshGroups();
-        }}
-      />
-    ) : null}
+      {createModalVisible && tripId ? (
+        <CreateGroupsModal
+          visible
+          tripId={tripId}
+          onClose={() => setCreateModalVisible(false)}
+          onCreated={() => {
+            setCreateModalVisible(false);
+            refreshGroups();
+          }}
+        />
+      ) : null}
     </>
   );
 }
