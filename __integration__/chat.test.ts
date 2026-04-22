@@ -13,6 +13,8 @@ import {
   getAllChatRooms,
   getAllMessages,
   sendMessage,
+  updateMessage,
+  deleteMessage,
   subscribeToMessages,
   markChatRead,
 } from '@/services/chat.service';
@@ -586,5 +588,154 @@ describe('US4: Group chat room', () => {
       .eq('trip_group_id', groupId)
       .single();
     expect(data!.chat_name).toBe('Team Alpha');
+  });
+});
+
+// --- US5: Edit and Delete Own Messages ---
+
+describe('US5: Edit and delete own messages', () => {
+  let user1: TestUser;
+  let user2: TestUser;
+  let tripId: string;
+  let roomId: string;
+
+  beforeAll(async () => {
+    user1 = await createTestUser();
+    user2 = await createTestUser();
+    await signInAs(user1);
+
+    const { data: trip } = await getSupabaseAdmin()
+      .from('trip')
+      .insert({ name: 'US5 Trip', organizer_id: user1.id })
+      .select()
+      .single();
+    tripId = trip!.id;
+
+    await getSupabaseAdmin()
+      .from('trip_participant')
+      .insert({ trip_id: tripId, user_id: user1.id });
+    await getSupabaseAdmin()
+      .from('trip_participant')
+      .insert({ trip_id: tripId, user_id: user2.id });
+
+    const { data: room } = await getSupabaseAdmin()
+      .from('group_chat')
+      .select('id')
+      .eq('trip_id', tripId)
+      .is('trip_group_id', null)
+      .is('event_id', null)
+      .single();
+    roomId = room!.id;
+  });
+
+  afterAll(async () => {
+    await getSupabaseAdmin().from('trip').delete().eq('id', tripId);
+    await user2.cleanup();
+    await user1.cleanup();
+  });
+
+  it('US5-1: updateMessage changes content of own message', async () => {
+    await signInAs(user1);
+    const original = await sendMessage({ content: 'Original content', group_chat_id: roomId });
+    const updated = await updateMessage({ id: original.id, content: 'Updated content' });
+    expect(updated.id).toBe(original.id);
+    expect(updated.content).toBe('Updated content');
+  });
+
+  it('US5-2: updateMessage with empty content is rejected by Zod before hitting DB', async () => {
+    await signInAs(user1);
+    await expect(
+      updateMessage({ id: '123e4567-e89b-42d3-a456-556642440000', content: '' })
+    ).rejects.toThrow('Message cannot be empty');
+  });
+
+  it('US5-3: updateMessage by non-owner is rejected by RLS', async () => {
+    await signInAs(user1);
+    const msg = await sendMessage({ content: 'User1 message', group_chat_id: roomId });
+
+    await signInAs(user2);
+    await expect(
+      updateMessage({ id: msg.id, content: 'Hijacked' })
+    ).rejects.toBeDefined();
+
+    await signInAs(user1);
+  });
+
+  it('US5-4: deleteMessage soft-deletes the row (content null, deleted_at set)', async () => {
+    await signInAs(user1);
+    const msg = await sendMessage({ content: 'To be deleted', group_chat_id: roomId });
+    const deleted = await deleteMessage(msg.id);
+
+    expect(deleted.deleted_at).not.toBeNull();
+    expect(deleted.content).toBeNull();
+
+    const { data } = await getSupabaseAdmin()
+      .from('message')
+      .select('id, content, deleted_at')
+      .eq('id', msg.id)
+      .single();
+    expect(data).not.toBeNull();
+    expect(data!.content).toBeNull();
+    expect(data!.deleted_at).not.toBeNull();
+  });
+
+  it('US5-5: deleteMessage by non-owner is rejected by RLS', async () => {
+    await signInAs(user1);
+    const msg = await sendMessage({ content: 'Protected', group_chat_id: roomId });
+
+    await signInAs(user2);
+    await expect(deleteMessage(msg.id)).rejects.toBeDefined();
+
+    await signInAs(user1);
+  });
+
+  it('US5-6: realtime UPDATE received by another subscriber', async () => {
+    await signInAs(user1);
+    const msg = await sendMessage({ content: 'Before edit', group_chat_id: roomId });
+
+    await signInAs(user2);
+    let updatedMsg: { id: string; content: string | null } | null = null;
+    const unsubscribe = subscribeToMessages(
+      roomId,
+      () => {},
+      (m) => { updatedMsg = m; }
+    );
+
+    await new Promise((r) => setTimeout(r, 2000));
+
+    await signInAs(user1);
+    await updateMessage({ id: msg.id, content: 'After edit' });
+
+    await new Promise((r) => setTimeout(r, 3000));
+    unsubscribe();
+
+    expect(updatedMsg).not.toBeNull();
+    expect(updatedMsg!.id).toBe(msg.id);
+    expect(updatedMsg!.content).toBe('After edit');
+  });
+
+  it('US5-7: realtime soft-delete received by another subscriber as UPDATE with deleted_at set', async () => {
+    await signInAs(user1);
+    const msg = await sendMessage({ content: 'To be deleted live', group_chat_id: roomId });
+
+    await signInAs(user2);
+    let softDeletedMsg: { id: string; deleted_at: string | null } | null = null;
+    const unsubscribe = subscribeToMessages(
+      roomId,
+      () => {},
+      (m) => { if (m.deleted_at) softDeletedMsg = m; }
+    );
+
+    await new Promise((r) => setTimeout(r, 2000));
+
+    await signInAs(user1);
+    await deleteMessage(msg.id);
+
+    await new Promise((r) => setTimeout(r, 3000));
+    unsubscribe();
+
+    expect(softDeletedMsg).not.toBeNull();
+    expect(softDeletedMsg!.id).toBe(msg.id);
+    expect(softDeletedMsg!.deleted_at).not.toBeNull();
   });
 });

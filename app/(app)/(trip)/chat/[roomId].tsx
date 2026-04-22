@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
-import { FlatList, KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
+import { Alert, FlatList, KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { MessageBubble } from '@/components/chat/message-bubble';
@@ -10,7 +10,7 @@ import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import { useAuthStore } from '@/store/auth.store';
 import { useChatStore } from '@/store/chat.store';
-import type { SendMessageDTO } from '@/types';
+import type { MessageWithSender, SendMessageDTO } from '@/types';
 
 export default function ChatRoomScreen() {
   const { roomId } = useLocalSearchParams<{ roomId: string }>();
@@ -18,8 +18,12 @@ export default function ChatRoomScreen() {
   const {
     theme: { colors, spacing },
   } = useAppTheme();
-  const { messages, chatRooms, isLoading, isSending, openChatRoom, closeChatRoom, loadMoreMessages, sendMessage } =
-    useChatStore();
+  const {
+    messages, chatRooms, isLoading, isSending,
+    editingMessage, isUpdating,
+    openChatRoom, closeChatRoom, loadMoreMessages, sendMessage,
+    updateMessage, deleteMessage, startEditingMessage, cancelEditingMessage,
+  } = useChatStore();
   const currentUserId = useAuthStore((s) => s.session?.user.id ?? null);
   const [error, setError] = useState<string | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
@@ -61,6 +65,37 @@ export default function ChatRoomScreen() {
     }
   }
 
+  async function handleSubmitEdit(content: string) {
+    if (!editingMessage) return;
+    setSendError(null);
+    try {
+      await updateMessage({ id: editingMessage.id, content });
+    } catch (err) {
+      setSendError(err instanceof Error ? err.message : 'Failed to update message');
+    }
+  }
+
+  function handleDeleteMessage(message: MessageWithSender) {
+    Alert.alert(
+      'Delete message',
+      'Are you sure you want to delete this message? This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteMessage(message.id);
+            } catch {
+              Alert.alert('Error', 'Could not delete the message. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  }
+
   return (
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: colors.background }]}
@@ -79,7 +114,7 @@ export default function ChatRoomScreen() {
         <IconButton
           icon={<Ionicons name="arrow-back" size={22} color={colors.text} />}
           variant="ghost"
-          onPress={() => router.back()}
+          onPress={() => router.push('/(app)/(trip)/chat')}
           accessibilityLabel="Back to chat list"
         />
         <AppText variant="subtitle" style={styles.headerTitle} numberOfLines={1}>
@@ -113,7 +148,12 @@ export default function ChatRoomScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingVertical: spacing.xs }}
           renderItem={({ item }) => (
-            <MessageBubble message={item} isOwnMessage={item.user_id === currentUserId} />
+            <MessageBubble
+              message={item}
+              isOwnMessage={item.user_id === currentUserId}
+              onEdit={item.user_id === currentUserId ? () => startEditingMessage(item) : undefined}
+              onDelete={item.user_id === currentUserId ? () => handleDeleteMessage(item) : undefined}
+            />
           )}
           inverted
           onEndReached={handleLoadMore}
@@ -153,6 +193,10 @@ export default function ChatRoomScreen() {
           handleSubmit(text);
         }}
         isSending={isSending}
+        editingMessage={editingMessage}
+        onCancelEdit={cancelEditingMessage}
+        isUpdating={isUpdating}
+        onSubmitEdit={handleSubmitEdit}
       />
     </KeyboardAvoidingView>
   );

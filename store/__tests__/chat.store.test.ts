@@ -28,6 +28,8 @@ const mockMessage = {
   id: 'msg-1',
   content: 'Hello',
   created_at: '2026-01-01T12:00:00Z',
+  updated_at: null,
+  deleted_at: null,
   group_chat_id: 'room-1',
   user_id: 'user-1',
   senderName: 'Alice',
@@ -200,6 +202,8 @@ describe('openChatRoom store action', () => {
     expect(state.messages).toEqual([mockMessage]);
     expect(chatService.subscribeToMessages).toHaveBeenCalledWith(
       'room-1',
+      expect.any(Function),
+      expect.any(Function),
       expect.any(Function),
       expect.any(Function)
     );

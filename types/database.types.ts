@@ -297,22 +297,28 @@ export type Database = {
         Row: {
           content: string | null
           created_at: string
+          deleted_at: string | null
           group_chat_id: string | null
           id: string
+          updated_at: string | null
           user_id: string | null
         }
         Insert: {
           content?: string | null
           created_at?: string
+          deleted_at?: string | null
           group_chat_id?: string | null
           id?: string
+          updated_at?: string | null
           user_id?: string | null
         }
         Update: {
           content?: string | null
           created_at?: string
+          deleted_at?: string | null
           group_chat_id?: string | null
           id?: string
+          updated_at?: string | null
           user_id?: string | null
         }
         Relationships: [
@@ -717,6 +723,7 @@ export type Database = {
           event_id: string
           has_unread: boolean
           id: string
+          image_url: string
           last_activity_at: string
           trip_group_id: string
           trip_id: string
