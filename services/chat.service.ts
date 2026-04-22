@@ -1,12 +1,14 @@
 import { supabase } from '@/lib/supabase';
-import { sendMessageSchema } from '@/types';
-import type { SendMessageDTO, MessageWithSender, ChatRoomWithMeta } from '@/types';
+import { sendMessageSchema, editMessageSchema } from '@/types';
+import type { SendMessageDTO, EditMessageDTO, MessageWithSender, ChatRoomWithMeta } from '@/types';
 
 // Private helper — reshapes raw Supabase message row (with profile join) into MessageWithSender
 function mapToMessageWithSender(raw: {
   id: string;
   content: string | null;
   created_at: string;
+  updated_at?: string | null;
+  deleted_at?: string | null;
   group_chat_id: string | null;
   user_id: string | null;
   profile: { user_name: string | null } | null;
@@ -15,6 +17,8 @@ function mapToMessageWithSender(raw: {
     id: raw.id,
     content: raw.content,
     created_at: raw.created_at,
+    updated_at: raw.updated_at ?? null,
+    deleted_at: raw.deleted_at ?? null,
     group_chat_id: raw.group_chat_id,
     user_id: raw.user_id,
     senderName: raw.profile?.user_name ?? null,
@@ -26,7 +30,7 @@ export async function getAllChatRooms(tripId: string): Promise<ChatRoomWithMeta[
     trip_id_param: tripId,
   });
   if (error) throw error;
-  return (data ?? [])
+  const rooms = (data ?? [])
     .map((row) => ({
       id: row.id,
       chat_name: row.chat_name,
@@ -36,6 +40,7 @@ export async function getAllChatRooms(tripId: string): Promise<ChatRoomWithMeta[
       created_at: row.created_at,
       hasUnread: row.has_unread,
       lastActivityAt: row.last_activity_at,
+      imageUrl: row.image_url ?? null,
     }))
     .sort((a, b) => {
       const aIsGeneral = a.event_id === null && a.trip_group_id === null;
@@ -46,6 +51,18 @@ export async function getAllChatRooms(tripId: string): Promise<ChatRoomWithMeta[
       if (!b.lastActivityAt) return -1;
       return b.lastActivityAt.localeCompare(a.lastActivityAt);
     });
+
+  await Promise.all(
+    rooms.map(async (room) => {
+      if (!room.imageUrl || !room.event_id) return;
+      const { data: signed } = await supabase.storage
+        .from('event_banner')
+        .createSignedUrl(room.imageUrl, 3600);
+      room.imageUrl = signed?.signedUrl ?? null;
+    })
+  );
+
+  return rooms;
 }
 
 export async function getAllMessages(
@@ -71,6 +88,8 @@ export async function getAllMessages(
       id: row.id,
       content: row.content,
       created_at: row.created_at,
+      updated_at: row.updated_at,
+      deleted_at: row.deleted_at,
       group_chat_id: row.group_chat_id,
       user_id: row.user_id,
       profile: Array.isArray(row.profile) ? (row.profile[0] ?? null) : row.profile,
@@ -95,6 +114,52 @@ export async function sendMessage(dto: SendMessageDTO): Promise<MessageWithSende
     id: data.id,
     content: data.content,
     created_at: data.created_at,
+    updated_at: data.updated_at,
+    deleted_at: data.deleted_at,
+    group_chat_id: data.group_chat_id,
+    user_id: data.user_id,
+    profile: Array.isArray(data.profile) ? (data.profile[0] ?? null) : data.profile,
+  });
+}
+
+export async function updateMessage(dto: EditMessageDTO): Promise<MessageWithSender> {
+  const result = editMessageSchema.safeParse(dto);
+  if (!result.success) throw new Error(result.error.issues[0].message);
+
+  const { data, error } = await supabase
+    .from('message')
+    .update({ content: dto.content, updated_at: new Date().toISOString() })
+    .eq('id', dto.id)
+    .select('*, profile:user_id(user_name)')
+    .single();
+  if (error) throw error;
+
+  return mapToMessageWithSender({
+    id: data.id,
+    content: data.content,
+    created_at: data.created_at,
+    updated_at: data.updated_at,
+    deleted_at: data.deleted_at,
+    group_chat_id: data.group_chat_id,
+    user_id: data.user_id,
+    profile: Array.isArray(data.profile) ? (data.profile[0] ?? null) : data.profile,
+  });
+}
+
+export async function deleteMessage(messageId: string): Promise<MessageWithSender> {
+  const { data, error } = await supabase
+    .from('message')
+    .update({ content: null, deleted_at: new Date().toISOString() })
+    .eq('id', messageId)
+    .select('*, profile:user_id(user_name)')
+    .single();
+  if (error) throw error;
+  return mapToMessageWithSender({
+    id: data.id,
+    content: data.content,
+    created_at: data.created_at,
+    updated_at: data.updated_at,
+    deleted_at: data.deleted_at,
     group_chat_id: data.group_chat_id,
     user_id: data.user_id,
     profile: Array.isArray(data.profile) ? (data.profile[0] ?? null) : data.profile,
@@ -104,6 +169,8 @@ export async function sendMessage(dto: SendMessageDTO): Promise<MessageWithSende
 export function subscribeToMessages(
   roomId: string,
   onMessage: (message: MessageWithSender) => void,
+  onMessageUpdated?: (message: MessageWithSender) => void,
+  onMessageDeleted?: (messageId: string) => void,
   onStatusChange?: (status: string) => void
 ): () => void {
   const channel = supabase
@@ -135,11 +202,63 @@ export function subscribeToMessages(
             id: source.id,
             content: source.content,
             created_at: source.created_at,
+            updated_at: data?.updated_at,
+            deleted_at: data?.deleted_at,
             group_chat_id: source.group_chat_id,
             user_id: source.user_id,
             profile: data ? (Array.isArray(data.profile) ? (data.profile[0] ?? null) : data.profile) : null,
           })
         );
+      }
+    )
+    .on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'message',
+        filter: `group_chat_id=eq.${roomId}`,
+      },
+      async (payload) => {
+        if (!onMessageUpdated) return;
+        const raw = payload.new as {
+          id: string;
+          content: string | null;
+          created_at: string;
+          group_chat_id: string | null;
+          user_id: string | null;
+        };
+        const { data } = await supabase
+          .from('message')
+          .select('*, profile:user_id(user_name)')
+          .eq('id', raw.id)
+          .single();
+        const source = data ?? raw;
+        onMessageUpdated(
+          mapToMessageWithSender({
+            id: source.id,
+            content: source.content,
+            created_at: source.created_at,
+            updated_at: data?.updated_at,
+            deleted_at: data?.deleted_at,
+            group_chat_id: source.group_chat_id,
+            user_id: source.user_id,
+            profile: data ? (Array.isArray(data.profile) ? (data.profile[0] ?? null) : data.profile) : null,
+          })
+        );
+      }
+    )
+    .on(
+      'postgres_changes',
+      {
+        event: 'DELETE',
+        schema: 'public',
+        table: 'message',
+        filter: `group_chat_id=eq.${roomId}`,
+      },
+      (payload) => {
+        if (!onMessageDeleted) return;
+        onMessageDeleted((payload.old as { id: string }).id);
       }
     )
     .subscribe((status) => {

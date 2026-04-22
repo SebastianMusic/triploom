@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import * as chatService from '@/services/chat.service';
-import type { ChatRoomWithMeta, MessageWithSender, SendMessageDTO } from '@/types';
+import type { ChatRoomWithMeta, EditMessageDTO, MessageWithSender, SendMessageDTO } from '@/types';
 
 // Held outside Zustand state — not serialisable
 let unsubscribeRef: (() => void) | null = null;
@@ -13,6 +13,9 @@ interface ChatState {
   currentPage: number;
   isLoading: boolean;
   isSending: boolean;
+  editingMessage: MessageWithSender | null;
+  isUpdating: boolean;
+  isDeleting: boolean;
 
   getAllChatRooms: (tripId: string) => Promise<void>;
   getAllMessages: (roomId: string) => Promise<void>;
@@ -21,6 +24,12 @@ interface ChatState {
   openChatRoom: (roomId: string) => Promise<void>;
   closeChatRoom: () => void;
   addMessage: (message: MessageWithSender) => void;
+  replaceMessage: (message: MessageWithSender) => void;
+  removeMessage: (messageId: string) => void;
+  startEditingMessage: (message: MessageWithSender) => void;
+  cancelEditingMessage: () => void;
+  updateMessage: (dto: EditMessageDTO) => Promise<void>;
+  deleteMessage: (messageId: string) => Promise<void>;
 }
 
 export const useChatStore = create<ChatState>()((set, get) => ({
@@ -30,9 +39,12 @@ export const useChatStore = create<ChatState>()((set, get) => ({
   currentPage: 0,
   isLoading: false,
   isSending: false,
+  editingMessage: null,
+  isUpdating: false,
+  isDeleting: false,
 
   getAllChatRooms: async (tripId) => {
-    set({ isLoading: true });
+    set({ isLoading: true, chatRooms: [] });
     try {
       const chatRooms = await chatService.getAllChatRooms(tripId);
       set({ chatRooms, isLoading: false });
@@ -102,6 +114,12 @@ export const useChatStore = create<ChatState>()((set, get) => ({
       (message) => {
         get().addMessage(message);
       },
+      (message) => {
+        get().replaceMessage(message);
+      },
+      (messageId) => {
+        get().removeMessage(messageId);
+      },
       (status) => {
         if (status === 'CHANNEL_ERROR' || status === 'CLOSED') {
           channelWasError = true;
@@ -135,7 +153,7 @@ export const useChatStore = create<ChatState>()((set, get) => ({
       unsubscribeRef = null;
     }
     channelWasError = false;
-    set({ activeChatRoomId: null, messages: [], currentPage: 0 });
+    set({ activeChatRoomId: null, messages: [], currentPage: 0, editingMessage: null });
     if (activeChatRoomId) {
       chatService.markChatRead(activeChatRoomId).catch(() => {});
     }
@@ -149,6 +167,51 @@ export const useChatStore = create<ChatState>()((set, get) => ({
     });
     if (activeChatRoomId) {
       chatService.markChatRead(activeChatRoomId).catch(() => {});
+    }
+  },
+
+  replaceMessage: (message) => {
+    set((state) => ({
+      messages: state.messages.map((m) => (m.id === message.id ? message : m)),
+    }));
+  },
+
+  removeMessage: (messageId) => {
+    set((state) => ({
+      messages: state.messages.filter((m) => m.id !== messageId),
+      editingMessage: state.editingMessage?.id === messageId ? null : state.editingMessage,
+    }));
+  },
+
+  startEditingMessage: (message) => {
+    set({ editingMessage: message });
+  },
+
+  cancelEditingMessage: () => {
+    set({ editingMessage: null });
+  },
+
+  updateMessage: async (dto) => {
+    set({ isUpdating: true });
+    try {
+      const updated = await chatService.updateMessage(dto);
+      get().replaceMessage(updated);
+      set({ isUpdating: false, editingMessage: null });
+    } catch (error) {
+      set({ isUpdating: false });
+      throw error;
+    }
+  },
+
+  deleteMessage: async (messageId) => {
+    set({ isDeleting: true });
+    try {
+      const deleted = await chatService.deleteMessage(messageId);
+      get().replaceMessage(deleted);
+      set({ isDeleting: false, editingMessage: null });
+    } catch (error) {
+      set({ isDeleting: false });
+      throw error;
     }
   },
 }));

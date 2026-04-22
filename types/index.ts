@@ -7,8 +7,8 @@ export { createAnnouncementSchema, updateAnnouncementSchema } from './announceme
 export type { CreateAnnouncementDTO, UpdateAnnouncementDTO } from './announcement.types';
 export { signInSchema, signUpSchema } from './auth.types';
 export type { SignInDTO, SignUpDTO } from './auth.types';
-export { sendMessageSchema } from './chat.types';
-export type { ChatRoomWithMeta, MessageWithSender, SendMessageDTO } from './chat.types';
+export { sendMessageSchema, editMessageSchema } from './chat.types';
+export type { ChatRoomWithMeta, MessageWithSender, SendMessageDTO, EditMessageDTO } from './chat.types';
 export type { Database, Enums, Json, Tables, TablesInsert, TablesUpdate } from './database.types';
 export { createEventSchema } from './events.types';
 export type { CreateEventDTO } from './events.types';
