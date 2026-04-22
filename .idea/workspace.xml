@@ -5,12 +5,22 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="6e9e7edf-1c22-4b89-8de2-b36fb60c648c" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/app/(app)/(no-trip)/create/index.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/AGENTS.md" beforeDir="false" afterPath="$PROJECT_DIR$/AGENTS.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/__integration__/trip.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/__integration__/trip.test.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/(app)/(no-trip)/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(app)/(no-trip)/index.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(app)/(no-trip)/join/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(app)/(no-trip)/join/index.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(app)/(trip)/events/create_event.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(app)/(trip)/events/create_event.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/events/event-banner-picker.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/events/event-banner-picker.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ui/button.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/ui/button.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/components/ui/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/components/ui/index.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/constants/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/constants/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ui/input.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/ui/input.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/constants/theme.ts" beforeDir="false" afterPath="$PROJECT_DIR$/constants/theme.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/services/__tests__/trip.service.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/services/__tests__/trip.service.test.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/services/trip.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/services/trip.service.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/store/trip.store.ts" beforeDir="false" afterPath="$PROJECT_DIR$/store/trip.store.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/types/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/types/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/types/trip.types.ts" beforeDir="false" afterPath="$PROJECT_DIR$/types/trip.types.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -75,7 +85,7 @@
       <workItem from="1776428995257" duration="5180000" />
       <workItem from="1776672056339" duration="5603000" />
       <workItem from="1776759501273" duration="7572000" />
-      <workItem from="1776859000185" duration="6045000" />
+      <workItem from="1776859000185" duration="10451000" />
     </task>
     <servers />
   </component>

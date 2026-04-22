@@ -7,12 +7,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/ui/button';
 import { FloatingActionButton } from '@/components/ui/floating-action-button';
 import { IconButton } from '@/components/ui/icon-button';
-import { Input } from '@/components/ui/input';
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import { useProfileStore } from '@/store/profile.store';
 import { useTripStore } from '@/store/trip.store';
-import { createTripSchema, TripRole, type TripWithRole } from '@/types/trip.types';
+import { TripRole, type TripWithRole } from '@/types/trip.types';
 
 type TripBucket = 'active' | 'past';
 
@@ -113,6 +112,7 @@ function TripSummaryCard({ trip, disabled, selecting, onSelect, onOptions }: Tri
   const {
     theme: { colors, radius, spacing, typography },
   } = useAppTheme();
+  const bannerSource = trip.banner_image_url;
 
   return (
     <Pressable
@@ -130,8 +130,8 @@ function TripSummaryCard({ trip, disabled, selecting, onSelect, onOptions }: Tri
           overflow: 'hidden',
           backgroundColor: colors.surface,
         }}>
-        {trip.banner_image_url ? (
-          <ImageBackground source={{ uri: trip.banner_image_url }} resizeMode="cover" style={{ height: 168 }}>
+        {bannerSource ? (
+          <ImageBackground source={{ uri: bannerSource }} resizeMode="cover" style={{ height: 168 }}>
             <View
               style={{
                 flex: 1,
@@ -215,38 +215,30 @@ function TripSummaryCard({ trip, disabled, selecting, onSelect, onOptions }: Tri
           </View>
         )}
 
-        <View style={{ padding: spacing.sm, gap: spacing.sm }}>
-          <View
-            style={{
-              padding: spacing.sm,
-              borderRadius: radius.md,
-              backgroundColor: colors.surfaceMuted,
-              gap: spacing.xs,
-            }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.sm }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, flex: 1 }}>
-                <View
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: radius.sm,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: colors.accent,
-                  }}>
-                  <Ionicons name="flag-outline" size={16} color={colors.text} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <AppText variant="caption" tone="muted">
-                    Next action
-                  </AppText>
-                  <AppText numberOfLines={1} style={typography.label}>
-                    {getNextActionPreview()}
-                  </AppText>
-                </View>
+        <View style={{ padding: spacing.sm }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.sm }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, flex: 1 }}>
+              <View
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: radius.full,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: colors.accent,
+                }}>
+                <Ionicons name="flag-outline" size={16} color={colors.text} />
               </View>
-              {selecting ? <ActivityIndicator color={colors.primary} /> : null}
+              <View style={{ flex: 1 }}>
+                <AppText variant="caption" tone="muted">
+                  Next action
+                </AppText>
+                <AppText numberOfLines={1} style={typography.label}>
+                  {getNextActionPreview()}
+                </AppText>
+              </View>
             </View>
+            {selecting ? <ActivityIndicator color={colors.primary} /> : null}
           </View>
         </View>
       </View>
@@ -258,6 +250,7 @@ function CompactPastTripCard({ trip, disabled, selecting, onSelect, onOptions }:
   const {
     theme: { colors, radius, spacing, typography },
   } = useAppTheme();
+  const bannerSource = trip.banner_image_url;
 
   return (
     <Pressable
@@ -270,9 +263,9 @@ function CompactPastTripCard({ trip, disabled, selecting, onSelect, onOptions }:
         opacity: disabled ? 0.65 : pressed ? 0.94 : 1,
       })}>
       <View style={{ flexDirection: 'row', gap: spacing.sm, padding: spacing.sm, alignItems: 'center' }}>
-        {trip.banner_image_url ? (
+        {bannerSource ? (
           <ImageBackground
-            source={{ uri: trip.banner_image_url }}
+            source={{ uri: bannerSource }}
             resizeMode="cover"
             style={{ width: 86, height: 86, overflow: 'hidden', borderRadius: radius.md }}
           />
@@ -417,18 +410,14 @@ function TripOptionsSheet({ trip, visible, onClose, onLeave, onDelete }: TripOpt
 export default function TripPickerScreen() {
   const insets = useSafeAreaInsets();
   const menuProgress = useRef(new Animated.Value(0)).current;
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [formOpen, setFormOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [selectionError, setSelectionError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [selectingTripId, setSelectingTripId] = useState<string | null>(null);
   const [mutatingTripId, setMutatingTripId] = useState<string | null>(null);
   const [optionsTrip, setOptionsTrip] = useState<TripWithRole | null>(null);
 
-  const { createTrip, fetchTrips, trips, isLoading, leaveTrip, deleteTrip } = useTripStore();
+  const { fetchTrips, trips, isLoading, leaveTrip, deleteTrip } = useTripStore();
   const { setSelectedTrip } = useProfileStore();
   const {
     theme: { colors, layout, radius, spacing, typography },
@@ -490,30 +479,6 @@ export default function TripPickerScreen() {
     }
   }, [fetchTrips]);
 
-  async function handleCreate() {
-    setError(null);
-
-    const result = createTripSchema.safeParse({
-      name,
-      description: description || null,
-    });
-
-    if (!result.success) {
-      setError(result.error.issues[0].message);
-      return;
-    }
-
-    try {
-      await createTrip(result.data);
-      await fetchTrips();
-      setName('');
-      setDescription('');
-      setFormOpen(false);
-    } catch {
-      setError('Failed to create trip. Please try again.');
-    }
-  }
-
   async function handleSelectTrip(tripId: string) {
     setSelectionError(null);
     setSelectingTripId(tripId);
@@ -573,13 +538,13 @@ export default function TripPickerScreen() {
   }
 
   function handleJoinWithCode() {
-    router.push('/join');
+    router.push('./join');
   }
 
   function openCreateForm() {
     setSelectionError(null);
     setMenuOpen(false);
-    setFormOpen(true);
+    router.push('./create');
   }
 
   return (
@@ -610,36 +575,6 @@ export default function TripPickerScreen() {
               <AppText variant="caption" tone="error">
                 {selectionError}
               </AppText>
-            </View>
-          ) : null}
-
-          {formOpen ? (
-            <View style={{ gap: spacing.sm }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <AppText style={typography.label}>Create trip</AppText>
-                <IconButton
-                  variant="ghost"
-                  icon={<Ionicons name="close" size={20} color={colors.icon} />}
-                  onPress={() => setFormOpen(false)}
-                />
-              </View>
-              <View style={{ gap: spacing.sm }}>
-                <Input
-                  label="Trip name"
-                  value={name}
-                  onChangeText={setName}
-                  autoCapitalize="words"
-                  error={error ?? undefined}
-                />
-                <Input
-                  label="Description"
-                  value={description}
-                  onChangeText={setDescription}
-                  multiline
-                  placeholder="Optional"
-                />
-                <Button label="Create trip" loading={isLoading} onPress={handleCreate} />
-              </View>
             </View>
           ) : null}
 

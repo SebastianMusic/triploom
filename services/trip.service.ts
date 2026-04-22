@@ -47,6 +47,7 @@ export async function getTripById(id: string): Promise<Trip> {
 export async function createTrip(dto: CreateTripDTO): Promise<Trip> {
   const { data: { session } } = await supabase.auth.getSession();
   const userId = session?.user.id;
+  if (!userId) throw new Error('Not authenticated');
 
   const { data, error } = await supabase
     .from('trip')
