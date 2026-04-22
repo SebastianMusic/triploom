@@ -11,19 +11,24 @@ type EventBannerPickerProps = {
   uri: string | null;
   onSelect: (uri: string) => void;
   onRemove?: () => void;
+  label?: string;
 };
 
-export function EventBannerPicker({ uri, onSelect, onRemove }: EventBannerPickerProps) {
-  const { theme: { colors, radius, spacing } } = useAppTheme();
+export function EventBannerPicker({ uri, onSelect, onRemove, label = 'Banner image' }: EventBannerPickerProps) {
+  const { theme: { colors, opacity, radius, spacing, stroke } } = useAppTheme();
   const [showCamera, setShowCamera] = useState(false);
 
   async function openGallery() {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') return;
+
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [16, 9],
       quality: 0.8,
     });
+
     if (!result.canceled && result.assets[0]) {
       onSelect(result.assets[0].uri);
     }
@@ -32,85 +37,115 @@ export function EventBannerPicker({ uri, onSelect, onRemove }: EventBannerPicker
   return (
     <>
       <View style={{ gap: spacing.xs }}>
-        <AppText variant="caption">Banner image</AppText>
+        <AppText variant="caption">{label}</AppText>
 
-        {/* Preview area */}
-        <View style={{
-          width: '100%',
-          aspectRatio: 16 / 9,
-          borderRadius: radius.md,
-          backgroundColor: colors.surfaceMuted,
-          overflow: 'hidden',
-          alignItems: 'center',
-          justifyContent: 'center',
-          borderWidth: 1,
-          borderColor: colors.border,
-        }}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => setShowCamera(true)}
+          style={({ pressed }) => ({
+            width: '100%',
+            aspectRatio: 16 / 9,
+            borderRadius: radius.lg,
+            backgroundColor: colors.primarySoft,
+            overflow: 'hidden',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderWidth: stroke.none,
+            opacity: pressed ? opacity.pressed : 1,
+          })}>
           {uri ? (
-            <>
-              <Image source={{ uri }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-              {onRemove ? (
-                <Pressable
-                  onPress={onRemove}
-                  accessibilityLabel="Remove banner"
-                  style={{
-                    position: 'absolute',
-                    top: spacing.xs,
-                    right: spacing.xs,
-                    backgroundColor: 'rgba(0,0,0,0.55)',
-                    borderRadius: 999,
-                    padding: 6,
-                  }}>
-                  <Ionicons name="trash-outline" size={16} color="#fff" />
-                </Pressable>
-              ) : null}
-            </>
+            <Image source={{ uri }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
           ) : (
-            <Ionicons name="image-outline" size={40} color={colors.textMuted} />
+            <View style={{ alignItems: 'center', gap: spacing.xs }}>
+              <View
+                style={{
+                  width: 58,
+                  height: 58,
+                  borderRadius: radius.full,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: colors.surface,
+                }}>
+                <Ionicons name="image-outline" size={28} color={colors.primary} />
+              </View>
+              <AppText variant="caption" tone="primary">Add image</AppText>
+            </View>
           )}
-        </View>
 
-        {/* Action buttons */}
+          <View
+            style={{
+              position: 'absolute',
+              right: spacing.xs,
+              bottom: spacing.xs,
+              width: 40,
+              height: 40,
+              borderRadius: radius.full,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: colors.primary,
+              borderWidth: stroke.focus,
+              borderColor: colors.surface,
+            }}>
+            <Ionicons name="camera" size={18} color={colors.textOnPrimary} />
+          </View>
+        </Pressable>
+
         <View style={{ flexDirection: 'row', gap: spacing.sm }}>
           <Pressable
+            accessibilityRole="button"
             onPress={() => setShowCamera(true)}
             style={({ pressed }) => ({
               flex: 1,
-              flexDirection: 'row',
+              minHeight: 46,
+              borderRadius: radius.full,
+              backgroundColor: colors.primarySoft,
               alignItems: 'center',
               justifyContent: 'center',
-              gap: spacing.xs / 2,
-              paddingVertical: spacing.sm - spacing.xs / 2,
-              borderRadius: radius.md,
-              borderWidth: 1,
-              borderColor: colors.border,
-              backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
+              flexDirection: 'row',
+              gap: spacing.xs,
+              opacity: pressed ? opacity.pressed : 1,
             })}>
-            <Ionicons name="camera-outline" size={18} color={colors.text} />
-            <AppText>Camera</AppText>
+            <Ionicons name="camera-outline" size={18} color={colors.primary} />
+            <AppText variant="caption" tone="primary">Camera</AppText>
           </Pressable>
 
           <Pressable
+            accessibilityRole="button"
             onPress={() => { void openGallery(); }}
             style={({ pressed }) => ({
               flex: 1,
-              flexDirection: 'row',
+              minHeight: 46,
+              borderRadius: radius.full,
+              backgroundColor: colors.secondarySoft,
               alignItems: 'center',
               justifyContent: 'center',
-              gap: spacing.xs / 2,
-              paddingVertical: spacing.sm - spacing.xs / 2,
-              borderRadius: radius.md,
-              borderWidth: 1,
-              borderColor: colors.border,
-              backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
+              flexDirection: 'row',
+              gap: spacing.xs,
+              opacity: pressed ? opacity.pressed : 1,
             })}>
-            <Ionicons name="images-outline" size={18} color={colors.text} />
-            <AppText>Gallery</AppText>
+            <Ionicons name="images-outline" size={18} color={colors.secondary} />
+            <AppText variant="caption" tone="secondary">Library</AppText>
           </Pressable>
+
+          {uri && onRemove ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={onRemove}
+              style={({ pressed }) => ({
+                width: 46,
+                minHeight: 46,
+                borderRadius: radius.full,
+                backgroundColor: colors.secondarySoft,
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: pressed ? opacity.pressed : 1,
+              })}>
+              <Ionicons name="trash-outline" size={18} color={colors.error} />
+            </Pressable>
+          ) : null}
         </View>
       </View>
 
-      {/* Full-screen camera modal */}
       <Modal visible={showCamera} animationType="slide" statusBarTranslucent>
         <GeneralCamera
           onPhotoTaken={(photoUri) => {

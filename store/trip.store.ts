@@ -38,7 +38,7 @@ interface TripState {
   setParticipants: (participants: TripParticipant[]) => void;
   setLoading: (isLoading: boolean) => void;
   createTrip: (dto: CreateTripDTO) => Promise<Trip>;
-  updateTrip: (tripId: string, updates: Partial<Pick<Trip, 'name' | 'description' | 'start_date' | 'end_date' | 'banner_image_url'>>) => Promise<void>;
+  updateTrip: (tripId: string, updates: Partial<Pick<Trip, 'name' | 'description' | 'start_date' | 'end_date' | 'banner_image_url' | 'event_permission'>>) => Promise<void>;
   deleteTrip: (tripId: string) => Promise<void>;
   fetchCurrentParticipant: (tripId: string, userId: string) => Promise<void>;
   fetchParticipants: (tripId: string) => Promise<void>;
@@ -81,7 +81,10 @@ export const useTripStore = create<TripState>()((set) => ({
     set({ isLoading: true });
     try {
       const trip = await createTripService(dto);
-      set((state) => ({ trips: [...state.trips, trip], isLoading: false }));
+      set((state) => ({
+        trips: [...state.trips, { ...trip, userRole: TripRole.Organizer }],
+        isLoading: false,
+      }));
       return trip;
     } catch (error) {
       set({ isLoading: false });

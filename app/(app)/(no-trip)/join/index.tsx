@@ -1,19 +1,20 @@
-import { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  Pressable,
-  ActivityIndicator,
-  StyleSheet,
-  ScrollView,
-} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useTripStore } from '@/store/trip.store';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { BackButton } from '@/components/ui/back-button';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { AppText } from '@/components/ui/text';
+import { useAppTheme } from '@/components/ui/theme-provider';
 import { useProfileStore } from '@/store/profile.store';
+import { useTripStore } from '@/store/trip.store';
 import type { RedeemInviteResponse } from '@/types';
 
 export default function JoinTripScreen() {
+  const insets = useSafeAreaInsets();
   const [inviteCode, setInviteCode] = useState('');
   const [validationError, setValidationError] = useState<string | null>(null);
   const [successResult, setSuccessResult] = useState<RedeemInviteResponse | null>(null);
@@ -21,247 +22,166 @@ export default function JoinTripScreen() {
   const { redeemInvite, isRedeemingInvite, inviteError } = useTripStore();
   const { setSelectedTrip } = useProfileStore();
   const { code } = useLocalSearchParams();
+  const {
+    theme: { colors, layout, radius, spacing, typography },
+  } = useAppTheme();
 
   useEffect(() => {
-    if (code && typeof code === 'string') {
-      setInviteCode(code);
-    }
+    if (typeof code === 'string') setInviteCode(code);
   }, [code]);
-
-  function handleBack() {
-    router.back();
-  }
 
   async function handleJoin() {
     setValidationError(null);
     setSuccessResult(null);
 
-    if (!inviteCode.trim()) {
-      setValidationError('Please enter an invite code');
+    const trimmedCode = inviteCode.trim();
+    if (!trimmedCode) {
+      setValidationError('Invite code is required');
       return;
     }
 
     try {
-      const result = await redeemInvite(inviteCode.trim());
+      const result = await redeemInvite(trimmedCode);
       setSuccessResult(result);
     } catch {
-      // Error is already set in the store (inviteError) and persists for user feedback
+      // The store exposes inviteError for user feedback.
     }
   }
 
   async function handleGoToTrip() {
-    if (successResult?.trip_id) {
-      try {
-        await setSelectedTrip(successResult.trip_id);
-        // Navigation happens automatically via layout when trip is selected
-      } catch {
-        // Error will be handled by the store
-      }
-    }
+    if (!successResult?.trip_id) return;
+    await setSelectedTrip(successResult.trip_id);
   }
 
-  if (successResult) {
-    return (
-      <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.successContainer}>
-          <Text style={styles.successIcon}>✓</Text>
-          <Text style={styles.successTitle}>Successfully Joined!</Text>
-          <Text style={styles.successMessage}>
-            {successResult.message || 'You have been added to the trip.'}
-          </Text>
-
-          <Pressable
-            style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
-            onPress={handleGoToTrip}
-          >
-            <Text style={styles.buttonText}>Go to Trip</Text>
-          </Pressable>
-
-          <Pressable
-            style={({ pressed }) => [styles.secondaryButton, pressed && styles.secondaryButtonPressed]}
-            onPress={handleBack}
-          >
-            <Text style={styles.secondaryButtonText}>Back to Trip Picker</Text>
-          </Pressable>
-        </View>
-      </ScrollView>
-    );
-  }
+  const errorMessage = validationError ?? inviteError;
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Pressable
-        style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]}
-        onPress={handleBack}
-      >
-        <Text style={styles.backButtonText}>← Back</Text>
-      </Pressable>
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: colors.background }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          flexGrow: 1,
+          paddingTop: insets.top + spacing.lg,
+          paddingHorizontal: layout.screenPadding,
+          paddingBottom: insets.bottom + spacing.xl,
+        }}>
+        <BackButton />
 
-      <Text style={styles.title}>Join a Trip</Text>
-      <Text style={styles.subtitle}>
-        Enter an invite code to join an existing trip. Ask the trip organizer for their invite code.
-      </Text>
+        {successResult ? (
+          <View style={{ flex: 1, justifyContent: 'center', gap: spacing.lg }}>
+            <View
+              style={{
+                borderRadius: radius.xl,
+                backgroundColor: colors.surface,
+                padding: spacing.lg,
+                alignItems: 'center',
+                gap: spacing.md,
+              }}>
+              <View
+                style={{
+                  width: 70,
+                  height: 70,
+                  borderRadius: radius.full,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: colors.primarySoft,
+                }}>
+                <Ionicons name="checkmark" size={34} color={colors.primary} />
+              </View>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Enter invite code"
-        value={inviteCode}
-        onChangeText={setInviteCode}
-        autoCapitalize="none"
-        autoCorrect={false}
-        editable={!isRedeemingInvite}
-      />
+              <View style={{ alignItems: 'center', gap: spacing.xs }}>
+                <AppText variant="subtitle" style={{ textAlign: 'center' }}>
+                  Trip joined
+                </AppText>
+                <AppText tone="muted" style={{ textAlign: 'center' }}>
+                  {successResult.message || 'You have been added to the trip.'}
+                </AppText>
+              </View>
 
-      {validationError && <Text style={styles.error}>{validationError}</Text>}
-      {inviteError && <Text style={styles.error}>{inviteError}</Text>}
-
-      <Pressable
-        style={({ pressed }) => [
-          styles.button,
-          pressed && styles.buttonPressed,
-          (!inviteCode.trim() || isRedeemingInvite) && styles.buttonDisabled,
-        ]}
-        onPress={handleJoin}
-        disabled={!inviteCode.trim() || isRedeemingInvite}
-      >
-        {isRedeemingInvite ? (
-          <ActivityIndicator color="#fff" />
+              <Button label="Go to trip" fullWidth onPress={() => { void handleGoToTrip(); }} />
+              <Button label="Back to trips" variant="secondary" fullWidth onPress={() => router.back()} />
+            </View>
+          </View>
         ) : (
-          <Text style={styles.buttonText}>Join Trip</Text>
-        )}
-      </Pressable>
+          <View
+            style={{
+              flex: 1,
+              justifyContent: 'center',
+              paddingTop: spacing.xl,
+              paddingBottom: spacing.xl,
+            }}>
+            <View
+              style={{
+                borderRadius: radius.xl,
+                backgroundColor: colors.surface,
+                padding: spacing.lg,
+                gap: spacing.lg,
+              }}>
+              <View style={{ gap: spacing.md }}>
+                <View
+                  style={{
+                    width: 58,
+                    height: 58,
+                    borderRadius: radius.full,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: colors.accent,
+                  }}>
+                  <Ionicons name="key-outline" size={24} color={colors.text} />
+                </View>
+                <AppText style={typography.title}>Join trip</AppText>
+              </View>
 
-      <View style={styles.infoBox}>
-        <Text style={styles.infoTitle}>What is an invite code?</Text>
-        <Text style={styles.infoText}>
-          Trip organizers can generate invite codes to share with friends and family. 
-          Each code is unique and allows one person to join the trip.
-        </Text>
-      </View>
-    </ScrollView>
+              <View style={{ gap: spacing.sm }}>
+                <Input
+                  label="Invite code"
+                  placeholder="e.g. BERLIN-2026"
+                  value={inviteCode}
+                  onChangeText={(value) => {
+                    setInviteCode(value);
+                    setValidationError(null);
+                  }}
+                  autoCapitalize="characters"
+                  autoCorrect={false}
+                  editable={!isRedeemingInvite}
+                  error={errorMessage ?? undefined}
+                />
+
+                <Button
+                  label="Join trip"
+                  fullWidth
+                  loading={isRedeemingInvite}
+                  disabled={!inviteCode.trim()}
+                  onPress={() => { void handleJoin(); }}
+                />
+              </View>
+
+              <View
+                style={{
+                  borderRadius: radius.lg,
+                  backgroundColor: colors.secondarySoft,
+                  padding: spacing.sm,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: spacing.sm,
+                }}>
+                <Ionicons name="information-circle-outline" size={20} color={colors.secondary} />
+                <AppText variant="caption" tone="muted" style={{ flex: 1 }}>
+                  Use the invite code from your organizer.
+                </AppText>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {isRedeemingInvite ? (
+          <View style={{ position: 'absolute', left: 0, right: 0, bottom: insets.bottom + spacing.md, alignItems: 'center' }}>
+            <ActivityIndicator color={colors.primary} />
+          </View>
+        ) : null}
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    padding: 24,
-    paddingTop: 64,
-  },
-  backButton: {
-    alignSelf: 'flex-start',
-    marginBottom: 24,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: '#f3f4f6',
-  },
-  backButtonPressed: {
-    opacity: 0.8,
-    backgroundColor: '#e5e7eb',
-  },
-  backButtonText: {
-    fontSize: 14,
-    color: '#374151',
-    fontWeight: '500',
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 32,
-    lineHeight: 20,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 14,
-    fontSize: 16,
-    marginBottom: 16,
-    backgroundColor: '#fff',
-  },
-  error: {
-    color: '#e53e3e',
-    fontSize: 14,
-    marginBottom: 16,
-  },
-  button: {
-    backgroundColor: '#3b82f6',
-    borderRadius: 8,
-    padding: 14,
-    alignItems: 'center',
-  },
-  buttonPressed: {
-    opacity: 0.8,
-  },
-  buttonDisabled: {
-    backgroundColor: '#9ca3af',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  infoBox: {
-    marginTop: 40,
-    padding: 16,
-    backgroundColor: '#f9fafb',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  infoTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
-  },
-  infoText: {
-    fontSize: 13,
-    color: '#6b7280',
-    lineHeight: 18,
-  },
-  successContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  successIcon: {
-    fontSize: 64,
-    color: '#22c55e',
-    marginBottom: 16,
-  },
-  successTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#166534',
-    marginBottom: 12,
-  },
-  successMessage: {
-    fontSize: 14,
-    color: '#374151',
-    textAlign: 'center',
-    marginBottom: 32,
-    paddingHorizontal: 24,
-    lineHeight: 20,
-  },
-  secondaryButton: {
-    marginTop: 12,
-    padding: 14,
-    alignItems: 'center',
-  },
-  secondaryButtonPressed: {
-    opacity: 0.7,
-  },
-  secondaryButtonText: {
-    color: '#6b7280',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-});
