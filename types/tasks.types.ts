@@ -8,9 +8,9 @@ export enum TaskFieldType {
 }
 
 export const TASK_FIELD_TYPE_LABELS: Record<TaskFieldType, string> = {
-  [TaskFieldType.Checkbox]: 'Avkrysning',
+  [TaskFieldType.Checkbox]: 'Checkbox',
   [TaskFieldType.Dropdown]: 'Dropdown',
-  [TaskFieldType.TextInput]: 'Tekstsvar',
+  [TaskFieldType.TextInput]: 'Text input',
 };
 
 export const TASK_FIELD_TYPE_OPTIONS = Object.values(TaskFieldType);

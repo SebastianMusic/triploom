@@ -76,12 +76,10 @@ export const useTasksStore = create<TasksState>()((set) => ({
 
   fetchTaskFields: async (taskIds) => {
     const list = await tasksService.getTaskFields(taskIds);
-    const map: Record<string, TaskFieldWithOptions[]> = {};
-    for (const f of list) {
-      if (!map[f.task_id]) map[f.task_id] = [];
-      map[f.task_id].push(f);
-    }
-    set({ fields: map });
+    const updated: Record<string, TaskFieldWithOptions[]> = {};
+    for (const id of taskIds) updated[id] = [];
+    for (const f of list) updated[f.task_id].push(f);
+    set((state) => ({ fields: { ...state.fields, ...updated } }));
   },
 
   fetchMyFieldResponses: async (participantId, fieldIds) => {

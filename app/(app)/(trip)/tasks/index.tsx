@@ -53,6 +53,7 @@ export default function TasksScreen() {
   const [dueDate, setDueDate] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [tempDate, setTempDate] = useState<Date>(new Date());
+  const [androidPickerStep, setAndroidPickerStep] = useState<'date' | 'time' | null>(null);
   const [saving, setSaving] = useState(false);
   const [titleError, setTitleError] = useState('');
   const nextTempId = useRef(0);
@@ -62,7 +63,10 @@ export default function TasksScreen() {
     currentParticipant?.role === TripRole.CoOrganizer;
 
   useEffect(() => {
-    if (selectedTrip) getAllTasks(selectedTrip);
+    if (selectedTrip) {
+      getAllTasks(selectedTrip);
+      void fetchParticipants(selectedTrip);
+    }
   }, [selectedTrip]);
 
   useEffect(() => {
@@ -85,7 +89,6 @@ export default function TasksScreen() {
     if (!statsVisible || !selectedTrip || tasks.length === 0) return;
     const taskIds = tasks.map((t) => t.id);
     const allFieldIds = Object.values(fields).flat().map((f) => f.id);
-    void fetchParticipants(selectedTrip);
     void fetchAllAssignments(taskIds);
     if (allFieldIds.length > 0) void fetchAllFieldResponses(allFieldIds);
   }, [statsVisible]);
@@ -135,6 +138,7 @@ export default function TasksScreen() {
     setDraftFields([]);
     setDueDate(null);
     setShowDatePicker(false);
+    setAndroidPickerStep(null);
     setTitleError('');
   }
 
@@ -387,7 +391,14 @@ export default function TasksScreen() {
               <Stack space="xs">
                 <AppText variant="caption">Frist</AppText>
                 <Pressable
-                  onPress={() => { setTempDate(dueDate ?? new Date()); setShowDatePicker(true); }}
+                  onPress={() => {
+                    setTempDate(dueDate ?? new Date());
+                    if (Platform.OS === 'android') {
+                      setAndroidPickerStep('date');
+                    } else {
+                      setShowDatePicker(true);
+                    }
+                  }}
                   style={{
                     minHeight: 52, borderRadius: radius.md,
                     borderWidth: stroke.thin, borderColor: colors.border,
@@ -460,12 +471,30 @@ export default function TasksScreen() {
             </Stack>
           </ScrollView>
 
-          {Platform.OS === 'android' && showDatePicker && (
+          {Platform.OS === 'android' && androidPickerStep === 'date' && (
             <DateTimePicker
-              value={tempDate} mode="datetime" display="default" minimumDate={new Date()}
+              value={tempDate}
+              mode="date"
+              display="default"
+              minimumDate={new Date()}
               onChange={(_: DateTimePickerEvent, date?: Date) => {
-                setShowDatePicker(false);
-                if (date) setDueDate(date);
+                if (!date) { setAndroidPickerStep(null); return; }
+                setTempDate(date);
+                setAndroidPickerStep('time');
+              }}
+            />
+          )}
+          {Platform.OS === 'android' && androidPickerStep === 'time' && (
+            <DateTimePicker
+              value={tempDate}
+              mode="time"
+              display="default"
+              onChange={(_: DateTimePickerEvent, time?: Date) => {
+                setAndroidPickerStep(null);
+                if (!time) return;
+                const combined = new Date(tempDate);
+                combined.setHours(time.getHours(), time.getMinutes(), 0, 0);
+                setDueDate(combined);
               }}
             />
           )}

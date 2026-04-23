@@ -1,16 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Modal, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { AppText } from '@/components/ui/text';
-import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Row } from '@/components/ui/row';
 import { Stack } from '@/components/ui/stack';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import { TaskFieldType } from '@/types/tasks.types';
 import type { Task, TaskAssignment, TaskFieldResponse } from '@/types';
-import type { AssignmentWithParticipant, TaskFieldWithOptions } from '@/services/tasks.service';
+import type { TaskFieldWithOptions } from '@/services/tasks.service';
 
 export type PendingResponseMap = Record<string, { option_id?: string | null; is_checked?: boolean | null; value?: string | null }[]>;
 
@@ -20,7 +19,6 @@ export function TaskDetailModal({
   task,
   fields,
   assignment,
-  allAssignments,
   myFieldResponses,
   onClose,
   onMarkComplete,
@@ -31,7 +29,6 @@ export function TaskDetailModal({
   task: Task | null;
   fields: TaskFieldWithOptions[];
   assignment: TaskAssignment | null;
-  allAssignments?: AssignmentWithParticipant[];
   myFieldResponses: Record<string, TaskFieldResponse[]>;
   onClose: () => void;
   onMarkComplete: (pending: PendingResponseMap) => Promise<void>;
@@ -55,20 +52,23 @@ export function TaskDetailModal({
     return pending[fieldId] ?? [];
   }
 
-  function handleToggleCheckbox(fieldId: string, optionId: string, current: boolean) {
+  function handleToggleCheckbox(fieldId: string, optionId: string) {
     setPending((prev) => {
       const existing = prev[fieldId] ?? [];
-      const other = existing.filter((r) => r.option_id !== optionId);
-      return { ...prev, [fieldId]: [...other, { option_id: optionId, is_checked: !current }] };
+      const found = existing.find((r) => r.option_id === optionId);
+      if (found) {
+        return { ...prev, [fieldId]: existing.map((r) => r.option_id === optionId ? { ...r, is_checked: !r.is_checked } : r) };
+      }
+      return { ...prev, [fieldId]: [...existing, { option_id: optionId, is_checked: true }] };
     });
   }
 
   function handleSelectDropdown(fieldId: string, optionId: string) {
-    setPending((prev) => ({ ...prev, [fieldId]: [{ option_id: optionId }] }));
+    setPending((prev) => ({ ...prev, [fieldId]: [{ option_id: optionId, is_checked: null, value: null }] }));
   }
 
   function handleChangeText(fieldId: string, value: string) {
-    setPending((prev) => ({ ...prev, [fieldId]: [{ value }] }));
+    setPending((prev) => ({ ...prev, [fieldId]: [{ option_id: null, is_checked: null, value }] }));
   }
 
   async function handleMarkComplete() {
@@ -122,20 +122,28 @@ export function TaskDetailModal({
             </Row>
           ) : null}
 
+          {fields.length > 0 && isCompleted && (
+            <Row gap="xs">
+              <Ionicons name="lock-closed-outline" size={14} color={colors.textMuted} />
+              <AppText variant="caption" tone="muted">Angre fullføring for å redigere svarene dine</AppText>
+            </Row>
+          )}
+
           {/* Fields */}
           {fields.map((field) => {
             const responses = getResponses(field.id);
 
             if (field.type === TaskFieldType.Checkbox) {
               return (
-                <Stack key={field.id} space="xs">
+                <Stack key={field.id} space="xs" style={{ opacity: isCompleted ? 0.6 : 1 }}>
                   <AppText variant="caption" tone="muted">{field.label}</AppText>
                   {field.options.map((opt) => {
                     const checked = responses.some((r) => r.option_id === opt.id && r.is_checked);
                     return (
                       <Pressable
                         key={opt.id}
-                        onPress={() => !isCompleted && handleToggleCheckbox(field.id, opt.id, checked)}
+                        disabled={isCompleted}
+                        onPress={() => handleToggleCheckbox(field.id, opt.id)}
                         style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
                         <View style={{
                           width: 22, height: 22, borderRadius: 6, borderWidth: 2,
@@ -156,14 +164,15 @@ export function TaskDetailModal({
             if (field.type === TaskFieldType.Dropdown) {
               const selected = responses[0]?.option_id ?? null;
               return (
-                <Stack key={field.id} space="xs">
+                <Stack key={field.id} space="xs" style={{ opacity: isCompleted ? 0.6 : 1 }}>
                   <AppText variant="caption" tone="muted">{field.label}</AppText>
                   {field.options.map((opt) => {
                     const active = selected === opt.id;
                     return (
                       <Pressable
                         key={opt.id}
-                        onPress={() => !isCompleted && handleSelectDropdown(field.id, opt.id)}
+                        disabled={isCompleted}
+                        onPress={() => handleSelectDropdown(field.id, opt.id)}
                         style={{
                           borderRadius: radius.md, borderWidth: 1.5,
                           borderColor: active ? colors.primary : colors.border,
@@ -183,19 +192,10 @@ export function TaskDetailModal({
               return (
                 <Stack key={field.id} space="xs">
                   <AppText variant="caption" tone="muted">{field.label}</AppText>
-                  <TextInput
-                    value={value}
-                    onChangeText={(text) => !isCompleted && handleChangeText(field.id, text)}
+                  <TextResponseInput
+                    initialValue={value}
                     editable={!isCompleted}
-                    placeholder="Skriv her..."
-                    multiline
-                    placeholderTextColor={colors.textMuted}
-                    style={{
-                      minHeight: 80, borderRadius: radius.md, borderWidth: stroke.thin,
-                      borderColor: colors.border, backgroundColor: colors.surface,
-                      paddingHorizontal: spacing.sm, paddingVertical: spacing.sm,
-                      color: colors.text,
-                    }}
+                    onSave={(text) => handleChangeText(field.id, text)}
                   />
                 </Stack>
               );
@@ -228,35 +228,47 @@ export function TaskDetailModal({
               onPress={handleMarkComplete}
             />
           )}
-
-          {/* Organizer: participant overview */}
-          {allAssignments !== undefined && (
-            <Stack space="xs">
-              <AppText variant="caption" tone="muted">
-                {allAssignments.length === 0 ? 'Ingen har svart ennå' : `${allAssignments.filter(a => a.is_completed).length} / ${allAssignments.length} fullført`}
-              </AppText>
-              {allAssignments.map((a) => {
-                const name = a.trip_participant?.profile?.user_name ?? 'Ukjent';
-                const avatarUrl = a.trip_participant?.profile?.profile_picture_url;
-                return (
-                  <Row key={a.participant_id} gap="sm" style={{
-                    backgroundColor: colors.surfaceMuted, borderRadius: radius.md,
-                    paddingHorizontal: spacing.sm, paddingVertical: spacing.xs,
-                  }}>
-                    <Avatar name={name} size="sm" source={avatarUrl ? { uri: avatarUrl } : undefined} />
-                    <AppText variant="caption" style={{ flex: 1 }}>{name}</AppText>
-                    <Ionicons
-                      name={a.is_completed ? 'checkmark-circle' : 'ellipse-outline'}
-                      size={16}
-                      color={a.is_completed ? colors.success : colors.textMuted}
-                    />
-                  </Row>
-                );
-              })}
-            </Stack>
-          )}
         </ScrollView>
       </View>
     </Modal>
+  );
+}
+
+function TextResponseInput({
+  initialValue,
+  editable,
+  onSave,
+}: {
+  initialValue: string;
+  editable: boolean;
+  onSave: (value: string) => void;
+}) {
+  const { theme: { colors, spacing, radius, stroke } } = useAppTheme();
+  const [localValue, setLocalValue] = useState(initialValue);
+  const isFocused = useRef(false);
+
+  useEffect(() => {
+    if (!isFocused.current) setLocalValue(initialValue);
+  }, [initialValue]);
+
+  return (
+    <TextInput
+      value={localValue}
+      onChangeText={setLocalValue}
+      onFocus={() => { isFocused.current = true; }}
+      onBlur={() => { isFocused.current = false; onSave(localValue); }}
+      editable={editable}
+      placeholder="Skriv her..."
+      multiline
+      placeholderTextColor={colors.textMuted}
+      style={{
+        minHeight: 80, borderRadius: radius.md, borderWidth: stroke.thin,
+        borderColor: colors.border,
+        backgroundColor: editable ? colors.surface : colors.surfaceMuted,
+        paddingHorizontal: spacing.sm, paddingVertical: spacing.sm,
+        color: editable ? colors.text : colors.textMuted,
+        opacity: editable ? 1 : 0.6,
+      }}
+    />
   );
 }
