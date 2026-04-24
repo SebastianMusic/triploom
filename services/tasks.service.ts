@@ -206,20 +206,8 @@ export async function deleteMyFieldResponses(participantId: string, fieldIds: st
 export async function sendTaskReminder(taskTitle: string, userIds: string[]): Promise<void> {
   if (!userIds.length) return;
 
-  const { data, error } = await supabase
-    .from('profile')
-    .select('expo_push_token')
-    .in('user_id', userIds);
-  if (error) throw error;
-
-  const tokens = (data ?? [])
-    .map((p) => (p as { expo_push_token: string | null }).expo_push_token)
-    .filter((t): t is string => typeof t === 'string');
-
-  if (!tokens.length) return;
-
-  const { error: fnError } = await supabase.functions.invoke('send-notification', {
-    body: { title: 'Påminnelse om oppgave', body: taskTitle, tokens },
+  const { error } = await supabase.functions.invoke('send-notification', {
+    body: { title: 'Påminnelse om oppgave', body: taskTitle, user_ids: userIds },
   });
-  if (fnError) throw fnError;
+  if (error) throw error;
 }
