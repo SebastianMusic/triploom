@@ -192,3 +192,22 @@ export async function upsertFieldResponse(
   if (error) throw error;
   return data;
 }
+
+export async function deleteMyFieldResponses(participantId: string, fieldIds: string[]): Promise<void> {
+  if (!fieldIds.length) return;
+  const { error } = await supabase
+    .from('task_field_response')
+    .delete()
+    .eq('participant_id', participantId)
+    .in('task_field_id', fieldIds);
+  if (error) throw error;
+}
+
+export async function sendTaskReminder(taskTitle: string, userIds: string[]): Promise<void> {
+  if (!userIds.length) return;
+
+  const { error } = await supabase.functions.invoke('send-notification', {
+    body: { title: 'Påminnelse om oppgave', body: taskTitle, user_ids: userIds },
+  });
+  if (error) throw error;
+}

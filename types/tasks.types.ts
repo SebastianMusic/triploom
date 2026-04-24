@@ -13,21 +13,19 @@ export const TASK_FIELD_TYPE_LABELS: Record<TaskFieldType, string> = {
   [TaskFieldType.TextInput]: 'Text input',
 };
 
-export const TASK_FIELD_TYPE_OPTIONS = [
-  TaskFieldType.Checkbox,
-  TaskFieldType.Dropdown,
-  TaskFieldType.TextInput,
-];
+export const TASK_FIELD_TYPE_OPTIONS = Object.values(TaskFieldType);
+
+export function fieldNeedsOptions(type: TaskFieldType): boolean {
+  return type === TaskFieldType.Checkbox || type === TaskFieldType.Dropdown;
+}
 
 export const createTaskSchema = z.object({
   title: z.string().min(1, 'Task title is required'),
   description: z.string().nullable().optional(),
   due_time: z.string().nullable().optional(),
-}) satisfies z.ZodType<Omit<TaskInsert, 'id' | 'created_at' | 'trip_id' | 'phase'>>;
+}) satisfies z.ZodType<Omit<TaskInsert, 'id' | 'created_at' | 'trip_id'>>;
 
-export type CreateTaskDTO = z.infer<typeof createTaskSchema>;
 export const updateTaskSchema = createTaskSchema.partial();
-export type UpdateTaskDTO = z.infer<typeof updateTaskSchema>;
 
 export const createTaskFieldSchema = z.object({
   type: z.enum(Object.values(TaskFieldType) as [TaskFieldType, ...TaskFieldType[]]),
@@ -35,6 +33,8 @@ export const createTaskFieldSchema = z.object({
   sort_order: z.number().optional(),
 }) satisfies z.ZodType<Omit<TaskFieldInsert, 'id' | 'task_id'>>;
 
+export type CreateTaskDTO = z.infer<typeof createTaskSchema>;
+export type UpdateTaskDTO = z.infer<typeof updateTaskSchema>;
 export type CreateTaskFieldDTO = z.infer<typeof createTaskFieldSchema>;
 
 export const createTaskFieldOptionSchema = z.object({
@@ -44,14 +44,9 @@ export const createTaskFieldOptionSchema = z.object({
 
 export type CreateTaskFieldOptionDTO = z.infer<typeof createTaskFieldOptionSchema>;
 
-// A field draft used when building a task in the UI
 export type FieldDraft = {
   tempId: string;
   type: TaskFieldType;
   label: string;
   options: string[];
 };
-
-export function fieldNeedsOptions(type: TaskFieldType): boolean {
-  return type === TaskFieldType.Checkbox || type === TaskFieldType.Dropdown;
-}

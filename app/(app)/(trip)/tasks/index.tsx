@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Alert, Modal, Platform, Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
@@ -15,6 +15,8 @@ import { Stack } from '@/components/ui/stack';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import { TaskCard } from '@/components/tasks/task-card';
 import { TaskDetailModal } from '@/components/tasks/task-detail-modal';
+import type { PendingResponseMap } from '@/components/tasks/task-detail-modal';
+import { TaskStatsModal } from '@/components/tasks/task-stats-modal';
 import { useTasksStore } from '@/store/tasks.store';
 import { useTripStore } from '@/store/trip.store';
 import { useProfileStore } from '@/store/profile.store';
@@ -33,13 +35,14 @@ export default function TasksScreen() {
     fetchMyFieldResponses, fetchAllFieldResponses,
     createTask, updateTask, deleteTask,
     createTaskField, deleteTaskField,
-    upsertAssignment, upsertFieldResponse,
+    upsertAssignment, upsertFieldResponse, deleteMyFieldResponses, sendTaskReminder,
   } = useTasksStore();
-  const { currentParticipant } = useTripStore();
+  const { currentParticipant, participantsWithProfiles, fetchParticipants } = useTripStore();
   const { selectedTrip } = useProfileStore();
 
   const [detailTask, setDetailTask] = useState<Task | null>(null);
   const [adminVisible, setAdminVisible] = useState(false);
+  const [statsVisible, setStatsVisible] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -50,6 +53,7 @@ export default function TasksScreen() {
   const [dueDate, setDueDate] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [tempDate, setTempDate] = useState<Date>(new Date());
+  const [androidPickerStep, setAndroidPickerStep] = useState<'date' | 'time' | null>(null);
   const [saving, setSaving] = useState(false);
   const [titleError, setTitleError] = useState('');
   const nextTempId = useRef(0);
@@ -59,7 +63,10 @@ export default function TasksScreen() {
     currentParticipant?.role === TripRole.CoOrganizer;
 
   useEffect(() => {
-    if (selectedTrip) getAllTasks(selectedTrip);
+    if (selectedTrip) {
+      getAllTasks(selectedTrip);
+      void fetchParticipants(selectedTrip);
+    }
   }, [selectedTrip]);
 
   useEffect(() => {
@@ -78,6 +85,14 @@ export default function TasksScreen() {
     if (isOrganizer) fetchAllFieldResponses(allFieldIds);
   }, [fields, currentParticipant, isOrganizer]);
 
+  useEffect(() => {
+    if (!statsVisible || !selectedTrip || tasks.length === 0) return;
+    const taskIds = tasks.map((t) => t.id);
+    const allFieldIds = Object.values(fields).flat().map((f) => f.id);
+    void fetchAllAssignments(taskIds);
+    if (allFieldIds.length > 0) void fetchAllFieldResponses(allFieldIds);
+  }, [statsVisible]);
+
   const sortedTasks = [...tasks].sort((a, b) => {
     const aCompleted = assignments[a.id]?.is_completed ?? false;
     const bCompleted = assignments[b.id]?.is_completed ?? false;
@@ -92,27 +107,29 @@ export default function TasksScreen() {
     finally { setRefreshing(false); }
   }
 
-  function handleToggleComplete(task: Task) {
+  async function handleMarkComplete(task: Task, pending: PendingResponseMap) {
     if (!currentParticipant) return;
-    const current = assignments[task.id];
-    void upsertAssignment(task.id, currentParticipant.id, { is_completed: !(current?.is_completed ?? false) });
+    for (const [fieldId, entries] of Object.entries(pending)) {
+      for (const entry of entries) {
+        const hasValue = entry.is_checked === true ||
+          (entry.option_id != null) ||
+          (entry.value != null && entry.value.trim() !== '');
+        if (hasValue) {
+          await upsertFieldResponse(fieldId, currentParticipant.id, entry);
+        }
+      }
+    }
+    await upsertAssignment(task.id, currentParticipant.id, { is_completed: true });
   }
 
-  function handleToggleCheckbox(fieldId: string, optionId: string, current: boolean) {
+  function handleUndoComplete(task: Task) {
     if (!currentParticipant) return;
-    void upsertFieldResponse(fieldId, currentParticipant.id, { option_id: optionId, is_checked: !current });
+    const taskFieldIds = (fields[task.id] ?? []).map((f) => f.id);
+    if (taskFieldIds.length > 0) {
+      void deleteMyFieldResponses(currentParticipant.id, taskFieldIds);
+    }
+    void upsertAssignment(task.id, currentParticipant.id, { is_completed: false });
   }
-
-  function handleSelectDropdown(fieldId: string, optionId: string) {
-    if (!currentParticipant) return;
-    // Remove previous selection then set new one
-    void upsertFieldResponse(fieldId, currentParticipant.id, { option_id: optionId, is_checked: null, value: null });
-  }
-
-  const handleChangeTextInput = useCallback((fieldId: string, value: string) => {
-    if (!currentParticipant) return;
-    void upsertFieldResponse(fieldId, currentParticipant.id, { option_id: null, value, is_checked: null });
-  }, [currentParticipant]);
 
   function resetForm() {
     setEditingTask(null);
@@ -121,6 +138,7 @@ export default function TasksScreen() {
     setDraftFields([]);
     setDueDate(null);
     setShowDatePicker(false);
+    setAndroidPickerStep(null);
     setTitleError('');
   }
 
@@ -225,6 +243,7 @@ export default function TasksScreen() {
       }
       setAdminVisible(false);
       resetForm();
+      void fetchTaskFields([taskId]);
     } catch {
       Alert.alert('Feil', 'Kunne ikke lagre oppgaven. Prøv igjen.');
     } finally {
@@ -270,22 +289,40 @@ export default function TasksScreen() {
         </Container>
       </ScrollView>
 
+      {/* FAB row: stats + add */}
       {isOrganizer && (
-        <Pressable
-          onPress={() => { resetForm(); setAdminVisible(true); }}
-          style={({ pressed }) => ({
-            position: 'absolute',
-            bottom: bottomOverlayOffset - spacing.xl,
-            right: spacing.md,
-            width: sizes.iconButton.lg,
-            height: sizes.iconButton.lg,
-            borderRadius: radius.full,
-            backgroundColor: colors.primary,
-            alignItems: 'center', justifyContent: 'center',
-            opacity: pressed ? 0.8 : 1,
-          })}>
-          <Ionicons name="add" size={sizes.icon.lg} color={colors.textOnPrimary} />
-        </Pressable>
+        <Row style={{
+          position: 'absolute',
+          bottom: bottomOverlayOffset - spacing.xl,
+          right: spacing.md,
+          gap: spacing.sm,
+        }}>
+          {tasks.length > 0 && (
+            <Pressable
+              onPress={() => setStatsVisible(true)}
+              style={({ pressed }) => ({
+                width: sizes.iconButton.lg, height: sizes.iconButton.lg,
+                borderRadius: radius.full,
+                backgroundColor: colors.surface,
+                borderWidth: stroke.thin, borderColor: colors.border,
+                alignItems: 'center', justifyContent: 'center',
+                opacity: pressed ? 0.8 : 1,
+              })}>
+              <Ionicons name="bar-chart-outline" size={sizes.icon.md} color={colors.primary} />
+            </Pressable>
+          )}
+          <Pressable
+            onPress={() => { resetForm(); setAdminVisible(true); }}
+            style={({ pressed }) => ({
+              width: sizes.iconButton.lg, height: sizes.iconButton.lg,
+              borderRadius: radius.full,
+              backgroundColor: colors.primary,
+              alignItems: 'center', justifyContent: 'center',
+              opacity: pressed ? 0.8 : 1,
+            })}>
+            <Ionicons name="add" size={sizes.icon.lg} color={colors.textOnPrimary} />
+          </Pressable>
+        </Row>
       )}
 
       {/* Task detail */}
@@ -293,16 +330,24 @@ export default function TasksScreen() {
         task={detailTask}
         fields={detailTask ? (fields[detailTask.id] ?? []) : []}
         assignment={detailTask ? (assignments[detailTask.id] ?? null) : null}
-        allAssignments={isOrganizer && detailTask ? (allAssignments[detailTask.id] ?? []) : undefined}
         myFieldResponses={myFieldResponses}
-        allFieldResponses={isOrganizer ? allFieldResponses : undefined}
         onClose={() => setDetailTask(null)}
-        onToggleComplete={() => { if (detailTask) handleToggleComplete(detailTask); }}
-        onToggleCheckbox={handleToggleCheckbox}
-        onSelectDropdown={handleSelectDropdown}
-        onChangeTextInput={handleChangeTextInput}
+        onMarkComplete={async (pending) => { if (detailTask) await handleMarkComplete(detailTask, pending); }}
+        onUndoComplete={() => { if (detailTask) handleUndoComplete(detailTask); }}
         onEdit={isOrganizer && detailTask ? () => { setDetailTask(null); openEdit(detailTask); } : undefined}
         onDelete={isOrganizer && detailTask ? () => { setDetailTask(null); handleDelete(detailTask); } : undefined}
+      />
+
+      {/* Stats modal */}
+      <TaskStatsModal
+        visible={statsVisible}
+        tasks={tasks}
+        fields={fields}
+        allAssignments={allAssignments}
+        allFieldResponses={allFieldResponses}
+        participants={participantsWithProfiles}
+        onSendReminder={sendTaskReminder}
+        onClose={() => setStatsVisible(false)}
       />
 
       {/* Admin create/edit modal */}
@@ -346,7 +391,14 @@ export default function TasksScreen() {
               <Stack space="xs">
                 <AppText variant="caption">Frist</AppText>
                 <Pressable
-                  onPress={() => { setTempDate(dueDate ?? new Date()); setShowDatePicker(true); }}
+                  onPress={() => {
+                    setTempDate(dueDate ?? new Date());
+                    if (Platform.OS === 'android') {
+                      setAndroidPickerStep('date');
+                    } else {
+                      setShowDatePicker(true);
+                    }
+                  }}
                   style={{
                     minHeight: 52, borderRadius: radius.md,
                     borderWidth: stroke.thin, borderColor: colors.border,
@@ -419,12 +471,30 @@ export default function TasksScreen() {
             </Stack>
           </ScrollView>
 
-          {Platform.OS === 'android' && showDatePicker && (
+          {Platform.OS === 'android' && androidPickerStep === 'date' && (
             <DateTimePicker
-              value={tempDate} mode="datetime" display="default" minimumDate={new Date()}
+              value={tempDate}
+              mode="date"
+              display="default"
+              minimumDate={new Date()}
               onChange={(_: DateTimePickerEvent, date?: Date) => {
-                setShowDatePicker(false);
-                if (date) setDueDate(date);
+                if (!date) { setAndroidPickerStep(null); return; }
+                setTempDate(date);
+                setAndroidPickerStep('time');
+              }}
+            />
+          )}
+          {Platform.OS === 'android' && androidPickerStep === 'time' && (
+            <DateTimePicker
+              value={tempDate}
+              mode="time"
+              display="default"
+              onChange={(_: DateTimePickerEvent, time?: Date) => {
+                setAndroidPickerStep(null);
+                if (!time) return;
+                const combined = new Date(tempDate);
+                combined.setHours(time.getHours(), time.getMinutes(), 0, 0);
+                setDueDate(combined);
               }}
             />
           )}

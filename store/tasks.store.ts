@@ -33,6 +33,8 @@ interface TasksState {
     participantId: string,
     patch: { option_id?: string | null; is_checked?: boolean | null; value?: string | null }
   ) => Promise<void>;
+  deleteMyFieldResponses: (participantId: string, fieldIds: string[]) => Promise<void>;
+  sendTaskReminder: (taskTitle: string, userIds: string[]) => Promise<void>;
 }
 
 export const useTasksStore = create<TasksState>()((set) => ({
@@ -74,12 +76,10 @@ export const useTasksStore = create<TasksState>()((set) => ({
 
   fetchTaskFields: async (taskIds) => {
     const list = await tasksService.getTaskFields(taskIds);
-    const map: Record<string, TaskFieldWithOptions[]> = {};
-    for (const f of list) {
-      if (!map[f.task_id]) map[f.task_id] = [];
-      map[f.task_id].push(f);
-    }
-    set({ fields: map });
+    const updated: Record<string, TaskFieldWithOptions[]> = {};
+    for (const id of taskIds) updated[id] = [];
+    for (const f of list) updated[f.task_id].push(f);
+    set((state) => ({ fields: { ...state.fields, ...updated } }));
   },
 
   fetchMyFieldResponses: async (participantId, fieldIds) => {
@@ -151,5 +151,18 @@ export const useTasksStore = create<TasksState>()((set) => ({
       const filtered = existing.filter((r) => r.option_id !== (patch.option_id ?? null));
       return { myFieldResponses: { ...state.myFieldResponses, [fieldId]: [...filtered, updated] } };
     });
+  },
+
+  deleteMyFieldResponses: async (participantId, fieldIds) => {
+    await tasksService.deleteMyFieldResponses(participantId, fieldIds);
+    set((state) => {
+      const updated = { ...state.myFieldResponses };
+      for (const id of fieldIds) delete updated[id];
+      return { myFieldResponses: updated };
+    });
+  },
+
+  sendTaskReminder: async (taskTitle, userIds) => {
+    await tasksService.sendTaskReminder(taskTitle, userIds);
   },
 }));
