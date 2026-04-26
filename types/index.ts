@@ -7,8 +7,8 @@ export { createAnnouncementSchema, updateAnnouncementSchema } from './announceme
 export type { CreateAnnouncementDTO, UpdateAnnouncementDTO } from './announcement.types';
 export { signInSchema, signUpSchema } from './auth.types';
 export type { SignInDTO, SignUpDTO } from './auth.types';
-export { sendMessageSchema } from './chat.types';
-export type { ChatRoomWithMeta, MessageWithSender, SendMessageDTO } from './chat.types';
+export { sendMessageSchema, editMessageSchema } from './chat.types';
+export type { ChatRoomWithMeta, MessageWithSender, SendMessageDTO, EditMessageDTO } from './chat.types';
 export type { Database, Enums, Json, Tables, TablesInsert, TablesUpdate } from './database.types';
 export { createEventSchema } from './events.types';
 export type { CreateEventDTO } from './events.types';
@@ -16,7 +16,7 @@ export { generateInviteSchema, redeemInviteSchema } from './invite.types';
 export type { GenerateInviteDTO, GenerateInviteResponse, RedeemInviteDTO, RedeemInviteResponse } from './invite.types';
 export { updateSelectedTripSchema } from './profile.types';
 export type { UpdateSelectedTripDTO } from './profile.types';
-export { createTripSchema, TripRole } from './trip.types';
+export { createTripSchema, TripEventPermission, TripRole } from './trip.types';
 export type { CreateTripDTO } from './trip.types';
 export { createTaskSchema, updateTaskSchema, createTaskFieldSchema, createTaskFieldOptionSchema, TaskFieldType, TASK_FIELD_TYPE_LABELS, TASK_FIELD_TYPE_OPTIONS, fieldNeedsOptions } from './tasks.types';
 export type { CreateTaskDTO, UpdateTaskDTO, CreateTaskFieldDTO, CreateTaskFieldOptionDTO, FieldDraft } from './tasks.types';
@@ -112,4 +112,3 @@ export type ProfileUpdate = TablesUpdate<'profile'>;
 export type GroupMembership = Tables<'group_membership'>;
 export type GroupMembershipInsert = TablesInsert<'group_membership'>;
 export type GroupMembershipUpdate = TablesUpdate<'group_membership'>;
-

@@ -7,7 +7,12 @@ export enum TripRole {
   Participant = 'participant',
 }
 
-// Excludes server-set fields: id, created_at, organizer_id, event_permission
+export enum TripEventPermission {
+  All = 'all',
+  Organizer = 'organizer',
+}
+
+// Excludes server-set fields: id, created_at, organizer_id
 // The satisfies constraint ensures this stays in sync with the Supabase schema —
 // if a column is renamed or removed, TypeScript will catch it here.
 export const createTripSchema = z.object({
@@ -16,7 +21,8 @@ export const createTripSchema = z.object({
   start_date: z.string().nullable().optional(),
   end_date: z.string().nullable().optional(),
   banner_image_url: z.string().nullable().optional(),
-}) satisfies z.ZodType<Omit<TripInsert, 'id' | 'created_at' | 'organizer_id' | 'event_permission'>>;
+  event_permission: z.enum(TripEventPermission).nullable().optional(),
+}) satisfies z.ZodType<Omit<TripInsert, 'id' | 'created_at' | 'organizer_id'>>;
 
 export type CreateTripDTO = z.infer<typeof createTripSchema>;
 

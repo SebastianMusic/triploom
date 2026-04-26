@@ -9,9 +9,10 @@ export type ListItemProps = Omit<PressableProps, 'style'> & {
   subtitle?: string;
   leading?: ReactNode;
   trailing?: ReactNode;
+  borderRadius?: number;
 };
 
-export function ListItem({ title, subtitle, leading, trailing, disabled, ...props }: ListItemProps) {
+export function ListItem({ title, subtitle, leading, trailing, disabled, borderRadius: borderRadiusProp, ...props }: ListItemProps) {
   const {
     theme: { colors, opacity, radius, sizes, spacing },
   } = useAppTheme();
@@ -21,7 +22,7 @@ export function ListItem({ title, subtitle, leading, trailing, disabled, ...prop
       disabled={disabled}
       style={({ pressed, hovered }) => ({
         minHeight: sizes.listItem.minHeight,
-        borderRadius: radius.lg,
+        borderRadius: borderRadiusProp ?? radius.lg,
         backgroundColor: colors.surfaceMuted,
         paddingHorizontal: spacing.sm,
         paddingVertical: spacing.sm - spacing.xs / 2,

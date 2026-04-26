@@ -9,17 +9,27 @@ export const sendMessageSchema = z.object({
 
 export type SendMessageDTO = z.infer<typeof sendMessageSchema>;
 
+// DTO for editing an existing message
+export const editMessageSchema = z.object({
+  id: z.string().uuid(),
+  content: z.string().min(1, 'Message cannot be empty').max(2000),
+});
+
+export type EditMessageDTO = z.infer<typeof editMessageSchema>;
+
 // Message enriched with the sender's display name (from profile JOIN)
 export type MessageWithSender = {
   id: string;
   content: string | null;
   created_at: string;
+  updated_at: string | null;
+  deleted_at: string | null;
   group_chat_id: string | null;
   user_id: string | null;
   senderName: string | null;
 };
 
-// Chat room enriched with unread status and last activity (from getAllChatRooms)
+// Chat room enriched with unread status, last activity, and avatar image (from getAllChatRooms)
 export type ChatRoomWithMeta = {
   id: string;
   chat_name: string | null;
@@ -29,4 +39,5 @@ export type ChatRoomWithMeta = {
   created_at: string;
   hasUnread: boolean;
   lastActivityAt: string | null;
+  imageUrl: string | null;
 };

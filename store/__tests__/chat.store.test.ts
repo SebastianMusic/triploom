@@ -5,6 +5,8 @@ jest.mock('@/services/chat.service', () => ({
   getAllChatRooms: jest.fn(),
   getAllMessages: jest.fn(),
   sendMessage: jest.fn(),
+  updateMessage: jest.fn(),
+  deleteMessage: jest.fn(),
   subscribeToMessages: jest.fn(() => jest.fn()),
   markChatRead: jest.fn().mockResolvedValue(undefined),
 }));
@@ -22,12 +24,15 @@ const mockRoom = {
   created_at: '2026-01-01T00:00:00Z',
   hasUnread: true,
   lastActivityAt: '2026-01-02T00:00:00Z',
+  imageUrl: null,
 };
 
 const mockMessage = {
   id: 'msg-1',
   content: 'Hello',
   created_at: '2026-01-01T12:00:00Z',
+  updated_at: null,
+  deleted_at: null,
   group_chat_id: 'room-1',
   user_id: 'user-1',
   senderName: 'Alice',
@@ -44,6 +49,9 @@ beforeEach(() => {
     currentPage: 0,
     isLoading: false,
     isSending: false,
+    editingMessage: null,
+    isUpdating: false,
+    isDeleting: false,
   });
 });
 
@@ -114,6 +122,21 @@ describe('getAllChatRooms store action', () => {
 
     expect(useChatStore.getState().chatRooms).toEqual([mockRoom]);
     expect(useChatStore.getState().isLoading).toBe(false);
+  });
+
+  it('clears chatRooms immediately before fetch resolves', async () => {
+    useChatStore.setState({ chatRooms: [mockRoom] });
+    let chatRoomsDuringFetch: typeof mockRoom[] = [];
+    (chatService.getAllChatRooms as jest.Mock).mockImplementation(async () => {
+      chatRoomsDuringFetch = useChatStore.getState().chatRooms as typeof mockRoom[];
+      return [];
+    });
+
+    await act(async () => {
+      await useChatStore.getState().getAllChatRooms('trip-1');
+    });
+
+    expect(chatRoomsDuringFetch).toHaveLength(0);
   });
 
   it('resets isLoading and re-throws on error', async () => {
@@ -201,6 +224,8 @@ describe('openChatRoom store action', () => {
     expect(chatService.subscribeToMessages).toHaveBeenCalledWith(
       'room-1',
       expect.any(Function),
+      expect.any(Function),
+      expect.any(Function),
       expect.any(Function)
     );
     expect(chatService.markChatRead).toHaveBeenCalledWith('room-1');
@@ -281,5 +306,195 @@ describe('addMessage store action', () => {
     });
 
     expect(useChatStore.getState().messages).toHaveLength(1);
+  });
+});
+
+// --- replaceMessage ---
+
+describe('replaceMessage store action', () => {
+  it('replaces a message with the same id in place', () => {
+    const other = { ...mockMessage, id: 'msg-2', content: 'Other' };
+    useChatStore.setState({ messages: [mockMessage, other] });
+    const updated = { ...mockMessage, content: 'Updated' };
+
+    act(() => {
+      useChatStore.getState().replaceMessage(updated);
+    });
+
+    const messages = useChatStore.getState().messages;
+    expect(messages[0].content).toBe('Updated');
+    expect(messages[1]).toEqual(other);
+  });
+
+  it('leaves messages unchanged when id is not found', () => {
+    useChatStore.setState({ messages: [mockMessage] });
+    const ghost = { ...mockMessage, id: 'ghost-id', content: 'Ghost' };
+
+    act(() => {
+      useChatStore.getState().replaceMessage(ghost);
+    });
+
+    expect(useChatStore.getState().messages).toEqual([mockMessage]);
+  });
+});
+
+// --- removeMessage ---
+
+describe('removeMessage store action', () => {
+  it('removes the message with the given id', () => {
+    const other = { ...mockMessage, id: 'msg-2', content: 'Other' };
+    useChatStore.setState({ messages: [mockMessage, other] });
+
+    act(() => {
+      useChatStore.getState().removeMessage('msg-1');
+    });
+
+    const messages = useChatStore.getState().messages;
+    expect(messages).toHaveLength(1);
+    expect(messages[0].id).toBe('msg-2');
+  });
+
+  it('clears editingMessage when the removed message is the one being edited', () => {
+    useChatStore.setState({ messages: [mockMessage], editingMessage: mockMessage });
+
+    act(() => {
+      useChatStore.getState().removeMessage('msg-1');
+    });
+
+    expect(useChatStore.getState().editingMessage).toBeNull();
+  });
+
+  it('leaves editingMessage intact when removing a different message', () => {
+    const other = { ...mockMessage, id: 'msg-2' };
+    useChatStore.setState({ messages: [mockMessage, other], editingMessage: mockMessage });
+
+    act(() => {
+      useChatStore.getState().removeMessage('msg-2');
+    });
+
+    expect(useChatStore.getState().editingMessage).toEqual(mockMessage);
+  });
+});
+
+// --- startEditingMessage / cancelEditingMessage ---
+
+describe('startEditingMessage and cancelEditingMessage store actions', () => {
+  it('startEditingMessage sets editingMessage', () => {
+    act(() => {
+      useChatStore.getState().startEditingMessage(mockMessage);
+    });
+
+    expect(useChatStore.getState().editingMessage).toEqual(mockMessage);
+  });
+
+  it('cancelEditingMessage clears editingMessage', () => {
+    useChatStore.setState({ editingMessage: mockMessage });
+
+    act(() => {
+      useChatStore.getState().cancelEditingMessage();
+    });
+
+    expect(useChatStore.getState().editingMessage).toBeNull();
+  });
+});
+
+// --- updateMessage ---
+
+describe('updateMessage store action', () => {
+  it('replaces the message in state and clears editingMessage on success', async () => {
+    const updated = { ...mockMessage, content: 'Edited content', updated_at: '2026-01-02T00:00:00Z' };
+    useChatStore.setState({ messages: [mockMessage], editingMessage: mockMessage });
+    (chatService.updateMessage as jest.Mock).mockResolvedValue(updated);
+
+    await act(async () => {
+      await useChatStore.getState().updateMessage({ id: 'msg-1', content: 'Edited content' });
+    });
+
+    const state = useChatStore.getState();
+    expect(state.messages[0].content).toBe('Edited content');
+    expect(state.editingMessage).toBeNull();
+    expect(state.isUpdating).toBe(false);
+  });
+
+  it('sets isUpdating to true during the call', async () => {
+    let isUpdatingDuringCall = false;
+    (chatService.updateMessage as jest.Mock).mockImplementation(async () => {
+      isUpdatingDuringCall = useChatStore.getState().isUpdating;
+      return mockMessage;
+    });
+
+    await act(async () => {
+      await useChatStore.getState().updateMessage({ id: 'msg-1', content: 'x' });
+    });
+
+    expect(isUpdatingDuringCall).toBe(true);
+    expect(useChatStore.getState().isUpdating).toBe(false);
+  });
+
+  it('resets isUpdating and re-throws on error', async () => {
+    (chatService.updateMessage as jest.Mock).mockRejectedValue(new Error('update failed'));
+
+    let caughtError: Error | null = null;
+    await act(async () => {
+      try {
+        await useChatStore.getState().updateMessage({ id: 'msg-1', content: 'x' });
+      } catch (err) {
+        caughtError = err as Error;
+      }
+    });
+
+    expect(caughtError?.message).toBe('update failed');
+    expect(useChatStore.getState().isUpdating).toBe(false);
+  });
+});
+
+// --- deleteMessage ---
+
+describe('deleteMessage store action', () => {
+  it('replaces the message with the soft-deleted version and clears editingMessage', async () => {
+    const softDeleted = { ...mockMessage, content: null, deleted_at: '2026-01-02T00:00:00Z' };
+    useChatStore.setState({ messages: [mockMessage], editingMessage: mockMessage });
+    (chatService.deleteMessage as jest.Mock).mockResolvedValue(softDeleted);
+
+    await act(async () => {
+      await useChatStore.getState().deleteMessage('msg-1');
+    });
+
+    const state = useChatStore.getState();
+    expect(state.messages[0].deleted_at).not.toBeNull();
+    expect(state.messages[0].content).toBeNull();
+    expect(state.editingMessage).toBeNull();
+    expect(state.isDeleting).toBe(false);
+  });
+
+  it('sets isDeleting to true during the call', async () => {
+    let isDeletingDuringCall = false;
+    (chatService.deleteMessage as jest.Mock).mockImplementation(async () => {
+      isDeletingDuringCall = useChatStore.getState().isDeleting;
+      return { ...mockMessage, content: null, deleted_at: '2026-01-02T00:00:00Z' };
+    });
+
+    await act(async () => {
+      await useChatStore.getState().deleteMessage('msg-1');
+    });
+
+    expect(isDeletingDuringCall).toBe(true);
+    expect(useChatStore.getState().isDeleting).toBe(false);
+  });
+
+  it('resets isDeleting and re-throws on error', async () => {
+    (chatService.deleteMessage as jest.Mock).mockRejectedValue(new Error('delete failed'));
+
+    let caughtError: Error | null = null;
+    await act(async () => {
+      try {
+        await useChatStore.getState().deleteMessage('msg-1');
+      } catch (err) {
+        caughtError = err as Error;
+      }
+    });
+
+    expect(caughtError?.message).toBe('delete failed');
+    expect(useChatStore.getState().isDeleting).toBe(false);
   });
 });

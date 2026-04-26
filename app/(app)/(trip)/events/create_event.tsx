@@ -22,7 +22,7 @@ import { useEventsStore } from '@/store/events.store';
 import { useProfileStore } from '@/store/profile.store';
 import { useTripStore } from '@/store/trip.store';
 import { uploadEventBanner } from '@/services/events.service';
-import { createEventSchema, TripRole } from '@/types';
+import { createEventSchema, TripEventPermission, TripRole } from '@/types';
 
 function formatDisplay(date: Date | null): string {
   if (!date) return 'Select date and time';
@@ -42,7 +42,7 @@ export default function CreateEventScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { selectedTrip } = useProfileStore();
-  const { currentParticipant } = useTripStore();
+  const { currentParticipant, currentTrip } = useTripStore();
   const { createEvent } = useEventsStore();
   const {
     theme: { colors, layout, radius, spacing, stroke },
@@ -62,7 +62,11 @@ export default function CreateEventScreen() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
 
-  const isOrganizer = currentParticipant?.role === TripRole.Organizer;
+  const isOrganizer =
+    currentParticipant?.role === TripRole.Organizer ||
+    currentParticipant?.role === TripRole.CoOrganizer;
+  const canCreateEvent =
+    currentTrip?.event_permission !== TripEventPermission.Organizer || isOrganizer;
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Picker state
@@ -141,7 +145,7 @@ export default function CreateEventScreen() {
             `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(text)}&limit=5`,
             { headers: { 'Accept-Language': 'en', 'User-Agent': 'Triploom/1.0' } }
           );
-          const data = await res.json() as Array<{ display_name: string }>;
+          const data = await res.json() as { display_name: string }[];
           setLocationSuggestions(data.map((item) => item.display_name));
         } catch {
           // silently ignore network errors for suggestions
@@ -189,6 +193,11 @@ export default function CreateEventScreen() {
 
     if (!selectedTrip) {
       Alert.alert('Error', 'No active trip found.');
+      return;
+    }
+
+    if (!canCreateEvent) {
+      Alert.alert('Only organizers can create events for this trip.');
       return;
     }
 

@@ -9,7 +9,7 @@
  */
 import { getSupabaseAdmin } from '@/lib/supabase.admin';
 import { createTrip } from '@/services/trip.service';
-import { createTripSchema } from '@/types/trip.types';
+import { createTripSchema, TripEventPermission } from '@/types/trip.types';
 import { createTestUser, type TestUser } from './helpers/user';
 
 jest.setTimeout(15000);
@@ -60,12 +60,14 @@ describe('createTrip (integration)', () => {
       description: 'A detailed description',
       start_date: '2026-07-01',
       end_date: '2026-07-14',
+      event_permission: TripEventPermission.Organizer,
     });
     createdTripIds.push(trip.id);
 
     expect(trip.description).toBe('A detailed description');
     expect(trip.start_date).toBe('2026-07-01');
     expect(trip.end_date).toBe('2026-07-14');
+    expect(trip.event_permission).toBe(TripEventPermission.Organizer);
   });
 
   it('sets null for omitted optional fields', async () => {

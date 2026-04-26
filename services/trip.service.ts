@@ -47,6 +47,7 @@ export async function getTripById(id: string): Promise<Trip> {
 export async function createTrip(dto: CreateTripDTO): Promise<Trip> {
   const { data: { session } } = await supabase.auth.getSession();
   const userId = session?.user.id;
+  if (!userId) throw new Error('Not authenticated');
 
   const { data, error } = await supabase
     .from('trip')
@@ -88,13 +89,17 @@ export async function deleteTrip(id: string): Promise<void> {
   if (error) throw error;
 }
 
-export async function getTripParticipants(tripId: string): Promise<TripParticipant[]> {
+export type ParticipantWithProfile = TripParticipant & {
+  profile: { user_name: string | null; profile_picture_url: string | null } | null;
+};
+
+export async function getTripParticipants(tripId: string): Promise<ParticipantWithProfile[]> {
   const { data, error } = await supabase
     .from('trip_participant')
-    .select('*')
+    .select('*, profile:profile(user_name, profile_picture_url)')
     .eq('trip_id', tripId);
   if (error) throw error;
-  return data;
+  return data as ParticipantWithProfile[];
 }
 
 export async function getTripParticipantsWithProfiles(tripId: string): Promise<TripParticipantWithProfile[]> {
