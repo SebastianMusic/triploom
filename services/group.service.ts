@@ -84,10 +84,40 @@ export async function leaveGroup(groupId: string, participantId: string): Promis
   if (error) throw error;
 }
 
+export type UpdateGroupDTO = {
+  name: string;
+  description?: string;
+  maxMembers?: number | null;
+};
+
+export async function updateGroup(groupId: string, dto: UpdateGroupDTO): Promise<TripGroup> {
+  const { data, error } = await supabase
+    .from('trip_group')
+    .update({
+      name: dto.name.trim(),
+      description: dto.description?.trim() || null,
+      max_members: dto.maxMembers ?? null,
+    })
+    .eq('id', groupId)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as TripGroup;
+}
+
 export async function deleteGroup(groupId: string): Promise<void> {
   const { error } = await supabase
     .from('trip_group')
     .delete()
     .eq('id', groupId);
+  if (error) throw error;
+}
+
+export async function deleteGroups(groupIds: string[]): Promise<void> {
+  if (groupIds.length === 0) return;
+  const { error } = await supabase
+    .from('trip_group')
+    .delete()
+    .in('id', groupIds);
   if (error) throw error;
 }
