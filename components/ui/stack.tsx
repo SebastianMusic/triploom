@@ -1,11 +1,10 @@
 import { View, type StyleProp, type ViewProps, type ViewStyle } from 'react-native';
 
 import { useAppTheme } from '@/components/ui/theme-provider';
-import { spacing } from '@/constants/theme';
 
-type SpaceToken = keyof typeof spacing | number;
+type SpaceToken = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl' | 'xxxl' | number;
 
-function resolveSpace(spaceValue: SpaceToken, themeSpacing: typeof spacing) {
+function resolveSpace(spaceValue: SpaceToken, themeSpacing: Record<Exclude<SpaceToken, number>, number>) {
   return typeof spaceValue === 'number' ? spaceValue : themeSpacing[spaceValue];
 }
 

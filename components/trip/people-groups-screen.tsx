@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   Alert,
   Pressable,
   RefreshControl,
@@ -10,12 +11,15 @@ import {
 } from 'react-native';
 
 import { useTripChromeInsets } from '@/components/layout/use-trip-chrome';
+import { ParticipantActionSheet } from '@/components/participant-ui/participant-action-sheet';
 import { CreateGroupsModal } from '@/components/trip/create-groups-modal';
 import { EditGroupModal } from '@/components/trip/edit-group-modal';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Container } from '@/components/ui/container';
 import { IconButton } from '@/components/ui/icon-button';
+import { Stack } from '@/components/ui/stack';
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import { useGroupStore } from '@/store/group.store';
@@ -23,19 +27,21 @@ import type { TripParticipantWithProfile } from '@/services/trip.service';
 import type { GroupWithMembers } from '@/services/group.service';
 import { TripRole } from '@/types';
 
-type Tab = 'people' | 'groups';
+type Tab = 'members' | 'groups';
 
 type Props = {
   tripId: string | null;
   currentParticipantId: string | null;
   participants: TripParticipantWithProfile[];
   canManage: boolean;
+  actorUserId: string | null;
+  actorRole: string | null;
 };
 
 const ROLE_LABELS: Record<string, string> = {
   [TripRole.Organizer]: 'Organizer',
   [TripRole.CoOrganizer]: 'Co-organizer',
-  [TripRole.Participant]: 'Participant',
+  [TripRole.Participant]: 'Member',
 };
 
 const ROLE_ORDER: Record<string, number> = {
@@ -49,10 +55,12 @@ export function PeopleGroupsScreen({
   currentParticipantId,
   participants,
   canManage,
+  actorUserId,
+  actorRole,
 }: Props) {
   const { headerContentOffset, safeAreaInsets } = useTripChromeInsets();
   const {
-    theme: { colors, layout, opacity, radius, shadows, spacing, stroke, typography },
+    theme: { colors, opacity, radius, shadows, spacing, stroke, typography },
   } = useAppTheme();
   const groups = useGroupStore((state) => state.groups);
   const isLoadingGroups = useGroupStore((state) => state.isLoading);
@@ -63,11 +71,14 @@ export function PeopleGroupsScreen({
   const leaveTripGroup = useGroupStore((state) => state.leaveGroup);
   const deleteTripGroup = useGroupStore((state) => state.deleteGroup);
 
-  const [tab, setTab] = useState<Tab>('people');
+  const [tab, setTab] = useState<Tab>('members');
   const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);
   const [pendingGroupId, setPendingGroupId] = useState<string | null>(null);
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [editingGroup, setEditingGroup] = useState<GroupWithMembers | null>(null);
+  const [selectedParticipant, setSelectedParticipant] = useState<TripParticipantWithProfile | null>(null);
+  const [tabWidth, setTabWidth] = useState(0);
+  const sliderTranslate = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (!tripId) {
@@ -96,9 +107,15 @@ export function PeopleGroupsScreen({
   const organizerCount = participants.filter((participant) => {
     return participant.role === TripRole.Organizer || participant.role === TripRole.CoOrganizer;
   }).length;
-  const assignedParticipants = new Set(
-    groups.flatMap((group) => group.group_membership.map((membership) => membership.participant_id)),
-  );
+
+  useEffect(() => {
+    if (!tabWidth) return;
+    Animated.timing(sliderTranslate, {
+      toValue: tab === 'members' ? 0 : tabWidth / 2,
+      duration: 220,
+      useNativeDriver: true,
+    }).start();
+  }, [sliderTranslate, tab, tabWidth]);
 
   async function handleRefresh() {
     if (!tripId) return;
@@ -194,40 +211,58 @@ export function PeopleGroupsScreen({
         }
         contentContainerStyle={{
           paddingTop: headerContentOffset,
-          paddingBottom: safeAreaInsets.bottom + spacing.xl,
-          paddingHorizontal: layout.screenPadding,
-          gap: spacing.md,
+          paddingBottom: safeAreaInsets.bottom + spacing.lg,
         }}>
+        <Container>
+        <Stack space="sm">
         <Card
           variant="elevated"
           style={{
-            gap: spacing.md,
+            gap: spacing.sm,
             backgroundColor: colors.surface,
             borderWidth: stroke.thin,
             borderColor: colors.border,
           }}>
           <View style={{ gap: spacing.xs }}>
-            <AppText style={typography.subtitle}>People & groups</AppText>
+            <AppText style={typography.subtitle}>Members & groups</AppText>
             <AppText variant="caption" tone="muted">
-              Keep an overview of participants, contact details, and group assignments for this trip.
+              Keep an overview of members, organizers, and group assignments for this trip.
             </AppText>
           </View>
 
           <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-            <StatPill label="People" value={participants.length} />
+            <StatPill label="Members" value={participants.length} />
+            <StatPill label="Organizers" value={organizerCount} />
             <StatPill label="Groups" value={groups.length} />
-            <StatPill label="Assigned" value={assignedParticipants.size} />
           </View>
         </Card>
 
         <View
+          onLayout={(event) => setTabWidth(event.nativeEvent.layout.width)}
           style={{
+            position: 'relative',
             flexDirection: 'row',
             borderRadius: radius.full,
             backgroundColor: colors.surfaceMuted,
             padding: 4,
+            overflow: 'hidden',
           }}>
-          {(['people', 'groups'] as Tab[]).map((value) => {
+          {tabWidth ? (
+            <Animated.View
+              pointerEvents="none"
+              style={{
+                position: 'absolute',
+                top: 4,
+                bottom: 4,
+                left: 4,
+                width: Math.max(tabWidth / 2 - 4, 0),
+                borderRadius: radius.full,
+                backgroundColor: colors.surface,
+                transform: [{ translateX: sliderTranslate }],
+              }}
+            />
+          ) : null}
+          {(['members', 'groups'] as Tab[]).map((value) => {
             const selected = tab === value;
             return (
               <Pressable
@@ -241,95 +276,102 @@ export function PeopleGroupsScreen({
                   borderRadius: radius.full,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: selected ? colors.surface : colors.transparent,
+                  backgroundColor: colors.transparent,
                   opacity: pressed ? opacity.pressed : 1,
                 })}>
                 <AppText
                   variant="caption"
                   style={{ color: selected ? colors.text : colors.textMuted }}>
-                  {value === 'people' ? 'People' : 'Groups'}
+                  {value === 'members' ? 'Members' : 'Groups'}
                 </AppText>
               </Pressable>
             );
           })}
         </View>
 
-        {tab === 'people' ? (
+        {tab === 'members' ? (
           <>
-            <Card
-              style={{
-                gap: spacing.xs,
-                backgroundColor: colors.surfaceMuted,
-              }}>
-              <AppText style={typography.label}>Trip roster</AppText>
-              <AppText variant="caption" tone="muted">
-                {participants.length} participants, {organizerCount} organizer roles.
-              </AppText>
-            </Card>
-
             {sortedParticipants.length === 0 ? (
               <EmptyState
-                title="No participants yet"
-                description="People will show up here as soon as they join the trip."
+                title="No members yet"
+                description="Members will show up here as soon as they join the trip."
               />
             ) : (
-              sortedParticipants.map((participant) => {
-                const name = participant.profile?.user_name ?? 'Unknown';
-                const roleLabel = participant.role
-                  ? (ROLE_LABELS[participant.role] ?? participant.role)
-                  : 'Participant';
-                const avatarSource = participant.profile?.profile_picture_url
-                  ? { uri: participant.profile.profile_picture_url }
-                  : undefined;
-                const details = [
-                  canManage ? participant.profile?.email : null,
-                  canManage ? participant.profile?.phonenumber : null,
-                ].filter(Boolean);
+              <Card
+                style={{
+                  padding: 0,
+                  overflow: 'hidden',
+                  borderWidth: stroke.thin,
+                  borderColor: colors.border,
+                }}>
+                {sortedParticipants.map((participant, index) => {
+                  const name = participant.profile?.user_name ?? 'Unknown';
+                  const roleLabel = participant.role
+                    ? (ROLE_LABELS[participant.role] ?? participant.role)
+                    : 'Member';
+                  const avatarSource = participant.profile?.profile_picture_url
+                    ? { uri: participant.profile.profile_picture_url }
+                    : undefined;
+                  const phone = canManage ? participant.profile?.phonenumber : null;
+                  const email = canManage ? participant.profile?.email : null;
+                  const isSelf = participant.id === currentParticipantId;
+                  const isOrganizerTarget = participant.role === TripRole.Organizer;
+                  const canOpenActions =
+                    canManage &&
+                    !isSelf &&
+                    !(
+                      actorRole === TripRole.CoOrganizer &&
+                      isOrganizerTarget
+                    );
 
-                return (
-                  <Card
-                    key={participant.id}
-                    style={{
-                      gap: spacing.sm,
-                      borderWidth: stroke.thin,
-                      borderColor: colors.border,
-                    }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-                      <Avatar name={name} size="md" source={avatarSource} />
-                      <View style={{ flex: 1, gap: 4 }}>
-                        <AppText style={typography.label}>{name}</AppText>
-                        <View
-                          style={{
-                            alignSelf: 'flex-start',
-                            paddingHorizontal: spacing.xs,
-                            paddingVertical: 4,
-                            borderRadius: radius.full,
-                            backgroundColor: colors.secondarySoft,
-                          }}>
-                          <AppText variant="caption" style={{ color: colors.secondary }}>
-                            {roleLabel}
-                          </AppText>
-                        </View>
-                      </View>
-                    </View>
-
-                    {details.length > 0 ? (
-                      <View style={{ gap: spacing.xs / 2 }}>
-                        {details.map((detail) => (
-                          <View
-                            key={detail}
-                            style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
-                            <Ionicons name="ellipse" size={8} color={colors.textMuted} />
-                            <AppText variant="caption" tone="muted">
-                              {detail}
+                  return (
+                    <Pressable
+                      key={participant.id}
+                      disabled={!canOpenActions}
+                      onPress={() => setSelectedParticipant(participant)}
+                      style={({ pressed }) => ({
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: spacing.sm,
+                        paddingHorizontal: spacing.sm,
+                        paddingVertical: spacing.sm - spacing.xs / 2,
+                        borderBottomWidth: index === sortedParticipants.length - 1 ? 0 : stroke.thin,
+                        borderBottomColor: colors.border,
+                        backgroundColor: pressed && canOpenActions ? colors.surfaceMuted : colors.surface,
+                        opacity: !canOpenActions && !canManage ? 1 : !canOpenActions ? opacity.disabled : 1,
+                      })}>
+                      <Avatar name={name} size="sm" source={avatarSource} />
+                      <View style={{ flex: 1, gap: 2 }}>
+                            <AppText numberOfLines={1} style={typography.label}>
+                              {name}
+                            </AppText>
+                            <AppText variant="caption" tone="muted" numberOfLines={1}>
+                              {roleLabel === 'Participant' ? 'Member' : roleLabel}
                             </AppText>
                           </View>
-                        ))}
+                      <View style={{ flexShrink: 1, alignItems: 'flex-end', gap: 2, minWidth: '42%' }}>
+                        {phone ? (
+                          <AppText variant="caption" tone="muted" numberOfLines={1}>
+                            {phone}
+                          </AppText>
+                        ) : null}
+                        {email ? (
+                          <AppText variant="caption" tone="muted" numberOfLines={1}>
+                            {email}
+                          </AppText>
+                        ) : !phone ? (
+                          <AppText variant="caption" tone="muted" numberOfLines={1}>
+                            No contact info
+                          </AppText>
+                        ) : null}
                       </View>
-                    ) : null}
-                  </Card>
-                );
-              })
+                      {canOpenActions ? (
+                        <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+                      ) : null}
+                    </Pressable>
+                  );
+                })}
+              </Card>
             )}
           </>
         ) : (
@@ -365,7 +407,7 @@ export function PeopleGroupsScreen({
                 title="No groups yet"
                 description={
                   canManage
-                    ? 'Create the first group to start organizing people.'
+                    ? 'Create the first group to start organizing members.'
                     : 'Groups created by trip organizers will show up here.'
                 }
               />
@@ -375,6 +417,11 @@ export function PeopleGroupsScreen({
                 const joined = isMember(group);
                 const full = isFull(group);
                 const loading = pendingGroupId === group.id && isMutatingGroup;
+                const statusTone: 'success' | 'warning' | 'error' = joined
+                  ? 'warning'
+                  : full
+                    ? 'error'
+                    : 'success';
 
                 return (
                   <Card
@@ -388,8 +435,8 @@ export function PeopleGroupsScreen({
                     <Pressable
                       onPress={() => setExpandedGroupId(expanded ? null : group.id)}
                       style={({ pressed }) => ({
-                        padding: spacing.md,
-                        gap: spacing.sm,
+                        padding: spacing.sm,
+                        gap: spacing.xs,
                         opacity: pressed ? opacity.pressed : 1,
                       })}>
                       <View
@@ -403,8 +450,8 @@ export function PeopleGroupsScreen({
                           <View
                             style={[
                               {
-                                width: 48,
-                                height: 48,
+                                width: 40,
+                                height: 40,
                                 borderRadius: radius.full,
                                 alignItems: 'center',
                                 justifyContent: 'center',
@@ -412,7 +459,7 @@ export function PeopleGroupsScreen({
                               },
                               shadows.sm,
                             ]}>
-                            <Ionicons name="people-outline" size={22} color={colors.primary} />
+                            <Ionicons name="people-outline" size={20} color={colors.primary} />
                           </View>
                           <View style={{ flex: 1, gap: 4 }}>
                             <AppText style={typography.label}>{group.name}</AppText>
@@ -449,7 +496,7 @@ export function PeopleGroupsScreen({
                       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs }}>
                         <Chip
                           label={joined ? 'Joined' : full ? 'Full' : 'Open'}
-                          variant={joined ? 'accent' : full ? 'muted' : 'default'}
+                          variant={statusTone}
                         />
                         <Chip
                           label={`${group.group_membership.length}${group.max_members ? `/${group.max_members}` : ''} members`}
@@ -473,7 +520,7 @@ export function PeopleGroupsScreen({
                               const name = membership.trip_participant?.profile?.user_name ?? 'Unknown';
                               const roleLabel = membership.trip_participant?.role
                                 ? (ROLE_LABELS[membership.trip_participant.role] ?? membership.trip_participant.role)
-                                : 'Participant';
+                                : 'Member';
                               const avatarSource = membership.trip_participant?.profile?.profile_picture_url
                                 ? { uri: membership.trip_participant.profile.profile_picture_url }
                                 : undefined;
@@ -487,14 +534,14 @@ export function PeopleGroupsScreen({
                                     gap: spacing.sm,
                                     borderRadius: radius.lg,
                                     backgroundColor: colors.surface,
-                                    paddingHorizontal: spacing.sm,
-                                    paddingVertical: spacing.sm - spacing.xs / 2,
+                                    paddingHorizontal: spacing.md,
+                                    paddingVertical: spacing.sm,
                                   }}>
                                   <Avatar name={name} size="sm" source={avatarSource} />
                                   <View style={{ flex: 1 }}>
                                     <AppText>{name}</AppText>
                                     <AppText variant="caption" tone="muted">
-                                      {roleLabel}
+                                      {roleLabel === 'Participant' ? 'Member' : roleLabel}
                                     </AppText>
                                   </View>
                                 </View>
@@ -544,6 +591,8 @@ export function PeopleGroupsScreen({
             )}
           </>
         )}
+        </Stack>
+        </Container>
       </ScrollView>
 
       {tripId ? (
@@ -563,6 +612,16 @@ export function PeopleGroupsScreen({
           onUpdated={() => setEditingGroup(null)}
         />
       ) : null}
+
+      {selectedParticipant && tripId && actorUserId && actorRole ? (
+        <ParticipantActionSheet
+          target={selectedParticipant}
+          actorUserId={actorUserId}
+          actorRole={actorRole}
+          tripId={tripId}
+          onClose={() => setSelectedParticipant(null)}
+        />
+      ) : null}
     </>
   );
 
@@ -573,7 +632,7 @@ export function PeopleGroupsScreen({
           flex: 1,
           borderRadius: radius.lg,
           backgroundColor: colors.surfaceMuted,
-          paddingVertical: spacing.sm,
+          paddingVertical: spacing.xs + 2,
           paddingHorizontal: spacing.sm,
           gap: 2,
         }}>
@@ -590,28 +649,44 @@ export function PeopleGroupsScreen({
     variant,
   }: {
     label: string;
-    variant: 'default' | 'accent' | 'muted';
+    variant: 'muted' | 'success' | 'warning' | 'error';
   }) {
     const backgroundColor =
-      variant === 'accent'
-        ? colors.primarySoft
-        : variant === 'muted'
-          ? colors.surfaceMuted
-          : colors.secondarySoft;
+      variant === 'success'
+        ? colors.successSoft
+        : variant === 'warning'
+          ? colors.warningSoft
+          : variant === 'error'
+            ? colors.errorSoft
+            : colors.surfaceMuted;
     const textColor =
-      variant === 'accent'
+      variant === 'success'
+        ? colors.success
+        : variant === 'warning'
+          ? colors.warning
+          : variant === 'error'
+            ? colors.error
+            : colors.textMuted;
+
+    const borderColor =
+      variant === 'success'
         ? colors.primary
-        : variant === 'muted'
-          ? colors.textMuted
-          : colors.secondary;
+        : variant === 'warning'
+          ? colors.warning
+          : variant === 'error'
+            ? colors.error
+            : colors.border;
+    const borderWidth = variant === 'error' || variant === 'muted' ? stroke.thin : stroke.none;
 
     return (
       <View
         style={{
           borderRadius: radius.full,
           backgroundColor,
-          paddingHorizontal: spacing.xs,
-          paddingVertical: 4,
+          borderWidth,
+          borderColor,
+          paddingHorizontal: spacing.sm,
+          paddingVertical: spacing.xs - 2,
         }}>
         <AppText variant="caption" style={{ color: textColor }}>
           {label}

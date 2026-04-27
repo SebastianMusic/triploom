@@ -14,6 +14,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import GeneralCamera from '@/components/camera/general-camera';
+import { Container } from '@/components/ui/container';
+import { Stack } from '@/components/ui/stack';
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import { useTripChromeInsets } from '@/components/layout/use-trip-chrome';
@@ -51,7 +53,7 @@ export default function EditProfileScreen({
   const insets = useSafeAreaInsets();
   const {
     mode,
-    theme: { colors, layout, opacity, radius, shadows, spacing, typography },
+    theme: { colors, opacity, radius, shadows, spacing, typography },
   } = useAppTheme();
   const { headerContentOffset } = useTripChromeInsets();
 
@@ -150,27 +152,27 @@ export default function EditProfileScreen({
           flexGrow: 1,
           paddingTop: shouldUseTripChromeInsets ? headerContentOffset : insets.top + spacing.md,
           paddingBottom: insets.bottom + spacing.xl,
-          paddingHorizontal: layout.screenPadding,
-          gap: spacing.md,
         }}>
-        <View style={{ alignItems: 'center', gap: spacing.xs }}>
-          <AppText variant="subtitle" style={{ textAlign: 'center' }}>
-            Edit Profile
-          </AppText>
-        </View>
+        <Container>
+        <Stack space="sm">
+          <View style={{ alignItems: 'center', gap: spacing.xs }}>
+            <AppText variant="subtitle" style={{ textAlign: 'center' }}>
+              Edit Profile
+            </AppText>
+          </View>
 
-        <View
-          style={[
-            {
-              borderRadius: radius.lg,
-              backgroundColor: colors.surface,
-              borderWidth: 1,
-              borderColor: colors.border,
-              padding: spacing.md,
-              gap: spacing.md,
-            },
-            shadows.sm,
-          ]}>
+          <View
+            style={[
+              {
+                borderRadius: radius.lg,
+                backgroundColor: colors.surface,
+                borderWidth: 1,
+                borderColor: colors.border,
+                padding: spacing.sm,
+                gap: spacing.sm,
+              },
+              shadows.sm,
+            ]}>
           <View style={{ alignItems: 'center', gap: spacing.sm }}>
             <Pressable
               accessibilityRole="button"
@@ -260,9 +262,9 @@ export default function EditProfileScreen({
               </AppText>
             </View>
           ) : null}
-        </View>
+          </View>
 
-        <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+          <View style={{ flexDirection: 'row', gap: spacing.sm }}>
           <Pressable
             accessibilityRole="button"
             onPress={onBack}
@@ -303,7 +305,9 @@ export default function EditProfileScreen({
               </AppText>
             )}
           </Pressable>
-        </View>
+          </View>
+        </Stack>
+        </Container>
       </ScrollView>
 
       {activeModal === 'menu' && (

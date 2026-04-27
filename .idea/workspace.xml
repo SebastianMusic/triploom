@@ -13,19 +13,20 @@
       <change afterPath="$PROJECT_DIR$/store/group.store.ts" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/types/group.types.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(app)/(no-trip)/create/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(app)/(no-trip)/create/index.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/(app)/(no-trip)/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(app)/(no-trip)/index.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/(app)/(trip)/_layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(app)/(trip)/_layout.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/(app)/(trip)/account/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(app)/(trip)/account/index.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(app)/(no-trip)/join/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(app)/(no-trip)/join/index.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/(app)/(trip)/admin/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(app)/(trip)/admin/index.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/(app)/(trip)/chat/[roomId].tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(app)/(trip)/chat/[roomId].tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(app)/(trip)/admin/people.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(app)/(trip)/admin/people.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(app)/(trip)/chat/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(app)/(trip)/chat/index.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(app)/(trip)/events/[id].tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(app)/(trip)/events/[id].tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/(app)/(trip)/events/create_event.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(app)/(trip)/events/create_event.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(app)/(trip)/events/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(app)/(trip)/events/index.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/(app)/(trip)/home/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(app)/(trip)/home/index.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/layout/trip-header.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/layout/trip-header.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/layout/trip-navigation.ts" beforeDir="false" afterPath="$PROJECT_DIR$/components/layout/trip-navigation.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/layout/trip-tab-bar.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/layout/trip-tab-bar.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/layout/use-trip-chrome.ts" beforeDir="false" afterPath="$PROJECT_DIR$/components/layout/use-trip-chrome.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(app)/(trip)/tasks/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(app)/(trip)/tasks/index.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/components/profile/edit-profile-screen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/profile/edit-profile-screen.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/components/profile/profile-screen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/profile/profile-screen.tsx" afterDir="false" />
+<<<<<<< HEAD
       <change beforePath="$PROJECT_DIR$/components/trip/create-groups-modal.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/trip/create-groups-modal.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/components/trip/edit-group-modal.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/trip/edit-group-modal.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/components/trip/persons-sheet.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/trip/persons-sheet.tsx" afterDir="false" />
@@ -33,6 +34,15 @@
       <change beforePath="$PROJECT_DIR$/components/ui/back-button.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/ui/back-button.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/services/group.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/services/group.service.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/types/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/types/index.ts" afterDir="false" />
+=======
+      <change beforePath="$PROJECT_DIR$/components/trip/people-groups-screen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/trip/people-groups-screen.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ui/card.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/ui/card.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ui/container.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/ui/container.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ui/row.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/ui/row.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ui/stack.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/ui/stack.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/constants/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/constants/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/constants/theme.ts" beforeDir="false" afterPath="$PROJECT_DIR$/constants/theme.ts" afterDir="false" />
+>>>>>>> 82b54f8 (Changed pages to follow components only and not hardcoded constants, and added simple group design for admin)
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -99,7 +109,7 @@
       <workItem from="1776759501273" duration="7572000" />
       <workItem from="1776859000185" duration="10451000" />
       <workItem from="1777273597275" duration="8295000" />
-      <workItem from="1777294549213" duration="3523000" />
+      <workItem from="1777294549213" duration="7882000" />
     </task>
     <servers />
   </component>

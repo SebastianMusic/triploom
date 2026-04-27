@@ -24,8 +24,10 @@ import type { EventParticipant, EventWithCount } from '@/services/events.service
 import { getProfileImageUrlByPath } from '@/services/profile.service';
 import { EventBannerPicker } from '@/components/events/event-banner-picker';
 import { LocationMapPicker } from '@/components/events/location-map-picker';
+import { Container } from '@/components/ui/container';
 import { useEventsStore } from '@/store/events.store';
 import { useTripStore } from '@/store/trip.store';
+import { Stack } from '@/components/ui/stack';
 import { createEventSchema, TripRole } from '@/types';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -138,7 +140,7 @@ function DatePickerOverlay({
 
 function ViewEvent({ event, onBack, isCreator, isOrganizer, onEdit, onDelete }: { event: EventWithCount; onBack: () => void; isCreator?: boolean; isOrganizer?: boolean; onEdit?: () => void; onDelete?: () => void }) {
   const insets = useSafeAreaInsets();
-  const { theme: { colors, layout, spacing } } = useAppTheme();
+  const { theme: { colors, spacing } } = useAppTheme();
   const { currentParticipant } = useTripStore();
   const { registerForEvent, unregisterFromEvent } = useEventsStore();
 
@@ -226,131 +228,135 @@ function ViewEvent({ event, onBack, isCreator, isOrganizer, onEdit, onDelete }: 
   }
 
   return (
-    <ScrollView contentContainerStyle={{ paddingTop: insets.top + spacing.sm, paddingHorizontal: layout.screenPadding, paddingBottom: insets.bottom + spacing.xl, gap: spacing.md }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-        <Pressable onPress={onBack} style={{ padding: spacing.xs / 2 }} accessibilityLabel="Back">
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
-        </Pressable>
-      </View>
+    <ScrollView contentContainerStyle={{ paddingTop: insets.top + spacing.sm, paddingBottom: insets.bottom + spacing.xl }}>
+      <Container>
+        <Stack space="sm">
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Pressable onPress={onBack} style={{ padding: spacing.xs / 2 }} accessibilityLabel="Back">
+              <Ionicons name="arrow-back" size={24} color={colors.text} />
+            </Pressable>
+          </View>
 
-      {bannerUrl ? (
-        <View style={{ width: '100%', aspectRatio: 16 / 9, borderRadius: 14, overflow: 'hidden' }}>
-          <Image source={{ uri: bannerUrl }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-        </View>
-      ) : null}
-
-      <AppText variant="title">{event.title}</AppText>
-
-      {event.description ? (
-        <AppText variant="body" tone="muted">{event.description}</AppText>
-      ) : null}
-
-      <View style={{ gap: spacing.sm }}>
-        {event.location ? (
-          <Row icon="location-outline">
-            <AppText variant="caption" tone="muted">Location</AppText>
-            <AppText>{event.location}</AppText>
-          </Row>
-        ) : null}
-
-        <Row icon="time-outline">
-          <AppText variant="caption" tone="muted">Start</AppText>
-          <AppText>{formatFull(event.start_time)}</AppText>
-        </Row>
-
-        <Row icon="flag-outline">
-          <AppText variant="caption" tone="muted">End</AppText>
-          <AppText>{formatFull(event.end_time)}</AppText>
-        </Row>
-
-        {event.price_range ? (
-          <Row icon="cash-outline">
-            <AppText variant="caption" tone="muted">Price range</AppText>
-            <AppText>{event.price_range}</AppText>
-          </Row>
-        ) : null}
-
-        <Pressable onPress={() => { void handleToggleParticipants(); }}>
-          <Row icon="people-outline">
-            <AppText variant="caption" tone="muted">Participants</AppText>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
-              <AppText>{participantCount} {participantCount === 1 ? 'participant' : 'participants'}</AppText>
-              {participantCount > 0 && (
-                <Ionicons
-                  name={showParticipants ? 'chevron-up' : 'chevron-down'}
-                  size={14}
-                  color={colors.textMuted}
-                />
-              )}
+          {bannerUrl ? (
+            <View style={{ width: '100%', aspectRatio: 16 / 9, borderRadius: 14, overflow: 'hidden' }}>
+              <Image source={{ uri: bannerUrl }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
             </View>
-            {showParticipants && (
-              loadingParticipants ? (
-                <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 4 }} />
-              ) : (
-                <View style={{ marginTop: spacing.xs, gap: spacing.xs }}>
-                  {(eventParticipants ?? []).map((p) => {
-                    const name = p.user_name ?? 'Unknown';
-                    const isEventCreator = p.participant_id === event.created_by_id;
-                    return (
-                      <View
-                        key={p.participant_id}
-                        style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 2 }}>
-                        <Avatar
-                          name={name}
-                          size="sm"
-                          source={participantAvatarUrls[p.participant_id] ? { uri: participantAvatarUrls[p.participant_id] } : undefined}
-                        />
-                        <AppText style={{ flex: 1 }}>{name}</AppText>
-                        <View style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: colors.surfaceMuted }}>
-                          <AppText variant="caption" tone="muted">
-                            {isEventCreator ? 'Event Organizer' : 'Participant'}
-                          </AppText>
-                        </View>
-                      </View>
-                    );
-                  })}
+          ) : null}
+
+          <AppText variant="title">{event.title}</AppText>
+
+          {event.description ? (
+            <AppText variant="body" tone="muted">{event.description}</AppText>
+          ) : null}
+
+          <View style={{ gap: spacing.sm }}>
+            {event.location ? (
+              <Row icon="location-outline">
+                <AppText variant="caption" tone="muted">Location</AppText>
+                <AppText>{event.location}</AppText>
+              </Row>
+            ) : null}
+
+            <Row icon="time-outline">
+              <AppText variant="caption" tone="muted">Start</AppText>
+              <AppText>{formatFull(event.start_time)}</AppText>
+            </Row>
+
+            <Row icon="flag-outline">
+              <AppText variant="caption" tone="muted">End</AppText>
+              <AppText>{formatFull(event.end_time)}</AppText>
+            </Row>
+
+            {event.price_range ? (
+              <Row icon="cash-outline">
+                <AppText variant="caption" tone="muted">Price range</AppText>
+                <AppText>{event.price_range}</AppText>
+              </Row>
+            ) : null}
+
+            <Pressable onPress={() => { void handleToggleParticipants(); }}>
+              <Row icon="people-outline">
+                <AppText variant="caption" tone="muted">Participants</AppText>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+                  <AppText>{participantCount} {participantCount === 1 ? 'participant' : 'participants'}</AppText>
+                  {participantCount > 0 && (
+                    <Ionicons
+                      name={showParticipants ? 'chevron-up' : 'chevron-down'}
+                      size={14}
+                      color={colors.textMuted}
+                    />
+                  )}
                 </View>
-              )
-            )}
-          </Row>
-        </Pressable>
-      </View>
+                {showParticipants && (
+                  loadingParticipants ? (
+                    <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 4 }} />
+                  ) : (
+                    <View style={{ marginTop: spacing.xs, gap: spacing.xs }}>
+                      {(eventParticipants ?? []).map((p) => {
+                        const name = p.user_name ?? 'Unknown';
+                        const isEventCreator = p.participant_id === event.created_by_id;
+                        return (
+                          <View
+                            key={p.participant_id}
+                            style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 2 }}>
+                            <Avatar
+                              name={name}
+                              size="sm"
+                              source={participantAvatarUrls[p.participant_id] ? { uri: participantAvatarUrls[p.participant_id] } : undefined}
+                            />
+                            <AppText style={{ flex: 1 }}>{name}</AppText>
+                            <View style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: colors.surfaceMuted }}>
+                              <AppText variant="caption" tone="muted">
+                                {isEventCreator ? 'Event Organizer' : 'Participant'}
+                              </AppText>
+                            </View>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  )
+                )}
+              </Row>
+            </Pressable>
+          </View>
 
-      <Button
-        label={isRegistered ? 'Unregister' : 'Register'}
-        variant={isRegistered ? 'secondary' : 'primary'}
-        fullWidth
-        loading={isLoading}
-        onPress={() => { void handleToggle(); }}
-      />
+          <Button
+            label={isRegistered ? 'Unregister' : 'Register'}
+            variant={isRegistered ? 'secondary' : 'primary'}
+            fullWidth
+            loading={isLoading}
+            onPress={() => { void handleToggle(); }}
+          />
 
-      {isCreator && onEdit ? (
-        <Button label="Edit event" variant="secondary" fullWidth onPress={onEdit} />
-      ) : null}
+          {isCreator && onEdit ? (
+            <Button label="Edit event" variant="secondary" fullWidth onPress={onEdit} />
+          ) : null}
 
-      {isOrganizer && !isCreator && onDelete ? (
-        <Pressable
-          onPress={() => {
-            Alert.alert(
-              'Delete event',
-              'Are you sure you want to delete this event? This cannot be undone.',
-              [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Delete', style: 'destructive', onPress: onDelete },
-              ],
-            );
-          }}
-          style={({ pressed }) => ({
-            width: '100%',
-            minHeight: 48,
-            borderRadius: 999,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: pressed ? '#c0392b' : '#e74c3c',
-          })}>
-          <AppText style={{ color: '#fff', fontWeight: '600' }}>Delete event</AppText>
-        </Pressable>
-      ) : null}
+          {isOrganizer && !isCreator && onDelete ? (
+            <Pressable
+              onPress={() => {
+                Alert.alert(
+                  'Delete event',
+                  'Are you sure you want to delete this event? This cannot be undone.',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Delete', style: 'destructive', onPress: onDelete },
+                  ],
+                );
+              }}
+              style={({ pressed }) => ({
+                width: '100%',
+                minHeight: 48,
+                borderRadius: 999,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: pressed ? '#c0392b' : '#e74c3c',
+              })}>
+              <AppText style={{ color: '#fff', fontWeight: '600' }}>Delete event</AppText>
+            </Pressable>
+          ) : null}
+        </Stack>
+      </Container>
     </ScrollView>
   );
 }
@@ -359,7 +365,7 @@ function ViewEvent({ event, onBack, isCreator, isOrganizer, onEdit, onDelete }: 
 
 function EditEvent({ event, onBack, onDeleteSuccess }: { event: EventWithCount; onBack: () => void; onDeleteSuccess: () => void }) {
   const insets = useSafeAreaInsets();
-  const { theme: { colors, layout, radius, spacing, stroke } } = useAppTheme();
+  const { theme: { colors, radius, spacing, stroke } } = useAppTheme();
   const { updateEvent, deleteEvent } = useEventsStore();
   const { currentParticipant } = useTripStore();
 
@@ -495,153 +501,157 @@ function EditEvent({ event, onBack, onDeleteSuccess }: { event: EventWithCount; 
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView contentContainerStyle={{ paddingTop: insets.top + spacing.sm, paddingHorizontal: layout.screenPadding, paddingBottom: insets.bottom + spacing.xl, gap: spacing.md }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Pressable onPress={onBack} style={{ padding: spacing.xs / 2 }} accessibilityLabel="Cancel">
-            <Ionicons name="close" size={24} color={colors.text} />
-          </Pressable>
-          <AppText variant="subtitle">Edit Event</AppText>
-          <View style={{ width: 32 }} />
-        </View>
-
-        <EventBannerPicker
-          uri={bannerLocalUri ?? existingBannerUrl}
-          onSelect={(uri) => { setBannerLocalUri(uri); setBannerRemoved(false); }}
-          onRemove={handleRemoveBanner}
-        />
-
-        <Input label="Title *" placeholder="Event title" value={title} onChangeText={setTitle} error={errors.title} />
-        <Input label="Description *" placeholder="What is this event about?" value={description} onChangeText={setDescription} multiline error={errors.description} />
-        <Input
-          label="Location *"
-          placeholder="Where is it?"
-          value={location}
-          onChangeText={handleLocationChange}
-          error={errors.location}
-          rightElement={
-            <Pressable
-              onPress={() => setMapVisible(true)}
-              style={{ paddingHorizontal: spacing.sm }}
-              accessibilityLabel="Pick location on map">
-              <Ionicons
-                name={isFetchingSuggestions ? 'reload-outline' : 'map-outline'}
-                size={20}
-                color={colors.textMuted}
-              />
-            </Pressable>
-          }
-        />
-
-        {locationSuggestions.length > 0 && (
-          <View
-            style={{
-              borderRadius: radius.md,
-              borderWidth: stroke.thin,
-              borderColor: colors.border,
-              backgroundColor: colors.surface,
-              overflow: 'hidden',
-              marginTop: -spacing.xs,
-            }}>
-            {locationSuggestions.map((suggestion, index) => (
-              <Pressable
-                key={index}
-                onPress={() => {
-                  setLocation(suggestion);
-                  setLocationSuggestions([]);
-                  setErrors((e) => ({ ...e, location: undefined }));
-                }}
-                style={{
-                  paddingHorizontal: spacing.sm,
-                  paddingVertical: spacing.sm,
-                  borderTopWidth: index > 0 ? stroke.thin : 0,
-                  borderTopColor: colors.border,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: spacing.xs,
-                }}>
-                <Ionicons name="location-outline" size={14} color={colors.textMuted} />
-                <AppText numberOfLines={2} style={{ flex: 1, fontSize: 13 }}>
-                  {suggestion}
-                </AppText>
+      <ScrollView contentContainerStyle={{ paddingTop: insets.top + spacing.sm, paddingBottom: insets.bottom + spacing.xl }}>
+        <Container>
+          <Stack space="sm">
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Pressable onPress={onBack} style={{ padding: spacing.xs / 2 }} accessibilityLabel="Cancel">
+                <Ionicons name="close" size={24} color={colors.text} />
               </Pressable>
-            ))}
-          </View>
-        )}
-
-        <LocationMapPicker
-          visible={mapVisible}
-          onClose={() => setMapVisible(false)}
-          onSelectLocation={(address) => {
-            setLocation(address);
-            setLocationSuggestions([]);
-            setErrors((e) => ({ ...e, location: undefined }));
-          }}
-        />
-
-        <View style={{ gap: spacing.xs }}>
-          <AppText variant="caption">Start time *</AppText>
-          <Pressable style={dateFieldStyle} onPress={() => picker.openPicker('start')}>
-            <AppText style={{ color: picker.startDate ? colors.text : colors.textMuted }}>{formatDisplay(picker.startDate)}</AppText>
-            <Ionicons name="calendar-outline" size={18} color={colors.textMuted} />
-          </Pressable>
-          {errors.start_time ? <AppText variant="caption" tone="error">{errors.start_time}</AppText> : null}
-        </View>
-
-        <View style={{ gap: spacing.xs }}>
-          <AppText variant="caption">End time *</AppText>
-          <Pressable style={dateFieldStyle} onPress={() => picker.openPicker('end')}>
-            <AppText style={{ color: picker.endDate ? colors.text : colors.textMuted }}>{formatDisplay(picker.endDate)}</AppText>
-            <Ionicons name="calendar-outline" size={18} color={colors.textMuted} />
-          </Pressable>
-          {errors.end_time ? <AppText variant="caption" tone="error">{errors.end_time}</AppText> : null}
-        </View>
-
-        <Input label="Price range" placeholder="e.g. Free, 50–100 kr" value={priceRange} onChangeText={setPriceRange} error={errors.price_range} />
-
-        {isOrganizer ? (
-          <Pressable
-            onPress={() => setIsMandatory((v) => !v)}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-            <View style={{
-              width: 22, height: 22, borderRadius: 6,
-              borderWidth: 2,
-              borderColor: isMandatory ? colors.warning : colors.border,
-              backgroundColor: isMandatory ? colors.warning : 'transparent',
-              alignItems: 'center', justifyContent: 'center',
-            }}>
-              {isMandatory ? <Ionicons name="checkmark" size={14} color="#fff" /> : null}
+              <AppText variant="subtitle">Edit Event</AppText>
+              <View style={{ width: 32 }} />
             </View>
-            <AppText>Is mandatory</AppText>
-          </Pressable>
-        ) : null}
 
-        <Button label="Save changes" fullWidth loading={isSubmitting} onPress={() => { void handleSave(); }} />
+            <EventBannerPicker
+              uri={bannerLocalUri ?? existingBannerUrl}
+              onSelect={(uri) => { setBannerLocalUri(uri); setBannerRemoved(false); }}
+              onRemove={handleRemoveBanner}
+            />
 
-        <Pressable
-          onPress={() => {
-            Alert.alert(
-              'Delete event',
-              'Are you sure you want to delete this event? This cannot be undone.',
-              [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                  text: 'Delete',
-                  style: 'destructive',
-                  onPress: () => { void deleteEvent(event.id).then(() => onDeleteSuccess()); },
-                },
-              ],
-            );
-          }}
-          style={({ pressed }) => ({
-            width: '100%',
-            minHeight: 48,
-            borderRadius: 999,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: pressed ? '#c0392b' : '#e74c3c',
-          })}>
-          <AppText style={{ color: '#fff', fontWeight: '600' }}>Delete event</AppText>
-        </Pressable>
+            <Input label="Title *" placeholder="Event title" value={title} onChangeText={setTitle} error={errors.title} />
+            <Input label="Description *" placeholder="What is this event about?" value={description} onChangeText={setDescription} multiline error={errors.description} />
+            <Input
+              label="Location *"
+              placeholder="Where is it?"
+              value={location}
+              onChangeText={handleLocationChange}
+              error={errors.location}
+              rightElement={
+                <Pressable
+                  onPress={() => setMapVisible(true)}
+                  style={{ paddingHorizontal: spacing.sm }}
+                  accessibilityLabel="Pick location on map">
+                  <Ionicons
+                    name={isFetchingSuggestions ? 'reload-outline' : 'map-outline'}
+                    size={20}
+                    color={colors.textMuted}
+                  />
+                </Pressable>
+              }
+            />
+
+            {locationSuggestions.length > 0 && (
+              <View
+                style={{
+                  borderRadius: radius.md,
+                  borderWidth: stroke.thin,
+                  borderColor: colors.border,
+                  backgroundColor: colors.surface,
+                  overflow: 'hidden',
+                  marginTop: -spacing.xs,
+                }}>
+                {locationSuggestions.map((suggestion, index) => (
+                  <Pressable
+                    key={index}
+                    onPress={() => {
+                      setLocation(suggestion);
+                      setLocationSuggestions([]);
+                      setErrors((e) => ({ ...e, location: undefined }));
+                    }}
+                    style={{
+                      paddingHorizontal: spacing.sm,
+                      paddingVertical: spacing.sm,
+                      borderTopWidth: index > 0 ? stroke.thin : 0,
+                      borderTopColor: colors.border,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: spacing.xs,
+                    }}>
+                    <Ionicons name="location-outline" size={14} color={colors.textMuted} />
+                    <AppText numberOfLines={2} style={{ flex: 1, fontSize: 13 }}>
+                      {suggestion}
+                    </AppText>
+                  </Pressable>
+                ))}
+              </View>
+            )}
+
+            <LocationMapPicker
+              visible={mapVisible}
+              onClose={() => setMapVisible(false)}
+              onSelectLocation={(address) => {
+                setLocation(address);
+                setLocationSuggestions([]);
+                setErrors((e) => ({ ...e, location: undefined }));
+              }}
+            />
+
+            <View style={{ gap: spacing.xs }}>
+              <AppText variant="caption">Start time *</AppText>
+              <Pressable style={dateFieldStyle} onPress={() => picker.openPicker('start')}>
+                <AppText style={{ color: picker.startDate ? colors.text : colors.textMuted }}>{formatDisplay(picker.startDate)}</AppText>
+                <Ionicons name="calendar-outline" size={18} color={colors.textMuted} />
+              </Pressable>
+              {errors.start_time ? <AppText variant="caption" tone="error">{errors.start_time}</AppText> : null}
+            </View>
+
+            <View style={{ gap: spacing.xs }}>
+              <AppText variant="caption">End time *</AppText>
+              <Pressable style={dateFieldStyle} onPress={() => picker.openPicker('end')}>
+                <AppText style={{ color: picker.endDate ? colors.text : colors.textMuted }}>{formatDisplay(picker.endDate)}</AppText>
+                <Ionicons name="calendar-outline" size={18} color={colors.textMuted} />
+              </Pressable>
+              {errors.end_time ? <AppText variant="caption" tone="error">{errors.end_time}</AppText> : null}
+            </View>
+
+            <Input label="Price range" placeholder="e.g. Free, 50–100 kr" value={priceRange} onChangeText={setPriceRange} error={errors.price_range} />
+
+            {isOrganizer ? (
+              <Pressable
+                onPress={() => setIsMandatory((v) => !v)}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                <View style={{
+                  width: 22, height: 22, borderRadius: 6,
+                  borderWidth: 2,
+                  borderColor: isMandatory ? colors.warning : colors.border,
+                  backgroundColor: isMandatory ? colors.warning : 'transparent',
+                  alignItems: 'center', justifyContent: 'center',
+                }}>
+                  {isMandatory ? <Ionicons name="checkmark" size={14} color="#fff" /> : null}
+                </View>
+                <AppText>Is mandatory</AppText>
+              </Pressable>
+            ) : null}
+
+            <Button label="Save changes" fullWidth loading={isSubmitting} onPress={() => { void handleSave(); }} />
+
+            <Pressable
+              onPress={() => {
+                Alert.alert(
+                  'Delete event',
+                  'Are you sure you want to delete this event? This cannot be undone.',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                      text: 'Delete',
+                      style: 'destructive',
+                      onPress: () => { void deleteEvent(event.id).then(() => onDeleteSuccess()); },
+                    },
+                  ],
+                );
+              }}
+              style={({ pressed }) => ({
+                width: '100%',
+                minHeight: 48,
+                borderRadius: 999,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: pressed ? '#c0392b' : '#e74c3c',
+              })}>
+              <AppText style={{ color: '#fff', fontWeight: '600' }}>Delete event</AppText>
+            </Pressable>
+          </Stack>
+        </Container>
       </ScrollView>
 
       <DatePickerOverlay
@@ -681,7 +691,7 @@ export default function EventScreen() {
       setEvent(e ? { ...e, event_participation: [], creator: null } : null);
       setLoading(false);
     }).catch(() => setLoading(false));
-  }, [id]);
+  }, [events, id]);
 
   // Keep in sync when store updates (register/unregister, edit)
   useEffect(() => {

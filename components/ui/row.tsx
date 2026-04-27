@@ -1,11 +1,10 @@
 import { View, type StyleProp, type ViewProps, type ViewStyle } from 'react-native';
 
 import { useAppTheme } from '@/components/ui/theme-provider';
-import { spacing } from '@/constants/theme';
 
-type GapToken = keyof typeof spacing | number;
+type GapToken = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl' | 'xxxl' | number;
 
-function resolveGap(gapValue: GapToken, themeSpacing: typeof spacing) {
+function resolveGap(gapValue: GapToken, themeSpacing: Record<Exclude<GapToken, number>, number>) {
   return typeof gapValue === 'number' ? gapValue : themeSpacing[gapValue];
 }
 

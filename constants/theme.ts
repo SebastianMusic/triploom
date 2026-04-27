@@ -74,11 +74,11 @@ export const sizes = {
 } as const;
 
 export const layout = {
-  screenPadding: 20,
-  contentGap: spacing.md,
-  sectionGap: spacing.lg,
+  screenPadding: spacing.sm,
+  contentGap: spacing.sm,
+  sectionGap: spacing.md,
   rowGap: spacing.sm,
-  headerPaddingHorizontal: 20,
+  headerPaddingHorizontal: spacing.sm,
   headerPaddingBottom: spacing.sm,
   floatingBarWidth: '92%' as const,
   floatingBarMaxWidth: 460,
@@ -128,19 +128,19 @@ export const typography = {
   body: {
     fontFamily: fontFamilies.sans,
     fontSize: 16,
-    lineHeight: 24,
+    lineHeight: 26,
     fontWeight: '500' as const,
   },
   caption: {
     fontFamily: fontFamilies.sans,
     fontSize: 13,
-    lineHeight: 18,
+    lineHeight: 20,
     fontWeight: '600' as const,
   },
   label: {
     fontFamily: fontFamilies.sans,
     fontSize: 15,
-    lineHeight: 20,
+    lineHeight: 22,
     fontWeight: '700' as const,
   },
 } as const satisfies Record<string, TextStyle>;
@@ -158,6 +158,9 @@ type ThemeColors = {
   secondary: string;
   secondarySoft: string;
   accent: string;
+  successSoft: string;
+  warningSoft: string;
+  errorSoft: string;
   border: string;
   borderStrong: string;
   focusRing: string;
@@ -205,6 +208,9 @@ const lightColors: ThemeColors = {
   secondary: '#2F81C6',
   secondarySoft: '#E7F1FF',
   accent: '#F1C84C',
+  successSoft: '#DFF4EA',
+  warningSoft: '#FBEFCC',
+  errorSoft: '#FBE2DF',
   border: '#D6E9F1',
   borderStrong: '#BDD7E5',
   focusRing: '#58C2D2',
@@ -230,6 +236,9 @@ const darkColors: ThemeColors = {
   secondary: '#7BAFDD',
   secondarySoft: '#142636',
   accent: '#F0C45A',
+  successSoft: '#133629',
+  warningSoft: '#3C3118',
+  errorSoft: '#3B1F1C',
   border: '#1C3340',
   borderStrong: '#264454',
   focusRing: '#7BDDEA',

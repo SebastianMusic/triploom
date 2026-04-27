@@ -5,6 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 
 import { ChatRoomListItem } from '@/components/chat/chat-room-list-item';
 import { useTripChromeInsets } from '@/components/layout/use-trip-chrome';
+import { Container } from '@/components/ui/container';
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import { useChatStore } from '@/store/chat.store';
@@ -29,7 +30,7 @@ export default function ChatListScreen() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load chats');
     }
-  }, [currentTrip?.id]);
+  }, [currentTrip, getAllChatRooms]);
 
   useFocusEffect(
     useCallback(() => {
@@ -79,14 +80,14 @@ export default function ChatListScreen() {
       contentContainerStyle={{
         paddingTop: headerContentOffset,
         paddingBottom: bottomOverlayOffset,
-        paddingHorizontal: spacing.sm,
-        gap: spacing.xs,
       }}
       renderItem={({ item }) => (
-        <ChatRoomListItem
-          room={item}
-          onPress={() => router.push(`/(app)/(trip)/chat/${item.id}`)}
-        />
+        <Container>
+          <ChatRoomListItem
+            room={item}
+            onPress={() => router.push(`/(app)/(trip)/chat/${item.id}`)}
+          />
+        </Container>
       )}
       ListEmptyComponent={
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.xxl }}>

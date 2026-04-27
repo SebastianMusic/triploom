@@ -14,7 +14,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
+import { Container } from '@/components/ui/container';
 import { Input } from '@/components/ui/input';
+import { Stack } from '@/components/ui/stack';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import { useTripChromeInsets } from '@/components/layout/use-trip-chrome';
 import { EventBannerPicker } from '@/components/events/event-banner-picker';
@@ -47,7 +49,7 @@ export default function CreateEventScreen() {
   const { currentParticipant, currentTrip } = useTripStore();
   const { createEvent } = useEventsStore();
   const {
-    theme: { colors, layout, radius, spacing, stroke },
+    theme: { colors, radius, spacing, stroke },
   } = useAppTheme();
 
   const [title, setTitle] = useState('');
@@ -267,10 +269,10 @@ export default function CreateEventScreen() {
       <ScrollView
         contentContainerStyle={{
           paddingTop: headerContentOffset,
-          paddingHorizontal: layout.screenPadding,
           paddingBottom: insets.bottom + spacing.xl,
-          gap: spacing.md,
         }}>
+        <Container>
+        <Stack space="sm">
         <View style={{ alignItems: 'center', gap: spacing.xs }}>
           <AppText variant="subtitle">New Event</AppText>
         </View>
@@ -419,6 +421,8 @@ export default function CreateEventScreen() {
           loading={isSubmitting}
           onPress={() => { void handleSubmit(); }}
         />
+        </Stack>
+        </Container>
       </ScrollView>
 
       {/* Android: native dialog */}
