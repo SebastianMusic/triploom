@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { View } from 'react-native';
 
@@ -31,6 +32,7 @@ export function TripEditForm({ onClose }: Props) {
   const [description, setDescription] = useState(currentTrip?.description ?? '');
   const [startDate, setStartDate] = useState(currentTrip?.start_date ?? '');
   const [endDate, setEndDate] = useState(currentTrip?.end_date ?? '');
+  const [fileUrl, setFileUrl] = useState(currentTrip?.description_file_url ?? '');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,6 +45,12 @@ export function TripEditForm({ onClose }: Props) {
       return;
     }
 
+    const trimmedUrl = fileUrl.trim();
+    if (trimmedUrl && !trimmedUrl.startsWith('http')) {
+      setError('Attachment link must start with http:// or https://');
+      return;
+    }
+
     setIsSaving(true);
     setError(null);
     try {
@@ -51,6 +59,7 @@ export function TripEditForm({ onClose }: Props) {
         description: description.trim() || null,
         start_date: startDate.trim() || null,
         end_date: endDate.trim() || null,
+        description_file_url: trimmedUrl || null,
       });
       onClose?.();
     } catch (e) {
@@ -82,6 +91,23 @@ export function TripEditForm({ onClose }: Props) {
             onChangeText={setDescription}
             placeholder="What's this trip about?"
             multiline
+          />
+
+          <Input
+            label="Attachment link"
+            value={fileUrl}
+            onChangeText={setFileUrl}
+            placeholder="https://drive.google.com/..."
+            autoCorrect={false}
+            autoCapitalize="none"
+            keyboardType="url"
+            rightElement={
+              fileUrl ? (
+                <Ionicons name="close-circle" size={18} color={colors.textMuted} style={{ marginRight: spacing.sm }} onPress={() => setFileUrl('')} />
+              ) : (
+                <Ionicons name="link-outline" size={18} color={colors.textMuted} style={{ marginRight: spacing.sm }} />
+              )
+            }
           />
 
           <View style={{ flexDirection: 'row', gap: spacing.sm }}>
@@ -132,7 +158,7 @@ export function TripEditForm({ onClose }: Props) {
               variant="primary"
               fullWidth={!!onClose}
               loading={isSaving}
-              onPress={handleSave}
+              onPress={() => { void handleSave(); }}
             />
           </View>
         </View>
