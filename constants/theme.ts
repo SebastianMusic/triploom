@@ -1,6 +1,7 @@
 import { Platform, type TextStyle, type ViewStyle } from 'react-native';
 
 export type ThemeMode = 'light' | 'dark';
+export type ThemeColorPreset = 'ocean' | 'citrus' | 'forest' | 'rose';
 
 export const spacing = {
   xs: 8,
@@ -178,6 +179,7 @@ type ThemeShadows = {
 
 export type AppTheme = {
   mode: ThemeMode;
+  colorPreset: ThemeColorPreset;
   colors: ThemeColors;
   spacing: typeof spacing;
   radius: typeof radius;
@@ -240,6 +242,113 @@ const darkColors: ThemeColors = {
   error: '#E07A73',
 };
 
+type ThemeColorOverrides = Pick<
+  ThemeColors,
+  'primary' | 'primarySoft' | 'secondary' | 'secondarySoft' | 'accent' | 'focusRing'
+>;
+
+type ThemeColorPresetConfig = {
+  label: string;
+  swatch: string;
+  light: ThemeColorOverrides;
+  dark: ThemeColorOverrides;
+};
+
+export const themeColorPresets: Record<ThemeColorPreset, ThemeColorPresetConfig> = {
+  ocean: {
+    label: 'Ocean',
+    swatch: '#4C90B3',
+    light: {
+      primary: '#4C90B3',
+      primarySoft: '#E5F4F8',
+      secondary: '#7591A4',
+      secondarySoft: '#EAF3F5',
+      accent: '#D8BE68',
+      focusRing: '#73B0CD',
+    },
+    dark: {
+      primary: '#82BCD8',
+      primarySoft: '#173242',
+      secondary: '#9CB6C7',
+      secondarySoft: '#12232E',
+      accent: '#D9C16F',
+      focusRing: '#95CCE4',
+    },
+  },
+  citrus: {
+    label: 'Citrus',
+    swatch: '#C6952E',
+    light: {
+      primary: '#C6952E',
+      primarySoft: '#F9EDCC',
+      secondary: '#6E8D7A',
+      secondarySoft: '#E7F1EA',
+      accent: '#D76B4D',
+      focusRing: '#D4A84A',
+    },
+    dark: {
+      primary: '#E0B95B',
+      primarySoft: '#392A10',
+      secondary: '#97B2A0',
+      secondarySoft: '#15231C',
+      accent: '#E58A69',
+      focusRing: '#E8C66F',
+    },
+  },
+  forest: {
+    label: 'Forest',
+    swatch: '#3D8771',
+    light: {
+      primary: '#3D8771',
+      primarySoft: '#DFF2EC',
+      secondary: '#7A8F9A',
+      secondarySoft: '#EAF0F3',
+      accent: '#C5A35A',
+      focusRing: '#5DA28D',
+    },
+    dark: {
+      primary: '#67B29C',
+      primarySoft: '#133229',
+      secondary: '#9FB0B8',
+      secondarySoft: '#132026',
+      accent: '#D7B874',
+      focusRing: '#7BC6AF',
+    },
+  },
+  rose: {
+    label: 'Rose',
+    swatch: '#B76C7A',
+    light: {
+      primary: '#B76C7A',
+      primarySoft: '#F6E6EA',
+      secondary: '#7D859C',
+      secondarySoft: '#EEF1F7',
+      accent: '#D4A35F',
+      focusRing: '#CC8E9A',
+    },
+    dark: {
+      primary: '#D2909D',
+      primarySoft: '#331921',
+      secondary: '#AAB1C4',
+      secondarySoft: '#181C29',
+      accent: '#E2B975',
+      focusRing: '#E0A7B2',
+    },
+  },
+};
+
+function applyThemeColorPreset(
+  mode: ThemeMode,
+  colors: ThemeColors,
+  preset: ThemeColorPreset,
+): ThemeColors {
+  const overrides = themeColorPresets[preset][mode];
+  return {
+    ...colors,
+    ...overrides,
+  };
+}
+
 const lightShadows: ThemeShadows = {
   none: {
     shadowOpacity: 0,
@@ -300,10 +409,17 @@ const darkShadows: ThemeShadows = {
   },
 };
 
-export function getTheme(mode: ThemeMode): AppTheme {
+export function getTheme(mode: ThemeMode, colorPreset: ThemeColorPreset = 'ocean'): AppTheme {
+  const colors = applyThemeColorPreset(
+    mode,
+    mode === 'dark' ? darkColors : lightColors,
+    colorPreset,
+  );
+
   return {
     mode,
-    colors: mode === 'dark' ? darkColors : lightColors,
+    colorPreset,
+    colors,
     spacing,
     radius,
     stroke,
@@ -312,7 +428,19 @@ export function getTheme(mode: ThemeMode): AppTheme {
     sizes,
     layout,
     typography,
-    shadows: mode === 'dark' ? darkShadows : lightShadows,
+    shadows: mode === 'dark'
+      ? {
+          ...darkShadows,
+          sm: { ...darkShadows.sm, shadowColor: colors.shadow },
+          md: { ...darkShadows.md, shadowColor: colors.shadow },
+          lg: { ...darkShadows.lg, shadowColor: colors.shadow },
+        }
+      : {
+          ...lightShadows,
+          sm: { ...lightShadows.sm, shadowColor: colors.shadow },
+          md: { ...lightShadows.md, shadowColor: colors.shadow },
+          lg: { ...lightShadows.lg, shadowColor: colors.shadow },
+        },
   };
 }
 

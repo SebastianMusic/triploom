@@ -2,12 +2,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image, View, type ImageSourcePropType } from 'react-native';
 
 import { AppText } from '@/components/ui/text';
+import { ProfileBadgeFrame } from '@/components/ui/profile-badge-frame';
 import type { ProfileBadgePalette } from '@/constants/profile-badges';
+import type { ProfileBadgeLevel } from '@/constants/profile-badges';
 import type { AppTheme, ThemeMode } from '@/constants/theme';
 
 export type PassportCardProps = {
   avatarSource: string;
   badgeColors: ProfileBadgePalette;
+  badgeLevel: ProfileBadgeLevel;
   badgeIcon: keyof typeof Ionicons.glyphMap;
   colors: AppTheme['colors'];
   email: string;
@@ -29,6 +32,7 @@ export type PassportCardProps = {
 export function PassportCard({
   avatarSource,
   badgeColors,
+  badgeLevel,
   badgeIcon,
   colors,
   email,
@@ -155,35 +159,33 @@ export function PassportCard({
 
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
         <View>
-          {source ? (
-            <Image
-              source={source}
-              style={{
-                width: avatarDimension,
-                height: avatarDimension,
-                borderRadius: radius.full,
-                backgroundColor: colors.surfaceMuted,
-                borderWidth: 3,
-                borderColor: colors.surface,
-              }}
-            />
-          ) : (
-            <View
-              style={{
-                width: avatarDimension,
-                height: avatarDimension,
-                borderRadius: radius.full,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: colors.surface,
-                borderWidth: 3,
-                borderColor: lineColor,
-              }}>
-              <AppText style={[typography.subtitle, { color: badgeColors.background }]}>
-                {initials}
-              </AppText>
-            </View>
-          )}
+          <ProfileBadgeFrame level={badgeLevel} size={avatarDimension}>
+            {source ? (
+              <Image
+                source={source}
+                style={{
+                  width: avatarDimension,
+                  height: avatarDimension,
+                  borderRadius: radius.full,
+                  backgroundColor: colors.surfaceMuted,
+                }}
+              />
+            ) : (
+              <View
+                style={{
+                  width: avatarDimension,
+                  height: avatarDimension,
+                  borderRadius: radius.full,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: colors.surface,
+                }}>
+                <AppText style={[typography.subtitle, { color: badgeColors.background }]}>
+                  {initials}
+                </AppText>
+              </View>
+            )}
+          </ProfileBadgeFrame>
           <View
             style={{
               position: 'absolute',

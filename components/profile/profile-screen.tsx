@@ -17,7 +17,11 @@ import { useTripChromeInsets } from '@/components/layout/use-trip-chrome';
 import { BackButton } from '@/components/ui/back-button';
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
-import { getProfileBadge, getProfileBadgePalette } from '@/constants/profile-badges';
+import {
+  getProfileBadge,
+  getProfileBadgePalette,
+} from '@/constants/profile-badges';
+import { themeColorPresets, type ThemeColorPreset } from '@/constants/theme';
 import { useAuthStore } from '@/store/auth.store';
 import { useProfileStore } from '@/store/profile.store';
 import { useTripChromeStore } from '@/store/trip-chrome.store';
@@ -42,6 +46,13 @@ const themeOptions: { value: ThemePreference; label: string; icon: keyof typeof 
   { value: 'dark', label: 'Dark', icon: 'moon-outline' },
 ];
 
+const colorPresetOptions: { value: ThemeColorPreset; label: string }[] = [
+  { value: 'ocean', label: themeColorPresets.ocean.label },
+  { value: 'citrus', label: themeColorPresets.citrus.label },
+  { value: 'forest', label: themeColorPresets.forest.label },
+  { value: 'rose', label: themeColorPresets.rose.label },
+];
+
 export default function ProfileScreen({ showBackButton = false }: ProfileScreenProps) {
   const { session, signOut } = useAuthStore();
   const {
@@ -60,6 +71,8 @@ export default function ProfileScreen({ showBackButton = false }: ProfileScreenP
   } = useAppTheme();
   const themePreference = useThemeStore((state) => state.preference);
   const setThemePreference = useThemeStore((state) => state.setPreference);
+  const colorPreset = useThemeStore((state) => state.colorPreset);
+  const setColorPreset = useThemeStore((state) => state.setColorPreset);
   const setNavigationHidden = useTripChromeStore((state) => state.setNavigationHidden);
   const { bottomOverlayOffset, headerContentOffset } = useTripChromeInsets();
   const passportPreview = usePassportPreviewMotion();
@@ -74,6 +87,8 @@ export default function ProfileScreen({ showBackButton = false }: ProfileScreenP
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
   const [appearanceWidth, setAppearanceWidth] = useState(0);
   const appearanceTranslateIndex = useRef(new Animated.Value(0)).current;
+  const [colorPresetWidth, setColorPresetWidth] = useState(0);
+  const colorPresetTranslateIndex = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (!profile && session?.user) {
@@ -115,7 +130,13 @@ export default function ProfileScreen({ showBackButton = false }: ProfileScreenP
     themeOptions.findIndex((option) => option.value === themePreference),
     0,
   );
+  const activeColorPresetIndex = Math.max(
+    colorPresetOptions.findIndex((option) => option.value === colorPreset),
+    0,
+  );
   const appearanceSegmentWidth = appearanceWidth > 0 ? (appearanceWidth - 8) / themeOptions.length : 0;
+  const colorPresetSegmentWidth =
+    colorPresetWidth > 0 ? (colorPresetWidth - 8) / colorPresetOptions.length : 0;
   useEffect(() => {
     Animated.timing(appearanceTranslateIndex, {
       toValue: activeAppearanceIndex,
@@ -124,6 +145,15 @@ export default function ProfileScreen({ showBackButton = false }: ProfileScreenP
       useNativeDriver: true,
     }).start();
   }, [activeAppearanceIndex, appearanceTranslateIndex]);
+
+  useEffect(() => {
+    Animated.timing(colorPresetTranslateIndex, {
+      toValue: activeColorPresetIndex,
+      duration: 260,
+      easing: Easing.bezier(0.22, 1, 0.36, 1),
+      useNativeDriver: true,
+    }).start();
+  }, [activeColorPresetIndex, colorPresetTranslateIndex]);
 
   useEffect(() => {
     setNavigationHidden(passportPreview.isPreviewVisible);
@@ -327,6 +357,7 @@ export default function ProfileScreen({ showBackButton = false }: ProfileScreenP
                     large
                     avatarSource={avatarSource}
                     badgeColors={badgeColors}
+                    badgeLevel={badge.level}
                     badgeIcon={badge.icon}
                     colors={colors}
                     email={email}
@@ -376,6 +407,7 @@ export default function ProfileScreen({ showBackButton = false }: ProfileScreenP
           <PassportCard
             avatarSource={avatarSource}
             badgeColors={badgeColors}
+            badgeLevel={badge.level}
             badgeIcon={badge.icon}
             colors={colors}
             email={email}
@@ -513,8 +545,14 @@ export default function ProfileScreen({ showBackButton = false }: ProfileScreenP
             gap: spacing.sm,
           }}>
           <View style={{ paddingHorizontal: spacing.xs }}>
-            <AppText style={typography.label}>Appearance</AppText>
+            <AppText style={typography.label}>Personalization</AppText>
           </View>
+          <View style={{ gap: spacing.xs }}>
+            <View style={{ paddingHorizontal: spacing.xs }}>
+              <AppText variant="caption" tone="muted">
+                Theme mode
+              </AppText>
+            </View>
           <View
             onLayout={(event) => {
               setAppearanceWidth(event.nativeEvent.layout.width);
@@ -583,6 +621,87 @@ export default function ProfileScreen({ showBackButton = false }: ProfileScreenP
                 </Pressable>
               );
             })}
+          </View>
+          </View>
+          <View style={{ gap: spacing.xs }}>
+            <View style={{ paddingHorizontal: spacing.xs }}>
+              <AppText variant="caption" tone="muted">
+                Color palette
+              </AppText>
+            </View>
+            <View
+              onLayout={(event) => {
+                setColorPresetWidth(event.nativeEvent.layout.width);
+              }}
+              style={{
+                minHeight: 48,
+                borderRadius: radius.full,
+                padding: 4,
+                flexDirection: 'row',
+                backgroundColor: colors.surfaceMuted,
+              }}>
+              {colorPresetSegmentWidth > 0 ? (
+                <Animated.View
+                  pointerEvents="none"
+                  style={[
+                    {
+                      position: 'absolute',
+                      top: 4,
+                      left: 4,
+                      width: Math.max(colorPresetSegmentWidth, 0),
+                      height: 40,
+                      borderRadius: radius.full,
+                      backgroundColor: colors.surface,
+                      transform: [
+                        {
+                          translateX: Animated.multiply(colorPresetTranslateIndex, colorPresetSegmentWidth),
+                        },
+                      ],
+                    },
+                    shadows.sm,
+                  ]}
+                />
+              ) : null}
+              {colorPresetOptions.map((option) => {
+                const selected = colorPreset === option.value;
+                const preset = themeColorPresets[option.value];
+
+                return (
+                  <Pressable
+                    key={option.value}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected }}
+                    onPress={() => setColorPreset(option.value)}
+                    style={({ pressed }) => ({
+                      flex: 1,
+                      minHeight: 40,
+                      borderRadius: radius.full,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: spacing.xs,
+                      backgroundColor: colors.transparent,
+                      opacity: pressed ? opacity.pressed : 1,
+                    })}>
+                    <View
+                      style={{
+                        width: 12,
+                        height: 12,
+                        borderRadius: radius.full,
+                        backgroundColor: preset.swatch,
+                      }}
+                    />
+                    <AppText
+                      variant="caption"
+                      style={{
+                        color: selected ? colors.primary : colors.textMuted,
+                      }}>
+                      {option.label}
+                    </AppText>
+                  </Pressable>
+                );
+              })}
+            </View>
           </View>
         </View>
 

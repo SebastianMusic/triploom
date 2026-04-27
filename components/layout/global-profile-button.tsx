@@ -4,7 +4,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/ui/avatar';
 import { IconButton } from '@/components/ui/icon-button';
+import { ProfileBadgeFrame } from '@/components/ui/profile-badge-frame';
 import { useAppTheme } from '@/components/ui/theme-provider';
+import { getProfileBadge } from '@/constants/profile-badges';
 import { useProfileStore } from '@/store/profile.store';
 
 const TRIP_ROUTES_WITH_PROFILE_BUTTON = new Set(['home', 'events', 'tasks', 'chat', 'account', 'admin']);
@@ -22,7 +24,7 @@ export function GlobalProfileButton() {
   const router = useRouter();
   const segments = useSegments();
   const insets = useSafeAreaInsets();
-  const { displayAvatarUrl, profile } = useProfileStore();
+  const { displayAvatarUrl, profile, participatedTripCount } = useProfileStore();
   const {
     theme: { layout, spacing },
   } = useAppTheme();
@@ -30,6 +32,7 @@ export function GlobalProfileButton() {
   if (!shouldShowProfileButton(segments)) return null;
 
   const isProfileRoute = segments[1] === 'profile';
+  const badgeLevel = getProfileBadge(participatedTripCount ?? 0).level;
 
   return (
     <View
@@ -55,11 +58,13 @@ export function GlobalProfileButton() {
           active={isProfileRoute}
           size="md"
           icon={
-            <Avatar
-              name={profile?.user_name ?? 'Profile'}
-              size="sm"
-              source={displayAvatarUrl ? { uri: displayAvatarUrl } : undefined}
-            />
+            <ProfileBadgeFrame level={badgeLevel} size={36}>
+              <Avatar
+                name={profile?.user_name ?? 'Profile'}
+                size="sm"
+                source={displayAvatarUrl ? { uri: displayAvatarUrl } : undefined}
+              />
+            </ProfileBadgeFrame>
           }
           onPress={() => {
             if (isProfileRoute) return;

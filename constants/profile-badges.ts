@@ -22,6 +22,14 @@ export type ProfileBadgePalette = {
   soft: string;
 };
 
+export type ProfileBadgeRingPalette = {
+  outer: [string, string, string];
+  inner: [string, string, string];
+  core: string;
+  highlight: string;
+  shadow: string;
+};
+
 const badgePalettes: Record<ThemeMode, Record<ProfileBadgeLevel, ProfileBadgePalette>> = {
   light: {
     iron: {
@@ -79,6 +87,44 @@ const badgePalettes: Record<ThemeMode, Record<ProfileBadgeLevel, ProfileBadgePal
   },
 };
 
+const badgeRingPalettes: Record<ProfileBadgeLevel, ProfileBadgeRingPalette> = {
+  iron: {
+    outer: ['#99A2AE', '#66707B', '#505965'],
+    inner: ['#C7CED6', '#8A939E', '#68717C'],
+    core: '#3E4854',
+    highlight: 'rgba(255,255,255,0.16)',
+    shadow: 'rgba(68, 77, 90, 0.16)',
+  },
+  bronze: {
+    outer: ['#C99462', '#935D38', '#72432A'],
+    inner: ['#E4B789', '#AE764B', '#895637'],
+    core: '#553525',
+    highlight: 'rgba(255,245,232,0.16)',
+    shadow: 'rgba(115, 63, 32, 0.16)',
+  },
+  silver: {
+    outer: ['#E5E9EE', '#A4AFBB', '#7E8995'],
+    inner: ['#F9FBFC', '#CED6DE', '#AAB3BD'],
+    core: '#66717D',
+    highlight: 'rgba(255,255,255,0.18)',
+    shadow: 'rgba(130, 142, 156, 0.16)',
+  },
+  gold: {
+    outer: ['#E4C25C', '#C99723', '#9A6B14'],
+    inner: ['#F4E2A0', '#E0B246', '#B9871E'],
+    core: '#6F5316',
+    highlight: 'rgba(255,247,214,0.18)',
+    shadow: 'rgba(191, 126, 8, 0.16)',
+  },
+  diamond: {
+    outer: ['#B9E3F2', '#5DA9D7', '#2F669C'],
+    inner: ['#EAF9FD', '#8BCAE6', '#4A88C3'],
+    core: '#2A4F77',
+    highlight: 'rgba(255,255,255,0.18)',
+    shadow: 'rgba(27, 95, 198, 0.16)',
+  },
+};
+
 export function getProfileBadge(tripCount: number): ProfileBadge {
   if (tripCount >= 25) {
     return { level: 'diamond', title: 'Diamond', icon: 'diamond', startAt: 25, nextAt: null, range: '25+ trips' };
@@ -101,4 +147,8 @@ export function getProfileBadge(tripCount: number): ProfileBadge {
 
 export function getProfileBadgePalette(mode: ThemeMode, level: ProfileBadgeLevel) {
   return badgePalettes[mode][level];
+}
+
+export function getProfileBadgeRingPalette(level: ProfileBadgeLevel) {
+  return badgeRingPalettes[level];
 }

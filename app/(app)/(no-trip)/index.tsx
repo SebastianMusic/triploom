@@ -7,8 +7,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/ui/button';
 import { FloatingActionButton } from '@/components/ui/floating-action-button';
 import { Avatar } from '@/components/ui/avatar';
+import { ProfileBadgeFrame } from '@/components/ui/profile-badge-frame';
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
+import { getProfileBadge } from '@/constants/profile-badges';
 import { useProfileStore } from '@/store/profile.store';
 import { useTripStore } from '@/store/trip.store';
 import type { TripNextAction } from '@/types';
@@ -400,11 +402,12 @@ export default function TripPickerScreen() {
   const [selectingTripId, setSelectingTripId] = useState<string | null>(null);
 
   const { fetchTrips, trips, tripNextActions, isLoading } = useTripStore();
-  const { profile, displayAvatarUrl, setSelectedTrip } = useProfileStore();
+  const { profile, displayAvatarUrl, participatedTripCount, setSelectedTrip } = useProfileStore();
   const {
     theme: { colors, layout, radius, spacing, typography },
   } = useAppTheme();
   const displayName = profile?.user_name?.trim() || 'traveler';
+  const badgeLevel = getProfileBadge(participatedTripCount ?? 0).level;
 
   useEffect(() => {
     fetchTrips().catch((fetchError: unknown) => {
@@ -505,11 +508,13 @@ export default function TripPickerScreen() {
                 borderRadius: radius.full,
                 opacity: pressed ? 0.84 : 1,
               })}>
-              <Avatar
-                name={profile?.user_name ?? 'Profile'}
-                size="lg"
-                source={displayAvatarUrl ? { uri: displayAvatarUrl } : undefined}
-              />
+              <ProfileBadgeFrame level={badgeLevel} size={64}>
+                <Avatar
+                  name={profile?.user_name ?? 'Profile'}
+                  size="lg"
+                  source={displayAvatarUrl ? { uri: displayAvatarUrl } : undefined}
+                />
+              </ProfileBadgeFrame>
             </Pressable>
             <View style={{ flex: 1 }}>
               <AppText variant="caption" tone="muted" style={{ textTransform: 'uppercase' }}>
