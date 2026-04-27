@@ -1,3 +1,4 @@
+export * from '@/components/layout/global-profile-button';
 export * from '@/components/layout/trip-header';
 export * from '@/components/layout/trip-fade-overlays';
 export * from '@/components/layout/trip-navigation';

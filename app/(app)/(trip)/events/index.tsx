@@ -80,6 +80,7 @@ export default function EventsScreen() {
       <Pressable
         accessibilityLabel="Create event"
         onPress={() => router.push('/(app)/(trip)/events/create_event')}
+        hitSlop={8}
         style={({ pressed }) => ({
           position: 'absolute',
           top: insets.top + spacing.xs,
@@ -87,15 +88,15 @@ export default function EventsScreen() {
           width: sizes.iconButton.md,
           height: sizes.iconButton.md,
           borderRadius: sizes.iconButton.md / 2,
-          backgroundColor: colors.surface,
+          backgroundColor: colors.accent,
           alignItems: 'center',
           justifyContent: 'center',
           opacity: pressed ? 0.8 : 1,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: 0.1,
-          shadowRadius: 2,
-          elevation: 2,
+          shadowColor: colors.shadow,
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.22,
+          shadowRadius: 12,
+          elevation: 3,
         })}>
         <Ionicons name="add" size={22} color={colors.text} />
       </Pressable>

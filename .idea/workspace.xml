@@ -5,19 +5,28 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="6e9e7edf-1c22-4b89-8de2-b36fb60c648c" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/app/(app)/(no-trip)/create/index.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/(app)/(trip)/account/index.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/(app)/profile/index.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/components/layout/global-profile-button.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/store/__tests__/trip.store.test.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/__integration__/trip.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/__integration__/trip.test.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/(app)/(no-trip)/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(app)/(no-trip)/index.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/(app)/(no-trip)/join/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(app)/(no-trip)/join/index.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/(app)/(trip)/events/create_event.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(app)/(trip)/events/create_event.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/events/event-banner-picker.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/events/event-banner-picker.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/ui/button.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/ui/button.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/ui/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/components/ui/index.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/ui/input.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/ui/input.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(app)/(trip)/_layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(app)/(trip)/_layout.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(app)/(trip)/events/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(app)/(trip)/events/index.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(app)/(trip)/profile/index.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(app)/(trip)/tasks/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(app)/(trip)/tasks/index.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(app)/_layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(app)/_layout.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/layout/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/components/layout/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/layout/trip-header.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/layout/trip-header.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/profile/profile-screen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/profile/profile-screen.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/trip/persons-sheet.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/trip/persons-sheet.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ui/back-button.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/ui/back-button.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ui/floating-action-button.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/ui/floating-action-button.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/constants/theme.ts" beforeDir="false" afterPath="$PROJECT_DIR$/constants/theme.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/services/__tests__/trip.service.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/services/__tests__/trip.service.test.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/services/trip.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/services/trip.service.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/services/events.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/services/events.service.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/services/tasks.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/services/tasks.service.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/store/trip.store.ts" beforeDir="false" afterPath="$PROJECT_DIR$/store/trip.store.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/types/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/types/index.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/types/trip.types.ts" beforeDir="false" afterPath="$PROJECT_DIR$/types/trip.types.ts" afterDir="false" />
@@ -28,7 +37,7 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="378" />
+    <option name="cachedIndexableFilesCount" value="395" />
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -48,25 +57,25 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;ui__trips&quot;,
-    &quot;javascript.preferred.runtime.type.id&quot;: &quot;node&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/Emanuel/skole/IKT205/triploom&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;ts.external.directory.path&quot;: &quot;C:\\Users\\Emanuel\\skole\\IKT205\\triploom\\node_modules\\typescript\\lib&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.MCP Project settings loaded": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "git-widget-placeholder": "Rebasing ui__trips",
+    "javascript.preferred.runtime.type.id": "node",
+    "last_opened_file_path": "C:/Users/Emanuel/skole/IKT205/triploom",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "ts.external.directory.path": "C:\\Users\\Emanuel\\skole\\IKT205\\triploom\\node_modules\\typescript\\lib",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
@@ -86,6 +95,7 @@
       <workItem from="1776672056339" duration="5603000" />
       <workItem from="1776759501273" duration="7572000" />
       <workItem from="1776859000185" duration="10451000" />
+      <workItem from="1777273597275" duration="8295000" />
     </task>
     <servers />
   </component>

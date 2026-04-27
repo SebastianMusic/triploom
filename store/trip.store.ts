@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { Trip, TripParticipant } from '@/types';
 import { TripRole } from '@/types';
-import type { CreateTripDTO, TripWithRole } from '@/types/trip.types';
+import type { CreateTripDTO, TripNextAction, TripWithRole } from '@/types/trip.types';
 import type { RedeemInviteResponse } from '@/types/invite.types';
 import {
   createTrip as createTripService,
@@ -19,11 +19,25 @@ import {
   generateInviteLink as generateInviteLinkService,
   redeemInviteLink as redeemInviteLinkService,
 } from '@/services/invite.service';
+import { getUpcomingEventsForTrips } from '@/services/events.service';
+import { getUpcomingTasksForTrips } from '@/services/tasks.service';
+
+function shouldReplaceTripAction(
+  current: TripNextAction | null,
+  candidate: TripNextAction,
+): boolean {
+  if (!current) return true;
+  if (candidate.priority !== current.priority) {
+    return candidate.priority < current.priority;
+  }
+  return new Date(candidate.at).getTime() < new Date(current.at).getTime();
+}
 
 interface TripState {
   currentTrip: Trip | null;
   currentParticipant: TripParticipant | null;
   trips: TripWithRole[];
+  tripNextActions: Record<string, TripNextAction | null>;
   participants: TripParticipant[];
   participantsWithProfiles: TripParticipantWithProfile[];
   isLoadingParticipants: boolean;
@@ -34,6 +48,7 @@ interface TripState {
   inviteError: string | null;
   setCurrentTrip: (trip: Trip | null) => void;
   setTrips: (trips: TripWithRole[]) => void;
+  fetchTripNextActions: (tripIds?: string[]) => Promise<void>;
   fetchTrips: () => Promise<void>;
   setParticipants: (participants: TripParticipant[]) => void;
   setLoading: (isLoading: boolean) => void;
@@ -53,6 +68,7 @@ export const useTripStore = create<TripState>()((set) => ({
   currentTrip: null,
   currentParticipant: null,
   trips: [],
+  tripNextActions: {},
   participants: [],
   participantsWithProfiles: [],
   isLoadingParticipants: false,
@@ -66,11 +82,63 @@ export const useTripStore = create<TripState>()((set) => ({
   setTrips: (trips) => set({ trips }),
   setParticipants: (participants) => set({ participants }),
   setLoading: (isLoading) => set({ isLoading }),
+  fetchTripNextActions: async (tripIds) => {
+    const ids = tripIds?.filter(Boolean) ?? [];
+    if (!ids.length) {
+      set({ tripNextActions: {} });
+      return;
+    }
+
+    const [events, tasks] = await Promise.all([
+      getUpcomingEventsForTrips(ids),
+      getUpcomingTasksForTrips(ids),
+    ]);
+
+    const nextActions: Record<string, TripNextAction | null> = Object.fromEntries(
+      ids.map((tripId) => [tripId, null]),
+    );
+
+    for (const event of events) {
+      if (!event.trip_id || !event.start_time) continue;
+      const candidate: TripNextAction = {
+        type: 'event',
+        tripId: event.trip_id,
+        title: event.title ?? 'Untitled event',
+        at: event.start_time,
+        priority: event.is_optional === false ? 1 : 2,
+      };
+
+      const current = nextActions[event.trip_id];
+      if (shouldReplaceTripAction(current, candidate)) {
+        nextActions[event.trip_id] = candidate;
+      }
+    }
+
+    for (const task of tasks) {
+      if (!task.trip_id || !task.due_time) continue;
+      const candidate: TripNextAction = {
+        type: 'task',
+        tripId: task.trip_id,
+        title: task.title ?? 'Untitled task',
+        at: task.due_time,
+        priority: 0,
+      };
+
+      const current = nextActions[task.trip_id];
+      if (shouldReplaceTripAction(current, candidate)) {
+        nextActions[task.trip_id] = candidate;
+      }
+    }
+
+    set({ tripNextActions: nextActions });
+  },
   fetchTrips: async () => {
     set({ isLoading: true });
     try {
       const trips = await getTripsService();
+      const tripIds = trips.map((trip) => trip.id);
       set({ trips, isLoading: false });
+      await useTripStore.getState().fetchTripNextActions(tripIds);
     } catch (error) {
       set({ isLoading: false });
       throw error;
@@ -83,6 +151,7 @@ export const useTripStore = create<TripState>()((set) => ({
       const trip = await createTripService(dto);
       set((state) => ({
         trips: [...state.trips, { ...trip, userRole: TripRole.Organizer }],
+        tripNextActions: { ...state.tripNextActions, [trip.id]: null },
         isLoading: false,
       }));
       return trip;
@@ -106,6 +175,9 @@ export const useTripStore = create<TripState>()((set) => ({
       await deleteTripService(tripId);
       set((state) => ({
         trips: state.trips.filter((t) => t.id !== tripId),
+        tripNextActions: Object.fromEntries(
+          Object.entries(state.tripNextActions).filter(([id]) => id !== tripId),
+        ),
         isLoading: false,
       }));
     } catch (error) {
@@ -174,6 +246,11 @@ export const useTripStore = create<TripState>()((set) => ({
 
   leaveTrip: async (tripId: string) => {
     await leaveTripService(tripId);
-    set((state) => ({ trips: state.trips.filter((t) => t.id !== tripId) }));
+    set((state) => ({
+      trips: state.trips.filter((t) => t.id !== tripId),
+      tripNextActions: Object.fromEntries(
+        Object.entries(state.tripNextActions).filter(([id]) => id !== tripId),
+      ),
+    }));
   },
 }));

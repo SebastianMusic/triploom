@@ -17,7 +17,7 @@ export type { GenerateInviteDTO, GenerateInviteResponse, RedeemInviteDTO, Redeem
 export { updateSelectedTripSchema } from './profile.types';
 export type { UpdateSelectedTripDTO } from './profile.types';
 export { createTripSchema, TripEventPermission, TripRole } from './trip.types';
-export type { CreateTripDTO } from './trip.types';
+export type { CreateTripDTO, TripNextAction } from './trip.types';
 export { createTaskSchema, updateTaskSchema, createTaskFieldSchema, createTaskFieldOptionSchema, TaskFieldType, TASK_FIELD_TYPE_LABELS, TASK_FIELD_TYPE_OPTIONS, fieldNeedsOptions } from './tasks.types';
 export type { CreateTaskDTO, UpdateTaskDTO, CreateTaskFieldDTO, CreateTaskFieldOptionDTO, FieldDraft } from './tasks.types';
 

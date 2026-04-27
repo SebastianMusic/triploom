@@ -1,16 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, Easing, ImageBackground, Modal, Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Animated, Easing, ImageBackground, Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/button';
 import { FloatingActionButton } from '@/components/ui/floating-action-button';
-import { IconButton } from '@/components/ui/icon-button';
+import { Avatar } from '@/components/ui/avatar';
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import { useProfileStore } from '@/store/profile.store';
 import { useTripStore } from '@/store/trip.store';
+import type { TripNextAction } from '@/types';
 import { TripRole, type TripWithRole } from '@/types/trip.types';
 
 type TripBucket = 'active' | 'past';
@@ -39,8 +40,7 @@ function getTripBucket(trip: TripWithRole): TripBucket {
 }
 
 function roleLabel(role: TripRole) {
-  if (role === TripRole.CoOrganizer) return 'Co-organizer';
-  if (role === TripRole.Organizer) return 'Organizer';
+  if (role === TripRole.CoOrganizer || role === TripRole.Organizer) return 'Organizer';
   return 'Participant';
 }
 
@@ -48,7 +48,6 @@ type TripActionProps = {
   disabled: boolean;
   selecting: boolean;
   trip: TripWithRole;
-  onOptions: (trip: TripWithRole) => void;
   onSelect: (tripId: string) => void;
 };
 
@@ -88,14 +87,18 @@ function StatusPill({ label }: { label: string }) {
     <View
       style={{
         alignSelf: 'flex-start',
-        paddingHorizontal: spacing.sm,
-        paddingVertical: spacing.xs,
+        width: 36,
+        height: 36,
         borderRadius: radius.full,
         backgroundColor: colors.surface,
+        alignItems: 'center',
+        justifyContent: 'center',
       }}>
-      <AppText variant="caption" tone="primary">
-        {label}
-      </AppText>
+      <Ionicons
+        name={label === 'Organizer' ? 'construct-outline' : 'person-outline'}
+        size={16}
+        color={colors.primary}
+      />
     </View>
   );
 }
@@ -104,15 +107,45 @@ function valueOrFallback(value: string | null | undefined) {
   return value && value.trim().length > 0 ? value : 'no value';
 }
 
-function getNextActionPreview() {
-  return 'no value';
+function formatActionDateTime(iso: string) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return null;
+
+  return date.toLocaleString(undefined, {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
-function TripSummaryCard({ trip, disabled, selecting, onSelect, onOptions }: TripActionProps) {
+function getNextActionPreview(action: TripNextAction | null | undefined) {
+  if (!action) {
+    return {
+      label: 'Nothing scheduled yet',
+      meta: null,
+    };
+  }
+
+  return {
+    label: action.title,
+    meta: `${action.type === 'event' ? 'Event' : 'Task'}${formatActionDateTime(action.at) ? ` · ${formatActionDateTime(action.at)}` : ''}`,
+  };
+}
+
+function TripSummaryCard({
+  trip,
+  disabled,
+  selecting,
+  nextAction,
+  onSelect,
+}: TripActionProps & { nextAction: TripNextAction | null | undefined }) {
   const {
     theme: { colors, radius, spacing, typography },
   } = useAppTheme();
   const bannerSource = trip.banner_image_url;
+  const actionPreview = getNextActionPreview(nextAction);
+  const cardDimOverlay = 'rgba(20, 32, 43, 0.44)';
 
   return (
     <Pressable
@@ -130,116 +163,174 @@ function TripSummaryCard({ trip, disabled, selecting, onSelect, onOptions }: Tri
           overflow: 'hidden',
           backgroundColor: colors.surface,
         }}>
-        {bannerSource ? (
-          <ImageBackground source={{ uri: bannerSource }} resizeMode="cover" style={{ height: 168 }}>
+        <View style={{ position: 'relative', aspectRatio: 3 / 2, backgroundColor: colors.primary }}>
+          {bannerSource ? (
+            <ImageBackground source={{ uri: bannerSource }} resizeMode="cover" style={{ flex: 1 }}>
+              <View
+                style={{
+                  flex: 1,
+                  padding: spacing.md,
+                  justifyContent: 'space-between',
+                  backgroundColor: cardDimOverlay,
+                }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: spacing.sm }}>
+                  <View style={{ flex: 1, gap: spacing.xs }}>
+                    <AppText style={[typography.body, { color: colors.textOnPrimary, fontSize: 14, lineHeight: 18 }]}>
+                      {formatDateRange(trip)}
+                    </AppText>
+                    <AppText
+                      numberOfLines={1}
+                      style={[
+                        typography.title,
+                        { color: colors.textOnPrimary, fontSize: 28, lineHeight: 30 },
+                      ]}>
+                      {valueOrFallback(trip.name)}
+                    </AppText>
+                  </View>
+                  <StatusPill label={roleLabel(trip.userRole)} />
+                </View>
+
+                <View
+                  style={{
+                    paddingTop: spacing.sm,
+                    borderTopWidth: 1,
+                    borderTopColor: 'rgba(255,255,255,0.22)',
+                    flexDirection: 'row',
+                    alignItems: 'flex-end',
+                    justifyContent: 'space-between',
+                    gap: spacing.sm,
+                  }}>
+                  <View
+                    style={{
+                      flex: 1,
+                      paddingRight: spacing.md,
+                    }}>
+                    <AppText
+                      numberOfLines={2}
+                      style={[typography.subtitle, { color: colors.textOnPrimary, fontSize: 18, lineHeight: 22 }]}>
+                      {actionPreview.label}
+                    </AppText>
+                  </View>
+                  {actionPreview.meta ? (
+                    <AppText
+                      numberOfLines={2}
+                      style={[
+                        typography.caption,
+                        { color: colors.textOnPrimary, opacity: 0.84, textAlign: 'right', maxWidth: '42%' },
+                      ]}>
+                      {actionPreview.meta}
+                    </AppText>
+                  ) : null}
+                </View>
+              </View>
+            </ImageBackground>
+          ) : (
             <View
               style={{
                 flex: 1,
-                padding: spacing.sm,
+                padding: spacing.md,
                 justifyContent: 'space-between',
-                backgroundColor: colors.overlay,
+                backgroundColor: colors.primary,
+                overflow: 'hidden',
               }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <StatusPill label={roleLabel(trip.userRole)} />
-                <IconButton
-                  icon={<Ionicons name="ellipsis-horizontal" size={20} color={colors.icon} />}
-                  disabled={disabled}
-                  onPress={() => onOptions(trip)}
-                />
-              </View>
-
-              <View style={{ gap: 2 }}>
-                <AppText numberOfLines={1} style={[typography.subtitle, { color: colors.textOnPrimary }]}>
-                  {valueOrFallback(trip.name)}
-                </AppText>
-                <AppText variant="caption" style={{ color: colors.textOnPrimary }}>
-                  {formatDateRange(trip)}
-                </AppText>
-              </View>
-            </View>
-          </ImageBackground>
-        ) : (
-          <View
-            style={{
-              position: 'relative',
-              height: 168,
-              padding: spacing.sm,
-              justifyContent: 'space-between',
-              backgroundColor: colors.primary,
-              overflow: 'hidden',
-            }}>
-            <View
-              pointerEvents="none"
-              style={{
-                position: 'absolute',
-                top: -42,
-                right: -28,
-                width: 142,
-                height: 142,
-                borderRadius: radius.full,
-                borderWidth: 1,
-                borderColor: colors.primarySoft,
-                opacity: 0.32,
-              }}
-            />
-            <View
-              pointerEvents="none"
-              style={{
-                position: 'absolute',
-                left: -20,
-                bottom: 34,
-                width: '72%',
-                height: 1,
-                backgroundColor: colors.primarySoft,
-                opacity: 0.38,
-                transform: [{ rotate: '-10deg' }],
-              }}
-            />
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <StatusPill label={roleLabel(trip.userRole)} />
-              <IconButton
-                icon={<Ionicons name="ellipsis-horizontal" size={20} color={colors.icon} />}
-                disabled={disabled}
-                onPress={() => onOptions(trip)}
+              <View
+                pointerEvents="none"
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  backgroundColor: cardDimOverlay,
+                }}
               />
-            </View>
+              <View
+                pointerEvents="none"
+                style={{
+                  position: 'absolute',
+                  top: -42,
+                  right: -28,
+                  width: 142,
+                  height: 142,
+                  borderRadius: radius.full,
+                  borderWidth: 1,
+                  borderColor: colors.primarySoft,
+                  opacity: 0.32,
+                }}
+              />
+              <View
+                pointerEvents="none"
+                style={{
+                  position: 'absolute',
+                  left: -20,
+                  bottom: 34,
+                  width: '72%',
+                  height: 1,
+                  backgroundColor: colors.primarySoft,
+                  opacity: 0.38,
+                  transform: [{ rotate: '-10deg' }],
+                }}
+              />
 
-            <View style={{ gap: 2 }}>
-              <AppText numberOfLines={1} style={[typography.subtitle, { color: colors.textOnPrimary }]}>
-                {valueOrFallback(trip.name)}
-              </AppText>
-              <AppText variant="caption" style={{ color: colors.primarySoft }}>
-                {formatDateRange(trip)}
-              </AppText>
-            </View>
-          </View>
-        )}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: spacing.sm }}>
+                <View style={{ flex: 1, gap: spacing.xs }}>
+                  <AppText style={[typography.body, { color: colors.primarySoft, fontSize: 14, lineHeight: 18 }]}>
+                    {formatDateRange(trip)}
+                  </AppText>
+                  <AppText
+                    numberOfLines={1}
+                    style={[
+                      typography.title,
+                      { color: colors.textOnPrimary, fontSize: 28, lineHeight: 30 },
+                    ]}>
+                    {valueOrFallback(trip.name)}
+                  </AppText>
+                </View>
+                <StatusPill label={roleLabel(trip.userRole)} />
+              </View>
 
-        <View style={{ padding: spacing.sm }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.sm }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, flex: 1 }}>
               <View
                 style={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: radius.full,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: colors.accent,
+                  paddingTop: spacing.sm,
+                  borderTopWidth: 1,
+                  borderTopColor: 'rgba(255,255,255,0.2)',
+                  flexDirection: 'row',
+                  alignItems: 'flex-end',
+                  justifyContent: 'space-between',
+                  gap: spacing.sm,
                 }}>
-                <Ionicons name="flag-outline" size={16} color={colors.text} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <AppText variant="caption" tone="muted">
-                  Next action
-                </AppText>
-                <AppText numberOfLines={1} style={typography.label}>
-                  {getNextActionPreview()}
-                </AppText>
+                <View
+                  style={{
+                    flex: 1,
+                    paddingRight: spacing.md,
+                  }}>
+                  <AppText
+                    numberOfLines={2}
+                    style={[typography.subtitle, { color: colors.textOnPrimary, fontSize: 18, lineHeight: 22 }]}>
+                    {actionPreview.label}
+                  </AppText>
+                </View>
+                {actionPreview.meta ? (
+                  <AppText
+                    numberOfLines={2}
+                    style={[
+                      typography.caption,
+                      { color: colors.textOnPrimary, opacity: 0.82, textAlign: 'right', maxWidth: '42%' },
+                    ]}>
+                    {actionPreview.meta}
+                  </AppText>
+                ) : null}
               </View>
             </View>
-            {selecting ? <ActivityIndicator color={colors.primary} /> : null}
-          </View>
+          )}
+
+          {selecting ? (
+            <View
+              style={{
+                position: 'absolute',
+                right: spacing.sm,
+                bottom: spacing.sm,
+              }}>
+              <ActivityIndicator color={colors.textOnPrimary} />
+            </View>
+          ) : null}
         </View>
       </View>
     </Pressable>
@@ -291,137 +382,29 @@ function CompactPastTripCard({ trip, disabled, selecting, onSelect, onOptions }:
           <AppText variant="caption" tone="muted">
             {formatDateRange(trip)}
           </AppText>
-          <AppText numberOfLines={1} variant="caption" tone="secondary">
-            {roleLabel(trip.userRole)}
-          </AppText>
         </View>
-        {selecting ? (
-          <ActivityIndicator color={colors.primary} />
-        ) : (
-          <IconButton
-            variant="ghost"
-            icon={<Ionicons name="ellipsis-horizontal" size={20} color={colors.icon} />}
-            disabled={disabled}
-            onPress={() => onOptions(trip)}
-          />
-        )}
+        <StatusPill label={roleLabel(trip.userRole)} />
+        {selecting ? <ActivityIndicator color={colors.primary} /> : null}
       </View>
     </Pressable>
   );
 }
 
-type TripOptionsSheetProps = {
-  trip: TripWithRole | null;
-  visible: boolean;
-  onClose: () => void;
-  onLeave: (trip: TripWithRole) => void;
-  onDelete: (trip: TripWithRole) => void;
-};
-
-function TripOptionsSheet({ trip, visible, onClose, onLeave, onDelete }: TripOptionsSheetProps) {
-  const {
-    theme: { colors, radius, spacing, typography },
-  } = useAppTheme();
-
-  if (!trip) return null;
-
-  const canDelete = trip.userRole === TripRole.Organizer;
-
-  return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable
-        onPress={onClose}
-        style={{
-          flex: 1,
-          justifyContent: 'flex-end',
-          backgroundColor: colors.overlayStrong,
-        }}>
-        <View
-          style={{
-            padding: spacing.md,
-            paddingBottom: spacing.lg,
-            borderTopLeftRadius: radius.xl,
-            borderTopRightRadius: radius.xl,
-            backgroundColor: colors.background,
-            gap: spacing.sm,
-          }}>
-          <View style={{ gap: spacing.xs, marginBottom: spacing.xs }}>
-            <AppText style={typography.label}>{trip.name ?? 'Trip settings'}</AppText>
-            <AppText variant="caption" tone="muted">
-              {roleLabel(trip.userRole)} - {formatDateRange(trip)}
-            </AppText>
-          </View>
-
-          <Pressable
-            onPress={() => {
-              onClose();
-              onLeave(trip);
-            }}
-            style={({ pressed }) => ({
-              padding: spacing.sm,
-              borderRadius: radius.md,
-              backgroundColor: colors.surface,
-              opacity: pressed ? 0.9 : 1,
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: spacing.sm,
-            })}>
-            <Ionicons name="exit-outline" size={20} color={colors.error} />
-            <View style={{ flex: 1 }}>
-              <AppText style={typography.label}>Leave trip</AppText>
-              <AppText variant="caption" tone="muted">
-                Remove yourself from this trip.
-              </AppText>
-            </View>
-          </Pressable>
-
-          {canDelete ? (
-            <Pressable
-              onPress={() => {
-                onClose();
-                onDelete(trip);
-              }}
-              style={({ pressed }) => ({
-                padding: spacing.sm,
-                borderRadius: radius.md,
-                backgroundColor: colors.surface,
-                opacity: pressed ? 0.9 : 1,
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: spacing.sm,
-              })}>
-              <Ionicons name="trash-outline" size={20} color={colors.error} />
-              <View style={{ flex: 1 }}>
-                <AppText style={typography.label}>Delete trip</AppText>
-                <AppText variant="caption" tone="muted">
-                  Permanently delete this trip for everyone.
-                </AppText>
-              </View>
-            </Pressable>
-          ) : null}
-
-          <Button label="Cancel" variant="secondary" onPress={onClose} />
-        </View>
-      </Pressable>
-    </Modal>
-  );
-}
-
 export default function TripPickerScreen() {
+  const appRouter = useRouter();
   const insets = useSafeAreaInsets();
   const menuProgress = useRef(new Animated.Value(0)).current;
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectionError, setSelectionError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [selectingTripId, setSelectingTripId] = useState<string | null>(null);
-  const [mutatingTripId, setMutatingTripId] = useState<string | null>(null);
-  const [optionsTrip, setOptionsTrip] = useState<TripWithRole | null>(null);
 
-  const { fetchTrips, trips, isLoading, leaveTrip, deleteTrip } = useTripStore();
-  const { setSelectedTrip } = useProfileStore();
+  const { fetchTrips, trips, tripNextActions, isLoading } = useTripStore();
+  const { profile, displayAvatarUrl, setSelectedTrip } = useProfileStore();
   const {
     theme: { colors, layout, radius, spacing, typography },
   } = useAppTheme();
+  const displayName = profile?.user_name?.trim() || 'traveler';
 
   useEffect(() => {
     fetchTrips().catch((fetchError: unknown) => {
@@ -445,7 +428,7 @@ export default function TripPickerScreen() {
     [trips],
   );
 
-  const isBusy = isLoading || selectingTripId !== null || mutatingTripId !== null;
+  const isBusy = isLoading || selectingTripId !== null;
 
   useEffect(() => {
     Animated.timing(menuProgress, {
@@ -491,52 +474,6 @@ export default function TripPickerScreen() {
     }
   }
 
-  function handleLeaveTrip(trip: TripWithRole) {
-    const tripName = trip.name ?? 'this trip';
-    Alert.alert('Leave Trip', `Are you sure you want to leave "${tripName}"?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Leave',
-        style: 'destructive',
-        onPress: async () => {
-          setMutatingTripId(trip.id);
-          try {
-            await leaveTrip(trip.id);
-          } catch {
-            setSelectionError('Failed to leave trip. Please try again.');
-          } finally {
-            setMutatingTripId(null);
-          }
-        },
-      },
-    ]);
-  }
-
-  function handleDeleteTrip(trip: TripWithRole) {
-    const tripName = trip.name ?? 'this trip';
-    Alert.alert('Delete Trip', `Delete "${tripName}"? This cannot be undone.`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          setMutatingTripId(trip.id);
-          try {
-            await deleteTrip(trip.id);
-          } catch (deleteError: unknown) {
-            Alert.alert('Error', deleteError instanceof Error ? deleteError.message : 'Failed to delete trip.');
-          } finally {
-            setMutatingTripId(null);
-          }
-        },
-      },
-    ]);
-  }
-
-  function handleTripOptions(trip: TripWithRole) {
-    setOptionsTrip(trip);
-  }
-
   function handleJoinWithCode() {
     router.push('./join');
   }
@@ -558,11 +495,28 @@ export default function TripPickerScreen() {
           gap: spacing.xl,
         }}>
         <View style={{ paddingHorizontal: layout.screenPadding, gap: spacing.lg }}>
-          <View>
-            <AppText variant="caption" tone="muted" style={{ textTransform: 'uppercase' }}>
-              Welcome back
-            </AppText>
-            <AppText style={typography.title}>Your Trips</AppText>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Open profile"
+              onPress={() => appRouter.push('/(app)/profile')}
+              hitSlop={16}
+              style={({ pressed }) => ({
+                borderRadius: radius.full,
+                opacity: pressed ? 0.84 : 1,
+              })}>
+              <Avatar
+                name={profile?.user_name ?? 'Profile'}
+                size="lg"
+                source={displayAvatarUrl ? { uri: displayAvatarUrl } : undefined}
+              />
+            </Pressable>
+            <View style={{ flex: 1 }}>
+              <AppText variant="caption" tone="muted" style={{ textTransform: 'uppercase' }}>
+                WELCOME BACK {displayName.toUpperCase()}!
+              </AppText>
+              <AppText style={typography.title}>Your Trips</AppText>
+            </View>
           </View>
 
           {selectionError ? (
@@ -615,10 +569,10 @@ export default function TripPickerScreen() {
                   <TripSummaryCard
                     key={trip.id}
                     trip={trip}
+                    nextAction={tripNextActions[trip.id]}
                     disabled={isBusy}
-                    selecting={selectingTripId === trip.id || mutatingTripId === trip.id}
+                    selecting={selectingTripId === trip.id}
                     onSelect={handleSelectTrip}
-                    onOptions={handleTripOptions}
                   />
                 ))}
               </View>
@@ -634,9 +588,8 @@ export default function TripPickerScreen() {
                     key={trip.id}
                     trip={trip}
                     disabled={isBusy}
-                    selecting={selectingTripId === trip.id || mutatingTripId === trip.id}
+                    selecting={selectingTripId === trip.id}
                     onSelect={handleSelectTrip}
-                    onOptions={handleTripOptions}
                   />
                 ))}
               </View>
@@ -701,18 +654,10 @@ export default function TripPickerScreen() {
       <FloatingActionButton
         icon={
           <Animated.View style={{ transform: [{ rotate: iconRotate }] }}>
-            <Ionicons name="add" size={28} color={colors.textOnPrimary} />
+            <Ionicons name="add" size={28} color={colors.text} />
           </Animated.View>
         }
         onPress={() => setMenuOpen((open) => !open)}
-      />
-
-      <TripOptionsSheet
-        trip={optionsTrip}
-        visible={optionsTrip !== null}
-        onClose={() => setOptionsTrip(null)}
-        onLeave={handleLeaveTrip}
-        onDelete={handleDeleteTrip}
       />
     </View>
   );

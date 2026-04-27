@@ -14,6 +14,7 @@ import EditProfileScreen from '@/components/profile/edit-profile-screen';
 import { PassportCard, PassportCardBack } from '@/components/profile/passport-card';
 import { usePassportPreviewMotion } from '@/components/profile/use-passport-preview-motion';
 import { useTripChromeInsets } from '@/components/layout/use-trip-chrome';
+import { BackButton } from '@/components/ui/back-button';
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import { getProfileBadge, getProfileBadgePalette } from '@/constants/profile-badges';
@@ -31,13 +32,17 @@ type ProfileActionRowProps = {
   onPress?: () => void;
 };
 
+type ProfileScreenProps = {
+  showBackButton?: boolean;
+};
+
 const themeOptions: { value: ThemePreference; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { value: 'native', label: 'Native', icon: 'phone-portrait-outline' },
   { value: 'light', label: 'Light', icon: 'sunny-outline' },
   { value: 'dark', label: 'Dark', icon: 'moon-outline' },
 ];
 
-export default function ProfileScreen() {
+export default function ProfileScreen({ showBackButton = false }: ProfileScreenProps) {
   const { session, signOut } = useAuthStore();
   const {
     profile,
@@ -111,7 +116,6 @@ export default function ProfileScreen() {
     0,
   );
   const appearanceSegmentWidth = appearanceWidth > 0 ? (appearanceWidth - 8) / themeOptions.length : 0;
-
   useEffect(() => {
     Animated.timing(appearanceTranslateIndex, {
       toValue: activeAppearanceIndex,
@@ -355,6 +359,8 @@ export default function ProfileScreen() {
           paddingHorizontal: layout.screenPadding,
           gap: spacing.md,
         }}>
+        {showBackButton ? <BackButton /> : null}
+
         <View style={{ alignItems: 'center', gap: spacing.xs }}>
           <AppText variant="subtitle" style={{ textAlign: 'center', color: colors.primary }}>
             Triploom Passport

@@ -17,7 +17,8 @@ export function BackButton({ accessibilityLabel = 'Go back', onPress, ...props }
   return (
     <IconButton
       accessibilityLabel={accessibilityLabel}
-      icon={<Ionicons name="chevron-back" size={22} color={colors.icon} />}
+      size="lg"
+      icon={<Ionicons name="chevron-back" size={24} color={colors.icon} />}
       onPress={(event) => {
         if (onPress) {
           onPress(event);

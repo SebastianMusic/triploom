@@ -27,3 +27,11 @@ export const createTripSchema = z.object({
 export type CreateTripDTO = z.infer<typeof createTripSchema>;
 
 export type TripWithRole = import('@/types').Trip & { userRole: TripRole };
+
+export type TripNextAction = {
+  type: 'event' | 'task';
+  tripId: string;
+  title: string;
+  at: string;
+  priority: number;
+};
