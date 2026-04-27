@@ -7,11 +7,10 @@
     <list default="true" id="6e9e7edf-1c22-4b89-8de2-b36fb60c648c" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/(app)/(no-trip)/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(app)/(no-trip)/index.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/layout/global-profile-button.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/layout/global-profile-button.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/layout/trip-header.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/layout/trip-header.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/profile/passport-card.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/profile/passport-card.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(app)/(trip)/account/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(app)/(trip)/account/index.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(app)/profile/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(app)/profile/index.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/components/profile/profile-screen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/profile/profile-screen.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/constants/profile-badges.ts" beforeDir="false" afterPath="$PROJECT_DIR$/constants/profile-badges.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/constants/theme.ts" beforeDir="false" afterPath="$PROJECT_DIR$/constants/theme.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
