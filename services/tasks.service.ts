@@ -207,7 +207,7 @@ export async function sendTaskReminder(taskTitle: string, userIds: string[]): Pr
   if (!userIds.length) return;
 
   const { error } = await supabase.functions.invoke('send-notification', {
-    body: { title: 'Påminnelse om oppgave', body: taskTitle, user_ids: userIds },
+    body: { title: 'Task reminder', body: taskTitle, user_ids: userIds },
   });
   if (error) throw error;
 }
