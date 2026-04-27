@@ -58,14 +58,24 @@ const TRIP_SCREEN_TITLES: Record<string, string> = {
   'events/index': 'Events',
   'tasks/index': 'Tasks',
   'chat/index': 'Chat',
+  'chat/[roomId]': 'Chat',
   'profile/index': 'Profile',
   'admin/index': 'Admin',
+  'admin/people': 'People & groups',
 };
+
+export const PRIMARY_TRIP_ROUTE_NAMES = new Set<string>([
+  'home/index',
+  'events/index',
+  'tasks/index',
+  'chat/index',
+  'admin/index',
+]);
 
 export function getTripScreenTitle(routeName: string) {
   return TRIP_SCREEN_TITLES[routeName] ?? 'Trip';
 }
 
 export function isPrimaryTripTab(routeName: string) {
-  return TRIP_TAB_ITEMS.some((item) => item.routeName === routeName);
+  return PRIMARY_TRIP_ROUTE_NAMES.has(routeName);
 }

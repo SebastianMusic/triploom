@@ -78,7 +78,7 @@ export default function ProfileScreen({
   const colorPreset = useThemeStore((state) => state.colorPreset);
   const setColorPreset = useThemeStore((state) => state.setColorPreset);
   const setNavigationHidden = useTripChromeStore((state) => state.setNavigationHidden);
-  const { bottomOverlayOffset, headerContentOffset, safeAreaInsets } = useTripChromeInsets();
+  const { headerContentOffset, safeAreaInsets } = useTripChromeInsets();
   const passportPreview = usePassportPreviewMotion();
 
   const [showEditScreen, setShowEditScreen] = useState(false);
@@ -301,6 +301,7 @@ export default function ProfileScreen({
         onSave={handleSaveChanges}
         isSaving={isSaving}
         errorMessage={saveError}
+        useTripChromeInsets={shouldUseTripChromeInsets}
       />
     );
   }
@@ -391,9 +392,7 @@ export default function ProfileScreen({
         contentContainerStyle={{
           flexGrow: 1,
           paddingTop: shouldUseTripChromeInsets ? headerContentOffset : safeAreaInsets.top + spacing.md,
-          paddingBottom: shouldUseTripChromeInsets
-            ? bottomOverlayOffset
-            : Math.max(safeAreaInsets.bottom, spacing.md) + spacing.xl,
+          paddingBottom: Math.max(safeAreaInsets.bottom, spacing.md) + spacing.xl,
           paddingHorizontal: layout.screenPadding,
           gap: spacing.md,
         }}>

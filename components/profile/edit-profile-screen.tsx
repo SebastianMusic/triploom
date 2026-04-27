@@ -29,6 +29,7 @@ type EditProfileScreenProps = {
   onSave: () => void;
   isSaving?: boolean;
   errorMessage?: string | null;
+  useTripChromeInsets?: boolean;
 };
 
 type AvatarModal = 'none' | 'menu' | 'camera' | 'view';
@@ -44,6 +45,7 @@ export default function EditProfileScreen({
   onSave,
   isSaving = false,
   errorMessage,
+  useTripChromeInsets: shouldUseTripChromeInsets = false,
 }: EditProfileScreenProps) {
   const [activeModal, setActiveModal] = useState<AvatarModal>('none');
   const insets = useSafeAreaInsets();
@@ -51,7 +53,7 @@ export default function EditProfileScreen({
     mode,
     theme: { colors, layout, opacity, radius, shadows, spacing, typography },
   } = useAppTheme();
-  const { bottomOverlayOffset, headerContentOffset } = useTripChromeInsets();
+  const { headerContentOffset } = useTripChromeInsets();
 
   const initials =
     fullName
@@ -146,8 +148,8 @@ export default function EditProfileScreen({
         style={{ flex: 1 }}
         contentContainerStyle={{
           flexGrow: 1,
-          paddingTop: headerContentOffset,
-          paddingBottom: bottomOverlayOffset,
+          paddingTop: shouldUseTripChromeInsets ? headerContentOffset : insets.top + spacing.md,
+          paddingBottom: insets.bottom + spacing.xl,
           paddingHorizontal: layout.screenPadding,
           gap: spacing.md,
         }}>

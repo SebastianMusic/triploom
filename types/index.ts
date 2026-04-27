@@ -3,6 +3,8 @@
  * Import from here rather than from individual files to keep imports clean.
  */
 
+import type { Tables, TablesInsert, TablesUpdate } from './database.types';
+
 export { createAnnouncementSchema, updateAnnouncementSchema } from './announcement.types';
 export type { CreateAnnouncementDTO, UpdateAnnouncementDTO } from './announcement.types';
 export { signInSchema, signUpSchema } from './auth.types';
@@ -12,6 +14,8 @@ export type { ChatRoomWithMeta, MessageWithSender, SendMessageDTO, EditMessageDT
 export type { Database, Enums, Json, Tables, TablesInsert, TablesUpdate } from './database.types';
 export { createEventSchema } from './events.types';
 export type { CreateEventDTO } from './events.types';
+export { createGroupSchema, createGroupsSchema, updateGroupSchema } from './group.types';
+export type { CreateGroupDTO, CreateGroupsDTO, UpdateGroupDTO } from './group.types';
 export { generateInviteSchema, redeemInviteSchema } from './invite.types';
 export type { GenerateInviteDTO, GenerateInviteResponse, RedeemInviteDTO, RedeemInviteResponse } from './invite.types';
 export { updateSelectedTripSchema } from './profile.types';
@@ -20,8 +24,6 @@ export { createTripSchema, TripEventPermission, TripRole } from './trip.types';
 export type { CreateTripDTO, TripNextAction } from './trip.types';
 export { createTaskSchema, updateTaskSchema, createTaskFieldSchema, createTaskFieldOptionSchema, TaskFieldType, TASK_FIELD_TYPE_LABELS, TASK_FIELD_TYPE_OPTIONS, fieldNeedsOptions } from './tasks.types';
 export type { CreateTaskDTO, UpdateTaskDTO, CreateTaskFieldDTO, CreateTaskFieldOptionDTO, FieldDraft } from './tasks.types';
-
-import type { Tables, TablesInsert, TablesUpdate } from './database.types';
 
 // Trip
 export type Trip = Tables<'trip'>;

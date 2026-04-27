@@ -3,11 +3,12 @@ import { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { createTripGroups } from '@/services/group.service';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
+import { useGroupStore } from '@/store/group.store';
+import { createGroupsSchema } from '@/types';
 
 type Props = {
   visible: boolean;
@@ -28,6 +29,7 @@ function buildPreview(baseName: string, count: number): string {
 export function CreateGroupsModal({ visible, tripId, onClose, onCreated }: Props) {
   const insets = useSafeAreaInsets();
   const { theme: { colors, spacing, radius, stroke } } = useAppTheme();
+  const createGroups = useGroupStore((state) => state.createGroups);
 
   const [baseName, setBaseName] = useState('');
   const [description, setDescription] = useState('');
@@ -50,42 +52,39 @@ export function CreateGroupsModal({ visible, tripId, onClose, onCreated }: Props
   }
 
   async function handleCreate() {
-    const newErrors: Record<string, string> = {};
+    const count = Number.parseInt(countText, 10);
+    const maxMembers = maxMembersText.trim() ? Number.parseInt(maxMembersText, 10) : null;
 
-    if (!baseName.trim()) {
-      newErrors.baseName = 'Group name is required';
-    }
+    const parsed = createGroupsSchema.safeParse({
+      tripId,
+      baseName,
+      count,
+      description: description || undefined,
+      maxMembers,
+    });
 
-    const count = parseInt(countText, 10);
-    if (isNaN(count) || count < 1) {
-      newErrors.count = 'Must be at least 1';
-    } else if (count > 200) {
-      newErrors.count = 'Maximum 200 groups at once';
-    }
-
-    const maxMembers = maxMembersText.trim() ? parseInt(maxMembersText, 10) : undefined;
-    if (maxMembersText.trim() && (isNaN(maxMembers!) || maxMembers! < 1)) {
-      newErrors.maxMembers = 'Must be a positive number';
-    }
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
+    if (!parsed.success) {
+      const nextErrors: Record<string, string> = {};
+      for (const issue of parsed.error.issues) {
+        const field = String(issue.path[0] ?? '');
+        if (field && !nextErrors[field]) {
+          nextErrors[field] = issue.message;
+        }
+      }
+      setErrors(nextErrors);
       return;
     }
 
     setIsSubmitting(true);
     try {
-      await createTripGroups({
-        tripId,
-        baseName: baseName.trim(),
-        count,
-        description: description.trim() || undefined,
-        maxMembers,
-      });
+      await createGroups(parsed.data);
       reset();
       onCreated();
-    } catch {
-      Alert.alert('Error', 'Could not create groups. Please try again.');
+    } catch (error) {
+      Alert.alert(
+        'Error',
+        error instanceof Error ? error.message : 'Could not create groups. Please try again.',
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -132,8 +131,11 @@ export function CreateGroupsModal({ visible, tripId, onClose, onCreated }: Props
               label="Group name *"
               placeholder="e.g. Bus, Cabin, Team"
               value={baseName}
-              onChangeText={(t) => { setBaseName(t); setErrors((e) => ({ ...e, baseName: '' })); }}
-              error={errors.baseName}
+              onChangeText={(text) => {
+                setBaseName(text);
+                setErrors((current) => ({ ...current, baseName: '' }));
+              }}
+              error={errors.baseName ?? errors.name}
             />
 
             <Input
@@ -148,7 +150,10 @@ export function CreateGroupsModal({ visible, tripId, onClose, onCreated }: Props
               label="Number of groups"
               placeholder="1"
               value={countText}
-              onChangeText={(t) => { setCountText(t); setErrors((e) => ({ ...e, count: '' })); }}
+              onChangeText={(text) => {
+                setCountText(text);
+                setErrors((current) => ({ ...current, count: '' }));
+              }}
               keyboardType="numeric"
               error={errors.count}
             />
@@ -157,9 +162,12 @@ export function CreateGroupsModal({ visible, tripId, onClose, onCreated }: Props
               label="Max members per group"
               placeholder="No limit"
               value={maxMembersText}
-              onChangeText={(t) => { setMaxMembersText(t); setErrors((e) => ({ ...e, maxMembers: '' })); }}
+              onChangeText={(text) => {
+                setMaxMembersText(text);
+                setErrors((current) => ({ ...current, maxMembers: '' }));
+              }}
               keyboardType="numeric"
-              error={errors.maxMembers}
+              error={errors.maxMembers ?? errors.max_members}
             />
 
             {/* Preview */}

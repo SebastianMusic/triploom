@@ -16,6 +16,7 @@ import { AppText } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAppTheme } from '@/components/ui/theme-provider';
+import { useTripChromeInsets } from '@/components/layout/use-trip-chrome';
 import { EventBannerPicker } from '@/components/events/event-banner-picker';
 import { LocationMapPicker } from '@/components/events/location-map-picker';
 import { useEventsStore } from '@/store/events.store';
@@ -41,6 +42,7 @@ type PickerMode = 'date' | 'time';
 export default function CreateEventScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { headerContentOffset } = useTripChromeInsets();
   const { selectedTrip } = useProfileStore();
   const { currentParticipant, currentTrip } = useTripStore();
   const { createEvent } = useEventsStore();
@@ -75,8 +77,6 @@ export default function CreateEventScreen() {
   // Temp date while picking on iOS (committed on "Done")
   const [tempDate, setTempDate] = useState<Date>(new Date());
 
-  const hasData = title.trim() || description.trim() || location.trim() || priceRange.trim() || startDate || endDate || bannerUri;
-
   function clearForm() {
     setTitle('');
     setDescription('');
@@ -88,18 +88,6 @@ export default function CreateEventScreen() {
     setIsMandatory(false);
     setLocationSuggestions([]);
     setErrors({});
-  }
-
-  function handleClose() {
-    if (!hasData) { clearForm(); router.navigate('/(app)/(trip)/events'); return; }
-    Alert.alert(
-      'Discard draft?',
-      'You have unsaved changes. Do you want to discard them?',
-      [
-        { text: 'Keep editing', style: 'cancel' },
-        { text: 'Discard', style: 'destructive', onPress: () => { clearForm(); router.navigate('/(app)/(trip)/events'); } },
-      ],
-    );
   }
 
   function openPicker(target: PickerTarget) {
@@ -278,21 +266,13 @@ export default function CreateEventScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView
         contentContainerStyle={{
-          paddingTop: insets.top + spacing.sm,
+          paddingTop: headerContentOffset,
           paddingHorizontal: layout.screenPadding,
           paddingBottom: insets.bottom + spacing.xl,
           gap: spacing.md,
         }}>
-        {/* Header row */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Pressable
-            onPress={handleClose}
-            style={{ padding: spacing.xs / 2 }}
-            accessibilityLabel="Cancel">
-            <Ionicons name="close" size={24} color={colors.text} />
-          </Pressable>
+        <View style={{ alignItems: 'center', gap: spacing.xs }}>
           <AppText variant="subtitle">New Event</AppText>
-          <View style={{ width: 32 }} />
         </View>
 
         <EventBannerPicker uri={bannerUri} onSelect={setBannerUri} />

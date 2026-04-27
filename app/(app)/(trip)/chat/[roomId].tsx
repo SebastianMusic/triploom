@@ -1,11 +1,10 @@
-import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import { Alert, FlatList, KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 
 import { MessageBubble } from '@/components/chat/message-bubble';
 import { MessageInput } from '@/components/chat/message-input';
-import { IconButton } from '@/components/ui/icon-button';
+import { useTripChromeInsets } from '@/components/layout/use-trip-chrome';
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import { useAuthStore } from '@/store/auth.store';
@@ -14,9 +13,9 @@ import type { MessageWithSender, SendMessageDTO } from '@/types';
 
 export default function ChatRoomScreen() {
   const { roomId } = useLocalSearchParams<{ roomId: string }>();
-  const router = useRouter();
+  const { headerContentOffset } = useTripChromeInsets();
   const {
-    theme: { colors, spacing, sizes },
+    theme: { colors, spacing },
   } = useAppTheme();
   const {
     messages, chatRooms, isLoading, isSending,
@@ -41,7 +40,7 @@ export default function ChatRoomScreen() {
     return () => {
       closeChatRoom();
     };
-  }, [roomId]);
+  }, [closeChatRoom, openChatRoom, roomId]);
 
   async function handleLoadMore() {
     if (!roomId || isLoading || messages.length === 0) return;
@@ -100,31 +99,8 @@ export default function ChatRoomScreen() {
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <View
-        style={[
-          styles.header,
-          {
-            paddingTop: spacing.xxl,
-            paddingHorizontal: spacing.sm,
-            paddingBottom: spacing.xs,
-            backgroundColor: colors.surface,
-            borderBottomColor: colors.border,
-          },
-        ]}>
-        <IconButton
-          icon={<Ionicons name="arrow-back" size={22} color={colors.text} />}
-          variant="ghost"
-          onPress={() => router.push('/(app)/(trip)/chat')}
-          accessibilityLabel="Back to chat list"
-        />
-        <AppText variant="subtitle" style={styles.headerTitle} numberOfLines={1}>
-          {roomName}
-        </AppText>
-        <View style={{ width: sizes.iconButton.md }} />
-      </View>
-
       {error ? (
-        <View style={[styles.centered, { padding: spacing.md }]}>
+        <View style={[styles.centered, { padding: spacing.md, paddingTop: headerContentOffset }]}>
           <AppText tone="error" style={{ marginBottom: spacing.xs, textAlign: 'center' }}>
             {error}
           </AppText>
@@ -146,7 +122,7 @@ export default function ChatRoomScreen() {
         <FlatList
           data={messages}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={{ paddingVertical: spacing.xs }}
+          contentContainerStyle={{ paddingTop: headerContentOffset, paddingBottom: spacing.xs }}
           renderItem={({ item }) => (
             <MessageBubble
               message={item}
@@ -161,7 +137,7 @@ export default function ChatRoomScreen() {
           ListEmptyComponent={
             <View style={[styles.emptyContainer, { padding: spacing.xxl }]}>
               <AppText tone="muted" style={{ textAlign: 'center' }}>
-                No messages yet — be the first to say something!
+                {`No messages in ${roomName} yet - be the first to say something!`}
               </AppText>
             </View>
           }
@@ -210,15 +186,6 @@ export default function ChatRoomScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  headerTitle: {
-    flex: 1,
-    textAlign: 'center',
-  },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   sendErrorBar: {

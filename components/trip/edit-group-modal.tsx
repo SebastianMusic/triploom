@@ -4,11 +4,12 @@ import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Vi
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { GroupWithMembers } from '@/services/group.service';
-import { updateGroup } from '@/services/group.service';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
+import { useGroupStore } from '@/store/group.store';
+import { updateGroupSchema } from '@/types';
 
 type Props = {
   visible: boolean;
@@ -20,6 +21,7 @@ type Props = {
 export function EditGroupModal({ visible, group, onClose, onUpdated }: Props) {
   const insets = useSafeAreaInsets();
   const { theme: { colors, spacing, stroke } } = useAppTheme();
+  const updateGroup = useGroupStore((state) => state.updateGroup);
 
   const [name, setName] = useState(group.name);
   const [description, setDescription] = useState(group.description ?? '');
@@ -41,32 +43,34 @@ export function EditGroupModal({ visible, group, onClose, onUpdated }: Props) {
   }
 
   async function handleSave() {
-    const newErrors: Record<string, string> = {};
+    const maxMembers = maxMembersText.trim() ? Number.parseInt(maxMembersText, 10) : null;
+    const parsed = updateGroupSchema.safeParse({
+      name,
+      description: description || undefined,
+      max_members: maxMembers,
+    });
 
-    if (!name.trim()) {
-      newErrors.name = 'Group name is required';
-    }
-
-    const maxMembers = maxMembersText.trim() ? parseInt(maxMembersText, 10) : null;
-    if (maxMembersText.trim() && (isNaN(maxMembers!) || maxMembers! < 1)) {
-      newErrors.maxMembers = 'Must be a positive number';
-    }
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
+    if (!parsed.success) {
+      const nextErrors: Record<string, string> = {};
+      for (const issue of parsed.error.issues) {
+        const field = String(issue.path[0] ?? '');
+        if (field && !nextErrors[field]) {
+          nextErrors[field] = issue.message;
+        }
+      }
+      setErrors(nextErrors);
       return;
     }
 
     setIsSubmitting(true);
     try {
-      await updateGroup(group.id, {
-        name: name.trim(),
-        description: description.trim() || undefined,
-        maxMembers,
-      });
+      await updateGroup(group.id, parsed.data);
       onUpdated();
-    } catch {
-      Alert.alert('Error', 'Could not update group. Please try again.');
+    } catch (error) {
+      Alert.alert(
+        'Error',
+        error instanceof Error ? error.message : 'Could not update group. Please try again.',
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -128,7 +132,7 @@ export function EditGroupModal({ visible, group, onClose, onUpdated }: Props) {
               value={maxMembersText}
               onChangeText={(t) => { setMaxMembersText(t); setErrors((e) => ({ ...e, maxMembers: '' })); }}
               keyboardType="numeric"
-              error={errors.maxMembers}
+              error={errors.maxMembers ?? errors.max_members}
             />
 
             <Button

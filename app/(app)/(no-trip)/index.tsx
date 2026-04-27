@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { FloatingActionButton } from '@/components/ui/floating-action-button';
 import { Avatar } from '@/components/ui/avatar';
 import { ProfileBadgeFrame } from '@/components/ui/profile-badge-frame';
+import { TripSummaryPreviewCard } from '@/components/trip/trip-summary-preview-card';
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import { getProfileBadge } from '@/constants/profile-badges';
@@ -89,7 +90,7 @@ function SectionHeader({ title, count }: { title: string; count?: number }) {
 
 function StatusPill({ label }: { label: string }) {
   const {
-    theme: { colors, radius, spacing },
+    theme: { colors, radius },
   } = useAppTheme();
 
   return (
@@ -149,214 +150,20 @@ function TripSummaryCard({
   nextAction,
   onSelect,
 }: TripActionProps & { nextAction: TripNextAction | null | undefined }) {
-  const {
-    theme: { colors, radius, spacing, typography },
-  } = useAppTheme();
-  const bannerSource = trip.banner_image_url;
   const actionPreview = getNextActionPreview(nextAction);
 
   return (
-    <Pressable
+    <TripSummaryPreviewCard
+      bannerUri={trip.banner_image_url}
+      dateLabel={formatDateRange(trip)}
+      title={valueOrFallback(trip.name)}
+      highlight={actionPreview.label}
+      meta={actionPreview.meta}
+      roleLabel={roleLabel(trip.userRole)}
       disabled={disabled}
+      selecting={selecting}
       onPress={() => onSelect(trip.id)}
-      style={({ pressed }) => ({
-        borderRadius: radius.lg,
-        overflow: 'hidden',
-        backgroundColor: colors.surface,
-        opacity: disabled ? 0.65 : pressed ? 0.94 : 1,
-      })}>
-      <View
-        style={{
-          borderRadius: radius.lg,
-          overflow: 'hidden',
-          backgroundColor: colors.surface,
-        }}>
-        <View style={{ position: 'relative', aspectRatio: 3 / 2, backgroundColor: colors.primary }}>
-          {bannerSource ? (
-            <ImageBackground source={{ uri: bannerSource }} resizeMode="cover" style={{ flex: 1 }}>
-              <View
-                pointerEvents="none"
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  backgroundColor: colors.overlayStrong,
-                  opacity: 0.34,
-                }}
-              />
-              <View
-                style={{
-                  flex: 1,
-                  padding: spacing.md,
-                  justifyContent: 'space-between',
-                }}>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                    alignItems: 'flex-start',
-                    gap: spacing.sm,
-                  }}>
-                  <View style={{ flex: 1, gap: spacing.xs }}>
-                    <AppText style={[typography.body, { color: colors.textOnPrimary, fontSize: 14, lineHeight: 18 }]}>
-                      {formatDateRange(trip)}
-                    </AppText>
-                    <AppText
-                      numberOfLines={1}
-                      style={[
-                        typography.title,
-                        { color: colors.textOnPrimary, fontSize: 28, lineHeight: 30 },
-                      ]}>
-                      {valueOrFallback(trip.name)}
-                    </AppText>
-                  </View>
-                  <StatusPill label={roleLabel(trip.userRole)} />
-                </View>
-
-                <View
-                  style={{
-                    paddingTop: spacing.sm,
-                    borderTopWidth: 1,
-                    borderTopColor: 'rgba(255,255,255,0.22)',
-                    flexDirection: 'row',
-                    alignItems: 'flex-end',
-                    justifyContent: 'space-between',
-                    gap: spacing.sm,
-                  }}>
-                  <View
-                    style={{
-                      flex: 1,
-                      paddingRight: spacing.md,
-                    }}>
-                    <AppText
-                      numberOfLines={2}
-                      style={[typography.subtitle, { color: colors.textOnPrimary, fontSize: 18, lineHeight: 22 }]}>
-                      {actionPreview.label}
-                    </AppText>
-                  </View>
-                  {actionPreview.meta ? (
-                    <AppText
-                      numberOfLines={2}
-                      style={[
-                        typography.caption,
-                        { color: colors.textOnPrimary, opacity: 0.84, textAlign: 'right', maxWidth: '42%' },
-                      ]}>
-                      {actionPreview.meta}
-                    </AppText>
-                  ) : null}
-                </View>
-              </View>
-            </ImageBackground>
-          ) : (
-            <View
-              style={{
-                flex: 1,
-                padding: spacing.md,
-                justifyContent: 'space-between',
-                backgroundColor: colors.primary,
-                overflow: 'hidden',
-              }}>
-              <View
-                pointerEvents="none"
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  backgroundColor: colors.overlayStrong,
-                  opacity: 0.28,
-                }}
-              />
-              <View
-                pointerEvents="none"
-                style={{
-                  position: 'absolute',
-                  top: -42,
-                  right: -28,
-                  width: 142,
-                  height: 142,
-                  borderRadius: radius.full,
-                  borderWidth: 1,
-                  borderColor: colors.primarySoft,
-                  opacity: 0.24,
-                }}
-              />
-              <View
-                pointerEvents="none"
-                style={{
-                  position: 'absolute',
-                  left: -20,
-                  bottom: 34,
-                  width: '72%',
-                  height: 1,
-                  backgroundColor: colors.primarySoft,
-                  opacity: 0.28,
-                  transform: [{ rotate: '-10deg' }],
-                }}
-              />
-
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: spacing.sm }}>
-                <View style={{ flex: 1, gap: spacing.xs }}>
-                  <AppText style={[typography.body, { color: colors.primarySoft, fontSize: 14, lineHeight: 18 }]}>
-                    {formatDateRange(trip)}
-                  </AppText>
-                  <AppText
-                    numberOfLines={1}
-                    style={[
-                      typography.title,
-                      { color: colors.textOnPrimary, fontSize: 28, lineHeight: 30 },
-                    ]}>
-                    {valueOrFallback(trip.name)}
-                  </AppText>
-                </View>
-                <StatusPill label={roleLabel(trip.userRole)} />
-              </View>
-
-              <View
-                style={{
-                  paddingTop: spacing.sm,
-                  borderTopWidth: 1,
-                  borderTopColor: 'rgba(255,255,255,0.2)',
-                  flexDirection: 'row',
-                  alignItems: 'flex-end',
-                  justifyContent: 'space-between',
-                  gap: spacing.sm,
-                }}>
-                <View
-                  style={{
-                    flex: 1,
-                    paddingRight: spacing.md,
-                  }}>
-                  <AppText
-                    numberOfLines={2}
-                    style={[typography.subtitle, { color: colors.textOnPrimary, fontSize: 18, lineHeight: 22 }]}>
-                    {actionPreview.label}
-                  </AppText>
-                </View>
-                {actionPreview.meta ? (
-                  <AppText
-                    numberOfLines={2}
-                    style={[
-                      typography.caption,
-                      { color: colors.textOnPrimary, opacity: 0.82, textAlign: 'right', maxWidth: '42%' },
-                    ]}>
-                    {actionPreview.meta}
-                  </AppText>
-                ) : null}
-              </View>
-            </View>
-          )}
-
-          {selecting ? (
-            <View
-              style={{
-                position: 'absolute',
-                right: spacing.sm,
-                bottom: spacing.sm,
-              }}>
-              <ActivityIndicator color={colors.textOnPrimary} />
-            </View>
-          ) : null}
-        </View>
-      </View>
-    </Pressable>
+    />
   );
 }
 

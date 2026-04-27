@@ -36,7 +36,7 @@ export function TripTabBar({ state, descriptors, navigation }: BottomTabBarProps
   }[];
 
   const activeRouteName = state.routes[state.index]?.name;
-  const isHidden = activeRouteName === 'chat/[roomId]';
+  const isHidden = !isPrimaryTripTab(activeRouteName ?? '');
   const activeIndex = tabs.findIndex(({ route }) => route.name === activeRouteName);
   const safeIndex = activeIndex >= 0 ? activeIndex : 0;
   const bottomInset = Math.max(insets.bottom, spacing.sm);
@@ -55,8 +55,6 @@ export function TripTabBar({ state, descriptors, navigation }: BottomTabBarProps
   }, [safeIndex, translateIndex, isHidden]);
 
   if (isHidden) return null;
-
-  if (activeRouteName === 'chat/[roomId]') return null;
 
   if (isNavigationHidden) {
     return null;
