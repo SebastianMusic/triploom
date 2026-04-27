@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
-import type { Profile, TripGroup } from '@/types';
+import { createGroupSchema, createGroupsSchema, updateGroupSchema } from '@/types';
+import type { CreateGroupDTO, CreateGroupsDTO, Profile, TripGroup, UpdateGroupDTO } from '@/types';
 
 export type GroupMemberWithProfile = {
   participant_id: string;
@@ -25,21 +26,14 @@ export async function getTripGroupsWithMembers(tripId: string): Promise<GroupWit
   return (data ?? []) as GroupWithMembers[];
 }
 
-export type CreateGroupsDTO = {
-  tripId: string;
-  baseName: string;
-  count: number;
-  description?: string;
-  maxMembers?: number;
-};
-
 export async function createTripGroups(dto: CreateGroupsDTO): Promise<TripGroup[]> {
-  const rows = Array.from({ length: dto.count }, (_, i) => ({
-    trip_id: dto.tripId,
-    name: dto.count === 1 ? dto.baseName.trim() : `${dto.baseName.trim()} ${i + 1}`,
-    description: dto.description?.trim() || null,
-    max_members: dto.maxMembers ?? null,
-  }));
+  const parsed = createGroupsSchema.parse(dto);
+  const rows = Array.from({ length: parsed.count }, (_, i) => createGroupSchema.parse({
+    trip_id: parsed.tripId,
+    name: parsed.count === 1 ? parsed.baseName : `${parsed.baseName} ${i + 1}`,
+    description: parsed.description,
+    max_members: parsed.maxMembers ?? null,
+  }) satisfies CreateGroupDTO);
 
   const { data, error } = await supabase
     .from('trip_group')
@@ -84,19 +78,14 @@ export async function leaveGroup(groupId: string, participantId: string): Promis
   if (error) throw error;
 }
 
-export type UpdateGroupDTO = {
-  name: string;
-  description?: string;
-  maxMembers?: number | null;
-};
-
 export async function updateGroup(groupId: string, dto: UpdateGroupDTO): Promise<TripGroup> {
+  const parsed = updateGroupSchema.parse(dto);
   const { data, error } = await supabase
     .from('trip_group')
     .update({
-      name: dto.name.trim(),
-      description: dto.description?.trim() || null,
-      max_members: dto.maxMembers ?? null,
+      name: parsed.name,
+      description: parsed.description || null,
+      max_members: parsed.max_members ?? null,
     })
     .eq('id', groupId)
     .select()

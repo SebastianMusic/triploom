@@ -1,11 +1,11 @@
+import type { ComponentProps } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import type { PressableProps } from 'react-native';
 
 import { IconButton } from '@/components/ui/icon-button';
 import { useAppTheme } from '@/components/ui/theme-provider';
 
-type BackButtonProps = Omit<PressableProps, 'children'> & {
+type BackButtonProps = Omit<ComponentProps<typeof IconButton>, 'icon'> & {
   accessibilityLabel?: string;
 };
 

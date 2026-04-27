@@ -5,12 +5,34 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="6e9e7edf-1c22-4b89-8de2-b36fb60c648c" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/__integration__/group.test.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/(app)/(trip)/admin/people.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/components/trip/people-groups-screen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/components/trip/trip-summary-preview-card.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/store/__tests__/group.store.test.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/store/group.store.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/types/group.types.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/(app)/(no-trip)/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(app)/(no-trip)/index.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(app)/(trip)/_layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(app)/(trip)/_layout.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/(app)/(trip)/account/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(app)/(trip)/account/index.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/(app)/profile/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(app)/profile/index.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(app)/(trip)/admin/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(app)/(trip)/admin/index.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(app)/(trip)/chat/[roomId].tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(app)/(trip)/chat/[roomId].tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(app)/(trip)/events/create_event.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(app)/(trip)/events/create_event.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(app)/(trip)/home/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(app)/(trip)/home/index.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/layout/trip-header.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/layout/trip-header.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/layout/trip-navigation.ts" beforeDir="false" afterPath="$PROJECT_DIR$/components/layout/trip-navigation.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/layout/trip-tab-bar.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/layout/trip-tab-bar.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/layout/use-trip-chrome.ts" beforeDir="false" afterPath="$PROJECT_DIR$/components/layout/use-trip-chrome.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/profile/edit-profile-screen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/profile/edit-profile-screen.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/components/profile/profile-screen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/profile/profile-screen.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/constants/theme.ts" beforeDir="false" afterPath="$PROJECT_DIR$/constants/theme.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/trip/create-groups-modal.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/trip/create-groups-modal.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/trip/edit-group-modal.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/trip/edit-group-modal.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/trip/persons-sheet.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/trip/persons-sheet.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/trip/trip-edit-form.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/trip/trip-edit-form.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ui/back-button.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/ui/back-button.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/services/group.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/services/group.service.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/types/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/types/index.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -18,7 +40,7 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="395" />
+    <option name="cachedIndexableFilesCount" value="403" />
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -45,7 +67,7 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
     "RunOnceActivity.typescript.service.memoryLimit.init": "true",
-    "git-widget-placeholder": "ui__badges",
+    "git-widget-placeholder": "Rebasing ui__edit__trip",
     "javascript.preferred.runtime.type.id": "node",
     "last_opened_file_path": "C:/Users/Emanuel/skole/IKT205/triploom",
     "node.js.detected.package.eslint": "true",
@@ -77,6 +99,7 @@
       <workItem from="1776759501273" duration="7572000" />
       <workItem from="1776859000185" duration="10451000" />
       <workItem from="1777273597275" duration="8295000" />
+      <workItem from="1777294549213" duration="3523000" />
     </task>
     <servers />
   </component>
