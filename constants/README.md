@@ -16,6 +16,11 @@ All ny UI skal starte herfra, ikke med lokale hex-verdier eller tilfeldige margi
 3. Hvis et nytt visuelt mønster brukes flere steder, legg inn en ny semantisk token i `theme.ts`.
 4. Hvis behovet bare gjelder layout på én skjerm, komponer med eksisterende primitives i `components/ui`.
 5. Hvis samme chrome eller navigasjon brukes på flere screens, legg det i `components/layout`.
+6. Skjermer skal ikke eie egen horisontal spacing. Bruk `Container` for sidepadding og `Stack`/`Row` for rytme mellom søsken.
+7. Standard edge padding skal matche standard `Card`-padding. Ikke legg inn ekstra `paddingHorizontal` på skjermen rundt cards i tillegg.
+8. Hvis du ser `contentContainerStyle` med både egen `paddingHorizontal` og lokal `gap`, er det som regel et tegn på at skjermen burde komponeres med `Container` og `Stack` i stedet.
+9. Standard `Card` skal ha nok innvendig luft til at tekst, metadata og actions ikke ligger klistret mot kantene. Ikke komprimer card-padding lokalt uten en tydelig list/separator-grunn.
+10. Hvis en skjerm føles trang, løs det først i primitives som `Card`, `Container`, `Stack` eller typografi-rytme, ikke med tilfeldige ekstra margins på enkeltskjermer.
 
 ## Color model
 

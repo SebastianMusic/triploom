@@ -6,7 +6,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BackButton } from '@/components/ui/back-button';
 import { Button } from '@/components/ui/button';
+import { Container } from '@/components/ui/container';
 import { Input } from '@/components/ui/input';
+import { Stack } from '@/components/ui/stack';
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import { useProfileStore } from '@/store/profile.store';
@@ -23,7 +25,7 @@ export default function JoinTripScreen() {
   const { setSelectedTrip } = useProfileStore();
   const { code } = useLocalSearchParams();
   const {
-    theme: { colors, layout, radius, spacing, typography },
+    theme: { colors, radius, spacing, typography },
   } = useAppTheme();
 
   useEffect(() => {
@@ -64,20 +66,20 @@ export default function JoinTripScreen() {
         contentContainerStyle={{
           flexGrow: 1,
           paddingTop: insets.top + spacing.lg,
-          paddingHorizontal: layout.screenPadding,
           paddingBottom: insets.bottom + spacing.xl,
         }}>
+        <Container style={{ flex: 1 }}>
         <BackButton />
 
         {successResult ? (
-          <View style={{ flex: 1, justifyContent: 'center', gap: spacing.lg }}>
+          <Stack style={{ flex: 1, justifyContent: 'center' }} space="sm">
             <View
               style={{
                 borderRadius: radius.xl,
                 backgroundColor: colors.surface,
-                padding: spacing.lg,
+                padding: spacing.sm,
                 alignItems: 'center',
-                gap: spacing.md,
+                gap: spacing.sm,
               }}>
               <View
                 style={{
@@ -103,7 +105,7 @@ export default function JoinTripScreen() {
               <Button label="Go to trip" fullWidth onPress={() => { void handleGoToTrip(); }} />
               <Button label="Back to trips" variant="secondary" fullWidth onPress={() => router.back()} />
             </View>
-          </View>
+          </Stack>
         ) : (
           <View
             style={{
@@ -116,8 +118,8 @@ export default function JoinTripScreen() {
               style={{
                 borderRadius: radius.xl,
                 backgroundColor: colors.surface,
-                padding: spacing.lg,
-                gap: spacing.lg,
+                padding: spacing.sm,
+                gap: spacing.sm,
               }}>
               <View style={{ gap: spacing.md }}>
                 <View
@@ -175,6 +177,7 @@ export default function JoinTripScreen() {
             </View>
           </View>
         )}
+        </Container>
 
         {isRedeemingInvite ? (
           <View style={{ position: 'absolute', left: 0, right: 0, bottom: insets.bottom + spacing.md, alignItems: 'center' }}>

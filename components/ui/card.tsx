@@ -16,7 +16,7 @@ export function Card({ variant = 'default', disabled, style, children, ...props 
 
   const baseStyle: ViewStyle = {
     borderRadius: radius.lg,
-    padding: spacing.md,
+    padding: spacing.lg,
     backgroundColor: colors.surface,
   };
 

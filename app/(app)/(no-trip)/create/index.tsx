@@ -14,7 +14,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EventBannerPicker } from '@/components/events/event-banner-picker';
 import { BackButton } from '@/components/ui/back-button';
 import { Button } from '@/components/ui/button';
+import { Container } from '@/components/ui/container';
 import { Input } from '@/components/ui/input';
+import { Stack } from '@/components/ui/stack';
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import { useProfileStore } from '@/store/profile.store';
@@ -37,7 +39,7 @@ export default function CreateTripScreen() {
   const { createTrip, isLoading } = useTripStore();
   const { setSelectedTrip } = useProfileStore();
   const {
-    theme: { colors, layout, opacity, radius, spacing, stroke, typography },
+    theme: { colors, opacity, radius, spacing, stroke, typography },
   } = useAppTheme();
 
   const [name, setName] = useState('');
@@ -145,23 +147,23 @@ export default function CreateTripScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           paddingTop: insets.top + spacing.lg,
-          paddingHorizontal: layout.screenPadding,
           paddingBottom: insets.bottom + spacing.xl,
-          gap: spacing.lg,
         }}>
-        <BackButton />
+        <Container>
+          <Stack space="sm">
+            <BackButton />
 
-        <View style={{ gap: spacing.xs }}>
-          <AppText style={typography.title}>Trip details</AppText>
-        </View>
+            <View style={{ gap: spacing.xs }}>
+              <AppText style={typography.title}>Trip details</AppText>
+            </View>
 
-        <View
-          style={{
-            borderRadius: radius.xl,
-            backgroundColor: colors.surface,
-            padding: spacing.sm,
-            gap: spacing.xl,
-          }}>
+            <View
+              style={{
+                borderRadius: radius.xl,
+                backgroundColor: colors.surface,
+                padding: spacing.sm,
+                gap: spacing.sm,
+              }}>
           <EventBannerPicker
             label="Banner"
             uri={bannerUri}
@@ -292,14 +294,16 @@ export default function CreateTripScreen() {
               })}
             </View>
           </View>
-        </View>
+            </View>
 
-        <Button
-          label="Create trip"
-          fullWidth
-          loading={isLoading}
-          onPress={() => { void handleSubmit(); }}
-        />
+            <Button
+              label="Create trip"
+              fullWidth
+              loading={isLoading}
+              onPress={() => { void handleSubmit(); }}
+            />
+          </Stack>
+        </Container>
       </ScrollView>
 
       {pickerTarget ? (

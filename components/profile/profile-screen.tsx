@@ -15,6 +15,8 @@ import { PassportCard, PassportCardBack } from '@/components/profile/passport-ca
 import { usePassportPreviewMotion } from '@/components/profile/use-passport-preview-motion';
 import { useTripChromeInsets } from '@/components/layout/use-trip-chrome';
 import { BackButton } from '@/components/ui/back-button';
+import { Container } from '@/components/ui/container';
+import { Stack } from '@/components/ui/stack';
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import {
@@ -71,7 +73,7 @@ export default function ProfileScreen({
   } = useProfileStore();
   const {
     mode,
-    theme: { colors, layout, opacity, radius, shadows, spacing, typography },
+    theme: { colors, opacity, radius, shadows, spacing, typography },
   } = useAppTheme();
   const themePreference = useThemeStore((state) => state.preference);
   const setThemePreference = useThemeStore((state) => state.setPreference);
@@ -393,44 +395,44 @@ export default function ProfileScreen({
           flexGrow: 1,
           paddingTop: shouldUseTripChromeInsets ? headerContentOffset : safeAreaInsets.top + spacing.md,
           paddingBottom: Math.max(safeAreaInsets.bottom, spacing.md) + spacing.xl,
-          paddingHorizontal: layout.screenPadding,
-          gap: spacing.md,
         }}>
-        {showBackButton ? <BackButton /> : null}
+        <Container>
+        <Stack space="sm">
+          {showBackButton ? <BackButton /> : null}
 
-        <View style={{ alignItems: 'center', gap: spacing.xs }}>
-          <AppText variant="subtitle" style={{ textAlign: 'center', color: colors.primary }}>
-            Triploom Passport
-          </AppText>
-        </View>
+          <View style={{ alignItems: 'center', gap: spacing.xs }}>
+            <AppText variant="subtitle" style={{ textAlign: 'center', color: colors.primary }}>
+              Triploom Passport
+            </AppText>
+          </View>
 
-        <Pressable
-          accessibilityRole="button"
-          onPress={passportPreview.openPreview}
-          style={({ pressed }) => ({
-            opacity: pressed ? opacity.pressed : 1,
-          })}>
-          <PassportCard
-            avatarSource={avatarSource}
-            badgeColors={badgeColors}
-            badgeLevel={badge.level}
-            badgeIcon={badge.icon}
-            colors={colors}
-            email={email}
-            fullName={fullName}
-            heroBackground={heroBackground}
-            heroMutedText={heroMutedText}
-            heroText={heroText}
-            initials={initials}
-            lineColor={passportLineColor}
-            mode={mode}
-            radius={radius}
-            resolvedTripCount={resolvedTripCount}
-            shadows={shadows}
-            spacing={spacing}
-            typography={typography}
-          />
-        </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            onPress={passportPreview.openPreview}
+            style={({ pressed }) => ({
+              opacity: pressed ? opacity.pressed : 1,
+            })}>
+            <PassportCard
+              avatarSource={avatarSource}
+              badgeColors={badgeColors}
+              badgeLevel={badge.level}
+              badgeIcon={badge.icon}
+              colors={colors}
+              email={email}
+              fullName={fullName}
+              heroBackground={heroBackground}
+              heroMutedText={heroMutedText}
+              heroText={heroText}
+              initials={initials}
+              lineColor={passportLineColor}
+              mode={mode}
+              radius={radius}
+              resolvedTripCount={resolvedTripCount}
+              shadows={shadows}
+              spacing={spacing}
+              typography={typography}
+            />
+          </Pressable>
 
         <View
           style={{
@@ -749,6 +751,8 @@ export default function ProfileScreen({
             </AppText>
           </View>
         ) : null}
+        </Stack>
+        </Container>
       </ScrollView>
     </>
   );

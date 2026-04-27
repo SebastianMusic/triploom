@@ -5,7 +5,9 @@ import { ActivityIndicator, Animated, Easing, ImageBackground, Pressable, Refres
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/button';
+import { Container } from '@/components/ui/container';
 import { FloatingActionButton } from '@/components/ui/floating-action-button';
+import { Stack } from '@/components/ui/stack';
 import { Avatar } from '@/components/ui/avatar';
 import { ProfileBadgeFrame } from '@/components/ui/profile-badge-frame';
 import { TripSummaryPreviewCard } from '@/components/trip/trip-summary-preview-card';
@@ -232,7 +234,7 @@ export default function TripPickerScreen() {
   const { fetchTrips, trips, tripNextActions, isLoading } = useTripStore();
   const { profile, displayAvatarUrl, participatedTripCount, setSelectedTrip } = useProfileStore();
   const {
-    theme: { colors, layout, radius, spacing, typography },
+    theme: { colors, radius, spacing, typography },
   } = useAppTheme();
   const displayName = profile?.user_name?.trim() || 'traveler';
   const badgeLevel = getProfileBadge(participatedTripCount ?? 0).level;
@@ -331,9 +333,9 @@ export default function TripPickerScreen() {
         contentContainerStyle={{
           paddingTop: insets.top + spacing.xl,
           paddingBottom: insets.bottom + spacing.xxxl + spacing.xl,
-          gap: spacing.xl,
         }}>
-        <View style={{ paddingHorizontal: layout.screenPadding, gap: spacing.lg }}>
+        <Container>
+        <Stack space="sm">
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
             <Pressable
               accessibilityRole="button"
@@ -380,32 +382,32 @@ export default function TripPickerScreen() {
           ) : null}
 
           {!isLoading && trips.length === 0 ? (
-            <View style={{ gap: spacing.sm }}>
+            <Stack space="sm">
               <SectionHeader title="No trips yet" />
               <View
                 style={{
                   minHeight: 280,
                   borderRadius: radius.xl,
-                  padding: spacing.lg,
+                  padding: spacing.sm,
                   justifyContent: 'flex-end',
                   backgroundColor: colors.surface,
                 }}>
-                <View style={{ gap: spacing.sm }}>
+                <Stack space="sm">
                   <AppText variant="subtitle">Start with one trip</AppText>
                   <AppText tone="muted">Create a trip for your group, or join an existing one with an invite code.</AppText>
                   <View style={{ flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' }}>
                     <Button label="Create trip" onPress={openCreateForm} />
                     <Button label="Join code" variant="secondary" onPress={handleJoinWithCode} />
                   </View>
-                </View>
+                </Stack>
               </View>
-            </View>
+            </Stack>
           ) : null}
 
           {activeTrips.length > 0 ? (
-            <View style={{ gap: spacing.sm }}>
+            <Stack space="sm">
               <SectionHeader title="Active trips" count={activeTrips.length} />
-              <View style={{ gap: spacing.md }}>
+              <Stack space="sm">
                 {activeTrips.map((trip) => (
                   <TripSummaryCard
                     key={trip.id}
@@ -416,14 +418,14 @@ export default function TripPickerScreen() {
                     onSelect={handleSelectTrip}
                   />
                 ))}
-              </View>
-            </View>
+              </Stack>
+            </Stack>
           ) : null}
 
           {pastTrips.length > 0 ? (
-            <View style={{ gap: spacing.sm }}>
+            <Stack space="sm">
               <SectionHeader title="Past trips" count={pastTrips.length} />
-              <View style={{ gap: spacing.sm }}>
+              <Stack space="sm">
                 {pastTrips.map((trip) => (
                   <CompactPastTripCard
                     key={trip.id}
@@ -433,10 +435,11 @@ export default function TripPickerScreen() {
                     onSelect={handleSelectTrip}
                   />
                 ))}
-              </View>
-            </View>
+              </Stack>
+            </Stack>
           ) : null}
-        </View>
+        </Stack>
+        </Container>
       </ScrollView>
 
       {menuOpen ? (

@@ -5,6 +5,8 @@ import { ActivityIndicator, Pressable, RefreshControl, ScrollView, View } from '
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { EventCard } from '@/components/events/event-card';
+import { Container } from '@/components/ui/container';
+import { Stack } from '@/components/ui/stack';
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import { useEventsStore } from '@/store/events.store';
@@ -29,7 +31,7 @@ export default function EventsScreen() {
       if (selectedTrip) {
         void fetchEvents(selectedTrip);
       }
-    }, [selectedTrip]),
+    }, [fetchEvents, selectedTrip]),
   );
 
   async function handleRefresh() {
@@ -56,25 +58,27 @@ export default function EventsScreen() {
         }
         contentContainerStyle={{
           paddingTop: headerHeight + spacing.sm,
-          paddingHorizontal: layout.screenPadding,
           paddingBottom: insets.bottom + spacing.xl,
-          gap: spacing.sm,
         }}>
-        {isLoading ? (
-          <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.xl }} />
-        ) : events.length === 0 ? (
-          <AppText tone="muted" style={{ textAlign: 'center', marginTop: spacing.xl }}>
-            No upcoming events
-          </AppText>
-        ) : (
-          events.map((event) => (
-            <EventCard
-              key={event.id}
-              event={event}
-              onPress={() => router.push({ pathname: '/(app)/(trip)/events/[id]', params: { id: event.id } })}
-            />
-          ))
-        )}
+        <Container>
+          <Stack space="sm">
+            {isLoading ? (
+              <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.xl }} />
+            ) : events.length === 0 ? (
+              <AppText tone="muted" style={{ textAlign: 'center', marginTop: spacing.xl }}>
+                No upcoming events
+              </AppText>
+            ) : (
+              events.map((event) => (
+                <EventCard
+                  key={event.id}
+                  event={event}
+                  onPress={() => router.push({ pathname: '/(app)/(trip)/events/[id]', params: { id: event.id } })}
+                />
+              ))
+            )}
+          </Stack>
+        </Container>
       </ScrollView>
 
       <Pressable

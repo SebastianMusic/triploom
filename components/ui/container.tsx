@@ -9,14 +9,14 @@ export type ContainerProps = ViewProps & {
 
 export function Container({ padded = true, style, ...props }: ContainerProps) {
   const {
-    theme: { layout },
+    theme: { spacing },
   } = useAppTheme();
 
   return (
     <View
       style={[
         {
-          paddingHorizontal: padded ? layout.screenPadding : 0,
+          paddingHorizontal: padded ? spacing.sm : 0,
         },
         style,
       ]}

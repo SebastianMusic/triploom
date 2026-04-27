@@ -77,9 +77,11 @@ export default function AdminScreen() {
 				}}>
 				<Container>
 					<Stack space="sm">
-						{canManage ? <TripEditForm /> : null}
+						{canManage ? (
+							<TripEditForm />
+						) : null}
 
-						{canManage && (
+						{canManage ? (
 							<Pressable
 								onPress={() => router.push('/(app)/(trip)/admin/people')}
 								style={({ pressed }) => ([
@@ -121,18 +123,18 @@ export default function AdminScreen() {
 									</View>
 								</View>
 							</Pressable>
-						)}
+						) : null}
 
-						{canManage && (
+						{canManage ? (
 							<View
 								style={[
 									{
-										gap: spacing.md,
+										gap: spacing.sm,
 										borderRadius: radius.xl,
 										backgroundColor: colors.surface,
 										borderWidth: 1,
 										borderColor: colors.border,
-										padding: spacing.md,
+										padding: spacing.sm,
 									},
 									shadows.sm,
 								]}>
@@ -153,7 +155,7 @@ export default function AdminScreen() {
 										<AppText variant="caption" tone="muted">Generating invite link…</AppText>
 									</View>
 								) : inviteUrl ? (
-									<View style={{ gap: spacing.sm }}>
+									<Stack space="sm">
 										<View style={{
 											backgroundColor: colors.surfaceMuted,
 											borderRadius: radius.md,
@@ -177,7 +179,7 @@ export default function AdminScreen() {
 												{copied ? 'Copied!' : 'Copy link'}
 											</AppText>
 										</Pressable>
-									</View>
+									</Stack>
 								) : (
 									<Pressable
 										onPress={handleGenerateInvite}
@@ -194,7 +196,7 @@ export default function AdminScreen() {
 									</Pressable>
 								)}
 							</View>
-						)}
+						) : null}
 					</Stack>
 				</Container>
 			</ScrollView>

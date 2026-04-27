@@ -26,6 +26,8 @@ export default function AdminPeopleScreen() {
       currentParticipantId={currentParticipant?.id ?? null}
       participants={participantsWithProfiles}
       canManage={canManage}
+      actorUserId={currentParticipant?.user_id ?? null}
+      actorRole={currentParticipant?.role ?? null}
     />
   );
 }

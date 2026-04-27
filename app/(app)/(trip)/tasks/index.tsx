@@ -60,7 +60,7 @@ export default function TasksScreen() {
 
 	useEffect(() => {
 		if (selectedTrip) getAllTasks(selectedTrip);
-	}, [selectedTrip]);
+	}, [getAllTasks, selectedTrip]);
 
 	useEffect(() => {
 		if (!currentParticipant || tasks.length === 0) return;
@@ -68,7 +68,7 @@ export default function TasksScreen() {
 		fetchAssignments(currentParticipant.id, taskIds);
 		fetchTaskFields(taskIds);
 		if (isOrganizer) fetchAllAssignments(taskIds);
-	}, [tasks, currentParticipant, isOrganizer]);
+	}, [currentParticipant, fetchAllAssignments, fetchAssignments, fetchTaskFields, isOrganizer, tasks]);
 
 	useEffect(() => {
 		if (!currentParticipant) return;
@@ -76,7 +76,7 @@ export default function TasksScreen() {
 		if (allFieldIds.length === 0) return;
 		fetchMyFieldResponses(currentParticipant.id, allFieldIds);
 		if (isOrganizer) fetchAllFieldResponses(allFieldIds);
-	}, [fields, currentParticipant, isOrganizer]);
+	}, [currentParticipant, fetchAllFieldResponses, fetchMyFieldResponses, fields, isOrganizer]);
 
 	const sortedTasks = [...tasks].sort((a, b) => {
 		const aCompleted = assignments[a.id]?.is_completed ?? false;
@@ -112,7 +112,7 @@ export default function TasksScreen() {
 	const handleChangeTextInput = useCallback((fieldId: string, value: string) => {
 		if (!currentParticipant) return;
 		void upsertFieldResponse(fieldId, currentParticipant.id, { option_id: null, value, is_checked: null });
-	}, [currentParticipant]);
+	}, [currentParticipant, upsertFieldResponse]);
 
 	function resetForm() {
 		setEditingTask(null);
@@ -348,98 +348,97 @@ export default function TasksScreen() {
 						<Button label={saving ? 'Lagrer...' : 'Lagre'} size="sm" loading={saving} onPress={handleSave} />
 					</View>
 
-					<ScrollView contentContainerStyle={{ padding: spacing.sm, gap: spacing.sm }} keyboardShouldPersistTaps="handled">
-						<Stack space="sm">
-							<Input
-								label="Tittel *"
-								placeholder="Hva skal gjøres?"
-								value={title}
-								onChangeText={(t) => { setTitle(t); setTitleError(''); }}
-								error={titleError || undefined}
-							/>
-							<Input
-								label="Beskrivelse"
-								placeholder="Valgfri beskrivelse"
-								value={description}
-								onChangeText={setDescription}
-								multiline
-							/>
-
-							{/* Deadline */}
-							<Stack space="xs">
-								<AppText variant="caption">Frist</AppText>
-								<Pressable
-									onPress={() => { setTempDate(dueDate ?? new Date()); setShowDatePicker(true); }}
-									style={{
-										minHeight: 52, borderRadius: radius.md,
-										borderWidth: stroke.thin, borderColor: colors.border,
-										backgroundColor: colors.surface,
-										paddingHorizontal: spacing.sm, paddingVertical: spacing.sm,
-										flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-									}}>
-									<AppText style={{ color: dueDate ? colors.text : colors.textMuted }}>
-										{dueDate
-											? `${dueDate.toLocaleDateString('nb-NO', { day: 'numeric', month: 'long', year: 'numeric' })} kl. ${dueDate.toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' })}`
-											: 'Velg dato og tid'}
-									</AppText>
-									<Row gap="xs">
-										{dueDate && (
-											<Pressable onPress={(e) => { e.stopPropagation(); setDueDate(null); }} hitSlop={8}>
-												<Ionicons name="close-circle" size={18} color={colors.textMuted} />
-											</Pressable>
-										)}
-										<Ionicons name="calendar-outline" size={18} color={colors.textMuted} />
-									</Row>
-								</Pressable>
-							</Stack>
-
-							{/* Existing draft fields */}
-							{draftFields.length > 0 && (
-								<Stack space="sm">
-									<AppText variant="caption">Felt</AppText>
-									{draftFields.map((field) => (
-										<FieldEditor
-											key={field.tempId}
-											field={field}
-											onLabelChange={(label) => updateFieldLabel(field.tempId, label)}
-											onAddOption={(opt) => addFieldOption(field.tempId, opt)}
-											onRemoveOption={(i) => removeFieldOption(field.tempId, i)}
-											onRemove={() => removeField(field.tempId)}
-										/>
-									))}
-								</Stack>
-							)}
-
-							{/* Add field */}
-							<Stack space="xs">
-								<AppText variant="caption">Legg til felt</AppText>
-								<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-									{TASK_FIELD_TYPE_OPTIONS.map((type) => (
-										<Pressable
-											key={type}
-											onPress={() => addField(type)}
-											style={{
-												borderRadius: radius.full, borderWidth: 1.5,
-												borderColor: colors.border, backgroundColor: colors.surface,
-												paddingHorizontal: spacing.sm, paddingVertical: spacing.xs,
-												flexDirection: 'row', alignItems: 'center', gap: 6,
-											}}>
-											<Ionicons name="add" size={14} color={colors.accent} />
-											<AppText variant="caption" tone="accent">{TASK_FIELD_TYPE_LABELS[type]}</AppText>
-										</Pressable>
-									))}
-								</ScrollView>
-							</Stack>
-
-							{isOrganizer && editingTask && (
-								<Button
-									label="Slett oppgave"
-									variant="ghost"
-									fullWidth
-									onPress={() => { setAdminVisible(false); handleDelete(editingTask); resetForm(); }}
+					<ScrollView keyboardShouldPersistTaps="handled">
+						<Container>
+							<Stack space="sm">
+								<Input
+									label="Tittel *"
+									placeholder="Hva skal gjøres?"
+									value={title}
+									onChangeText={(t) => { setTitle(t); setTitleError(''); }}
+									error={titleError || undefined}
 								/>
-							)}
-						</Stack>
+								<Input
+									label="Beskrivelse"
+									placeholder="Valgfri beskrivelse"
+									value={description}
+									onChangeText={setDescription}
+									multiline
+								/>
+
+								<Stack space="xs">
+									<AppText variant="caption">Frist</AppText>
+									<Pressable
+										onPress={() => { setTempDate(dueDate ?? new Date()); setShowDatePicker(true); }}
+										style={{
+											minHeight: 52, borderRadius: radius.md,
+											borderWidth: stroke.thin, borderColor: colors.border,
+											backgroundColor: colors.surface,
+											paddingHorizontal: spacing.sm, paddingVertical: spacing.sm,
+											flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+										}}>
+										<AppText style={{ color: dueDate ? colors.text : colors.textMuted }}>
+											{dueDate
+												? `${dueDate.toLocaleDateString('nb-NO', { day: 'numeric', month: 'long', year: 'numeric' })} kl. ${dueDate.toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' })}`
+												: 'Velg dato og tid'}
+										</AppText>
+										<Row gap="xs">
+											{dueDate && (
+												<Pressable onPress={(e) => { e.stopPropagation(); setDueDate(null); }} hitSlop={8}>
+													<Ionicons name="close-circle" size={18} color={colors.textMuted} />
+												</Pressable>
+											)}
+											<Ionicons name="calendar-outline" size={18} color={colors.textMuted} />
+										</Row>
+									</Pressable>
+								</Stack>
+
+								{draftFields.length > 0 && (
+									<Stack space="sm">
+										<AppText variant="caption">Felt</AppText>
+										{draftFields.map((field) => (
+											<FieldEditor
+												key={field.tempId}
+												field={field}
+												onLabelChange={(label) => updateFieldLabel(field.tempId, label)}
+												onAddOption={(opt) => addFieldOption(field.tempId, opt)}
+												onRemoveOption={(i) => removeFieldOption(field.tempId, i)}
+												onRemove={() => removeField(field.tempId)}
+											/>
+										))}
+									</Stack>
+								)}
+
+								<Stack space="xs">
+									<AppText variant="caption">Legg til felt</AppText>
+									<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+										{TASK_FIELD_TYPE_OPTIONS.map((type) => (
+											<Pressable
+												key={type}
+												onPress={() => addField(type)}
+												style={{
+													borderRadius: radius.full, borderWidth: 1.5,
+													borderColor: colors.border, backgroundColor: colors.surface,
+													paddingHorizontal: spacing.sm, paddingVertical: spacing.xs,
+													flexDirection: 'row', alignItems: 'center', gap: 6,
+												}}>
+												<Ionicons name="add" size={14} color={colors.accent} />
+												<AppText variant="caption" tone="accent">{TASK_FIELD_TYPE_LABELS[type]}</AppText>
+											</Pressable>
+										))}
+									</ScrollView>
+								</Stack>
+
+								{isOrganizer && editingTask && (
+									<Button
+										label="Slett oppgave"
+										variant="ghost"
+										fullWidth
+										onPress={() => { setAdminVisible(false); handleDelete(editingTask); resetForm(); }}
+									/>
+								)}
+							</Stack>
+						</Container>
 					</ScrollView>
 
 					{Platform.OS === 'android' && showDatePicker && (
