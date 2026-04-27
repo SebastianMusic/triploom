@@ -5,13 +5,20 @@ export interface RedeemInviteResponse {
   message?: string;
 }
 
-/**
- * Generates an invite link for a trip.
- * Only organizers and co-organizers can generate invite links.
- * @param tripId - The ID of the trip to generate an invite for
- * @returns The invite URL (e.g., "triploom://join/{token}")
- * @throws Error if the request fails or user lacks permission
- */
+const INVITE_BASE_URL = 'https://triploom.app/invite';
+
+export async function fetchInviteLink(tripId: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('trip_invite_url')
+    .select('invite_url')
+    .eq('trip_id', tripId)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+  return `${INVITE_BASE_URL}?code=${data.invite_url}`;
+}
+
 export async function generateInviteLink(tripId: string): Promise<string> {
   const { data, error } = await supabase.functions.invoke('generate-invite', {
     body: { trip_id: tripId },
@@ -28,12 +35,6 @@ export async function generateInviteLink(tripId: string): Promise<string> {
   return data.invite_url;
 }
 
-/**
- * Redeems an invite code to join a trip.
- * @param code - The invite code to redeem
- * @returns Object containing trip_id and optional message
- * @throws Error if the request fails, code is invalid, or user cannot join
- */
 export async function redeemInviteLink(code: string): Promise<RedeemInviteResponse> {
   const { data, error } = await supabase.functions.invoke('redeem-invite', {
     body: { invite_code: code },

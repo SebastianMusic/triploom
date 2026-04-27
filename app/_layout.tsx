@@ -28,10 +28,9 @@ function RootNavigator() {
 
 	useEffect(() => {
 		function navigateToJoinWithCode(url: string) {
-			const { path } = Linking.parse(url);
-			if (path?.startsWith('join/')) {
-				const code = path.replace('join/', '');
-				router.push(`/(app)/(no-trip)/join?code=${code}`);
+			const { hostname, path } = Linking.parse(url);
+			if (hostname === 'join' && path) {
+				router.push(`/(app)/(no-trip)/join?code=${encodeURIComponent(path)}`);
 			}
 		}
 

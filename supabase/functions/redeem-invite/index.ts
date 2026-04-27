@@ -70,10 +70,12 @@ Deno.serve(async (req) => {
     );
   }
 
-  // Strip deep link prefix so both "triploom://join/<token>" and bare token work
-  const DEEP_LINK_PREFIX = "triploom://join/";
-  if (invite_code.startsWith(DEEP_LINK_PREFIX)) {
-    invite_code = invite_code.slice(DEEP_LINK_PREFIX.length);
+  // Accept bare token, triploom://join/<token>, or https://triploom.app/invite?code=<token>
+  try {
+    const parsed = new URL(invite_code);
+    invite_code = parsed.searchParams.get("code") ?? parsed.pathname.split("/").pop() ?? invite_code;
+  } catch {
+    // Not a URL — already a bare token
   }
 
   try {

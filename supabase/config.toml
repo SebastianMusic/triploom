@@ -1,4 +1,19 @@
 
+[functions.join]
+verify_jwt = false
+import_map = "./functions/join/deno.json"
+entrypoint = "./functions/join/index.ts"
+
+[functions.export-tasks]
+verify_jwt = false
+import_map = "./functions/export-tasks/deno.json"
+entrypoint = "./functions/export-tasks/index.ts"
+
+[functions.export-events]
+verify_jwt = false
+import_map = "./functions/export-events/deno.json"
+entrypoint = "./functions/export-events/index.ts"
+
 [functions.generate-invite]
 verify_jwt = false
 entrypoint = "./functions/generate-invite/index.ts"

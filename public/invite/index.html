@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Join trip – Triploom</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f0f4ff;
+      min-height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .card {
+      background: #ffffff;
+      border-radius: 20px;
+      padding: 40px 32px;
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 4px 24px rgba(77, 120, 215, 0.10);
+    }
+
+    .logo {
+      width: 64px;
+      height: 64px;
+      background: #E8F0FF;
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 24px;
+      font-size: 28px;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #111;
+      margin-bottom: 10px;
+      line-height: 1.3;
+    }
+
+    p {
+      font-size: 0.95rem;
+      color: #666;
+      line-height: 1.5;
+      margin-bottom: 32px;
+    }
+
+    .btn {
+      display: block;
+      background: #4D78D7;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+      text-decoration: none;
+      padding: 16px 24px;
+      border-radius: 14px;
+      transition: opacity 0.15s;
+    }
+
+    .btn:active { opacity: 0.8; }
+
+    .hint {
+      margin-top: 16px;
+      font-size: 0.8rem;
+      color: #aaa;
+    }
+
+    .error { color: #c0392b; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">✈️</div>
+    <h1>You've been invited to join a trip</h1>
+    <p id="subtitle">Tap the button below to open Triploom and join.</p>
+    <a id="open-btn" class="btn" href="#">Open in Triploom</a>
+    <p class="hint">Make sure you have Triploom installed.</p>
+  </div>
+
+  <script>
+    var code = new URLSearchParams(window.location.search).get('code');
+    if (!code) {
+      document.getElementById('subtitle').textContent = 'This invite link is invalid or has expired.';
+      document.getElementById('subtitle').className = 'error';
+      document.getElementById('open-btn').style.display = 'none';
+    } else {
+      document.getElementById('open-btn').href = 'triploom://join/' + encodeURIComponent(code);
+    }
+  </script>
+</body>
+</html>
