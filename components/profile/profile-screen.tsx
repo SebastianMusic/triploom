@@ -38,6 +38,7 @@ type ProfileActionRowProps = {
 
 type ProfileScreenProps = {
   showBackButton?: boolean;
+  useTripChromeInsets?: boolean;
 };
 
 const themeOptions: { value: ThemePreference; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
@@ -53,7 +54,10 @@ const colorPresetOptions: { value: ThemeColorPreset; label: string }[] = [
   { value: 'rose', label: themeColorPresets.rose.label },
 ];
 
-export default function ProfileScreen({ showBackButton = false }: ProfileScreenProps) {
+export default function ProfileScreen({
+  showBackButton = false,
+  useTripChromeInsets: shouldUseTripChromeInsets = false,
+}: ProfileScreenProps) {
   const { session, signOut } = useAuthStore();
   const {
     profile,
@@ -74,7 +78,7 @@ export default function ProfileScreen({ showBackButton = false }: ProfileScreenP
   const colorPreset = useThemeStore((state) => state.colorPreset);
   const setColorPreset = useThemeStore((state) => state.setColorPreset);
   const setNavigationHidden = useTripChromeStore((state) => state.setNavigationHidden);
-  const { bottomOverlayOffset, headerContentOffset } = useTripChromeInsets();
+  const { bottomOverlayOffset, headerContentOffset, safeAreaInsets } = useTripChromeInsets();
   const passportPreview = usePassportPreviewMotion();
 
   const [showEditScreen, setShowEditScreen] = useState(false);
@@ -241,10 +245,11 @@ export default function ProfileScreen({ showBackButton = false }: ProfileScreenP
         disabled={!onPress || loading}
         onPress={onPress}
         style={({ pressed }) => ({
-          minHeight: 58,
+          minHeight: 66,
           flexDirection: 'row',
           alignItems: 'center',
           gap: spacing.sm,
+          paddingVertical: spacing.xs,
           opacity: pressed ? opacity.pressed : 1,
         })}>
         <View
@@ -385,8 +390,10 @@ export default function ProfileScreen({ showBackButton = false }: ProfileScreenP
         style={{ flex: 1, backgroundColor: colors.background }}
         contentContainerStyle={{
           flexGrow: 1,
-          paddingTop: headerContentOffset,
-          paddingBottom: bottomOverlayOffset,
+          paddingTop: shouldUseTripChromeInsets ? headerContentOffset : safeAreaInsets.top + spacing.md,
+          paddingBottom: shouldUseTripChromeInsets
+            ? bottomOverlayOffset
+            : Math.max(safeAreaInsets.bottom, spacing.md) + spacing.xl,
           paddingHorizontal: layout.screenPadding,
           gap: spacing.md,
         }}>
@@ -517,6 +524,7 @@ export default function ProfileScreen({ showBackButton = false }: ProfileScreenP
             borderWidth: 1,
             borderColor: colors.border,
             paddingHorizontal: spacing.md,
+            paddingVertical: spacing.xs,
           }}>
           <ProfileActionRow
             icon="create-outline"

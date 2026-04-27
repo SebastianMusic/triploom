@@ -41,6 +41,13 @@ function getTripBucket(trip: TripWithRole): TripBucket {
   return end < new Date() ? 'past' : 'active';
 }
 
+function getTripStartTime(trip: TripWithRole) {
+  if (!trip.start_date) return null;
+  const start = new Date(trip.start_date);
+  if (Number.isNaN(start.getTime())) return null;
+  return start.getTime();
+}
+
 function roleLabel(role: TripRole) {
   if (role === TripRole.CoOrganizer || role === TripRole.Organizer) return 'Organizer';
   return 'Participant';
@@ -147,7 +154,6 @@ function TripSummaryCard({
   } = useAppTheme();
   const bannerSource = trip.banner_image_url;
   const actionPreview = getNextActionPreview(nextAction);
-  const cardDimOverlay = 'rgba(20, 32, 43, 0.44)';
 
   return (
     <Pressable
@@ -169,13 +175,27 @@ function TripSummaryCard({
           {bannerSource ? (
             <ImageBackground source={{ uri: bannerSource }} resizeMode="cover" style={{ flex: 1 }}>
               <View
+                pointerEvents="none"
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  backgroundColor: colors.overlayStrong,
+                  opacity: 0.34,
+                }}
+              />
+              <View
                 style={{
                   flex: 1,
                   padding: spacing.md,
                   justifyContent: 'space-between',
-                  backgroundColor: cardDimOverlay,
                 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: spacing.sm }}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    gap: spacing.sm,
+                  }}>
                   <View style={{ flex: 1, gap: spacing.xs }}>
                     <AppText style={[typography.body, { color: colors.textOnPrimary, fontSize: 14, lineHeight: 18 }]}>
                       {formatDateRange(trip)}
@@ -240,7 +260,8 @@ function TripSummaryCard({
                 style={{
                   position: 'absolute',
                   inset: 0,
-                  backgroundColor: cardDimOverlay,
+                  backgroundColor: colors.overlayStrong,
+                  opacity: 0.28,
                 }}
               />
               <View
@@ -254,7 +275,7 @@ function TripSummaryCard({
                   borderRadius: radius.full,
                   borderWidth: 1,
                   borderColor: colors.primarySoft,
-                  opacity: 0.32,
+                  opacity: 0.24,
                 }}
               />
               <View
@@ -266,7 +287,7 @@ function TripSummaryCard({
                   width: '72%',
                   height: 1,
                   backgroundColor: colors.primarySoft,
-                  opacity: 0.38,
+                  opacity: 0.28,
                   transform: [{ rotate: '-10deg' }],
                 }}
               />
@@ -419,7 +440,15 @@ export default function TripPickerScreen() {
     () =>
       trips
         .filter((trip) => getTripBucket(trip) === 'active')
-        .sort((a, b) => (a.start_date ?? '').localeCompare(b.start_date ?? '')),
+        .sort((a, b) => {
+          const aStart = getTripStartTime(a);
+          const bStart = getTripStartTime(b);
+
+          if (aStart === null && bStart === null) return 0;
+          if (aStart === null) return 1;
+          if (bStart === null) return -1;
+          return aStart - bStart;
+        }),
     [trips],
   );
 
