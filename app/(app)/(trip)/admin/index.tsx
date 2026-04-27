@@ -1,6 +1,6 @@
 import * as Clipboard from 'expo-clipboard';
-import { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, Share, Text, View } from 'react-native';
 
 import { AnnouncementForm } from '@/components/announcement/AnnouncementForm';
 import { useTripChromeInsets } from '@/components/layout/use-trip-chrome';
@@ -17,11 +17,15 @@ export default function AdminScreen() {
 	const { theme: { colors, layout, spacing } } = useAppTheme();
 
 	const selectedTrip = useProfileStore((state) => state.selectedTrip);
-	const { inviteUrl, isGeneratingInvite, inviteError, generateInvite, currentParticipant } = useTripStore();
+	const { inviteUrl, isGeneratingInvite, inviteError, fetchInvite, generateInvite, currentParticipant } = useTripStore();
 
 	const canManage =
 		currentParticipant?.role === TripRole.Organizer ||
 		currentParticipant?.role === TripRole.CoOrganizer;
+
+	useEffect(() => {
+		if (selectedTrip && canManage) void fetchInvite(selectedTrip);
+	}, [selectedTrip, canManage]);
 
 	async function handleGenerateInvite() {
 		if (!selectedTrip) return;
@@ -35,6 +39,14 @@ export default function AdminScreen() {
 		await Clipboard.setStringAsync(inviteUrl);
 		setCopied(true);
 		setTimeout(() => setCopied(false), 2000);
+	}
+
+	async function handleShareInviteLink() {
+		if (!inviteUrl) return;
+		await Share.share({
+			message: `Join my trip on Triploom: ${inviteUrl}`,
+			url: inviteUrl,
+		});
 	}
 
 	return (
@@ -81,17 +93,8 @@ export default function AdminScreen() {
 							</View>
 						) : inviteUrl ? (
 							<View style={{ gap: spacing.sm }}>
-								<View style={{
-									backgroundColor: colors.surfaceMuted,
-									borderRadius: 8,
-									padding: spacing.sm,
-								}}>
-									<AppText variant="caption" tone="muted" numberOfLines={1}>
-										{inviteUrl}
-									</AppText>
-								</View>
 								<Pressable
-									onPress={handleCopyInviteLink}
+									onPress={handleShareInviteLink}
 									style={({ pressed }) => ({
 										backgroundColor: colors.primary,
 										borderRadius: 10,
@@ -99,7 +102,18 @@ export default function AdminScreen() {
 										alignItems: 'center',
 										opacity: pressed ? 0.8 : 1,
 									})}>
-									<AppText style={{ color: colors.textOnPrimary }}>
+									<AppText style={{ color: colors.textOnPrimary }}>Share invite link</AppText>
+								</Pressable>
+								<Pressable
+									onPress={handleCopyInviteLink}
+									style={({ pressed }) => ({
+										backgroundColor: colors.surfaceMuted,
+										borderRadius: 10,
+										padding: spacing.sm,
+										alignItems: 'center',
+										opacity: pressed ? 0.8 : 1,
+									})}>
+									<AppText tone="muted">
 										{copied ? 'Copied!' : 'Copy link'}
 									</AppText>
 								</Pressable>

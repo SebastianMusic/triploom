@@ -35,6 +35,7 @@ interface TasksState {
   ) => Promise<void>;
   deleteMyFieldResponses: (participantId: string, fieldIds: string[]) => Promise<void>;
   sendTaskReminder: (taskTitle: string, userIds: string[]) => Promise<void>;
+  exportTask: (taskId: string) => Promise<void>;
 }
 
 export const useTasksStore = create<TasksState>()((set) => ({
@@ -164,5 +165,9 @@ export const useTasksStore = create<TasksState>()((set) => ({
 
   sendTaskReminder: async (taskTitle, userIds) => {
     await tasksService.sendTaskReminder(taskTitle, userIds);
+  },
+
+  exportTask: async (taskId) => {
+    await tasksService.exportTask(taskId);
   },
 }));

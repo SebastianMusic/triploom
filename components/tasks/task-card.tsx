@@ -1,4 +1,4 @@
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { AppText } from '@/components/ui/text';
@@ -10,11 +10,15 @@ import type { Task, TaskAssignment } from '@/types';
 export function TaskCard({
   task,
   assignment,
+  isOrganizer,
   onPress,
+  onExportPress,
 }: {
   task: Task;
   assignment: TaskAssignment | null;
+  isOrganizer?: boolean;
   onPress: () => void;
+  onExportPress?: () => void;
 }) {
   const { theme: { colors, sizes } } = useAppTheme();
   const isCompleted = assignment?.is_completed ?? false;
@@ -47,6 +51,15 @@ export function TaskCard({
             </AppText>
           ) : null}
         </View>
+
+        {isOrganizer && onExportPress && (
+          <Pressable
+            onPress={onExportPress}
+            hitSlop={8}
+            style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}>
+            <Ionicons name="download-outline" size={sizes.icon.sm} color={colors.textMuted} />
+          </Pressable>
+        )}
 
         <Ionicons name="chevron-forward" size={sizes.icon.sm} color={colors.textMuted} />
       </Row>

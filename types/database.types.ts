@@ -58,16 +58,19 @@ export type Database = {
       }
       chat_image: {
         Row: {
+          created_at: string
           image_url: string
-          message_id: string | null
+          message_id: string
         }
         Insert: {
+          created_at?: string
           image_url: string
-          message_id?: string | null
+          message_id: string
         }
         Update: {
+          created_at?: string
           image_url?: string
-          message_id?: string | null
+          message_id?: string
         }
         Relationships: [
           {
@@ -300,6 +303,7 @@ export type Database = {
           deleted_at: string | null
           group_chat_id: string | null
           id: string
+          type: string
           updated_at: string | null
           user_id: string | null
         }
@@ -309,6 +313,7 @@ export type Database = {
           deleted_at?: string | null
           group_chat_id?: string | null
           id?: string
+          type?: string
           updated_at?: string | null
           user_id?: string | null
         }
@@ -318,6 +323,7 @@ export type Database = {
           deleted_at?: string | null
           group_chat_id?: string | null
           id?: string
+          type?: string
           updated_at?: string | null
           user_id?: string | null
         }
@@ -334,6 +340,38 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_location: {
+        Row: {
+          id: string
+          label: string | null
+          latitude: number
+          longitude: number
+          message_id: string
+        }
+        Insert: {
+          id?: string
+          label?: string | null
+          latitude: number
+          longitude: number
+          message_id: string
+        }
+        Update: {
+          id?: string
+          label?: string | null
+          latitude?: number
+          longitude?: number
+          message_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_location_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "message"
             referencedColumns: ["id"]
           },
         ]
@@ -610,6 +648,7 @@ export type Database = {
           description: string | null
           id: string
           max_members: number | null
+          max_size: number | null
           name: string | null
           trip_id: string | null
         }
@@ -618,6 +657,7 @@ export type Database = {
           description?: string | null
           id?: string
           max_members?: number | null
+          max_size?: number | null
           name?: string | null
           trip_id?: string | null
         }
@@ -626,6 +666,7 @@ export type Database = {
           description?: string | null
           id?: string
           max_members?: number | null
+          max_size?: number | null
           name?: string | null
           trip_id?: string | null
         }

@@ -16,6 +16,7 @@ import {
   type TripParticipantWithProfile,
 } from '@/services/trip.service';
 import {
+  fetchInviteLink as fetchInviteLinkService,
   generateInviteLink as generateInviteLinkService,
   redeemInviteLink as redeemInviteLinkService,
 } from '@/services/invite.service';
@@ -59,6 +60,7 @@ interface TripState {
   fetchParticipants: (tripId: string) => Promise<void>;
   updateParticipantRole: (tripId: string, actorUserId: string, targetUserId: string, newRole: TripRole) => Promise<void>;
   kickParticipant: (tripId: string, targetUserId: string) => Promise<void>;
+  fetchInvite: (tripId: string) => Promise<void>;
   generateInvite: (tripId: string) => Promise<string>;
   redeemInvite: (code: string) => Promise<RedeemInviteResponse>;
   leaveTrip: (tripId: string) => Promise<void>;
@@ -218,6 +220,15 @@ export const useTripStore = create<TripState>()((set) => ({
         (p) => p.user_id !== targetUserId,
       ),
     }));
+  },
+
+  fetchInvite: async (tripId: string) => {
+    try {
+      const inviteUrl = await fetchInviteLinkService(tripId);
+      set({ inviteUrl });
+    } catch {
+      // Silently ignore — admin screen falls back to generate button
+    }
   },
 
   generateInvite: async (tripId: string) => {

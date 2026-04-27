@@ -97,7 +97,7 @@ Deno.serve(async (req) => {
 		);
 	}
 
-	const invite_url = `triploom://join/${token}`;
+	const invite_url = `https://triploom.app/invite?code=${token}`;
 
 	return new Response(
 		JSON.stringify({ invite_url }),

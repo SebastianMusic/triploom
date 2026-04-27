@@ -227,3 +227,14 @@ export async function sendTaskReminder(taskTitle: string, userIds: string[]): Pr
   });
   if (error) throw error;
 }
+
+export async function exportTask(taskId: string): Promise<void> {
+  const { error } = await supabase.functions.invoke('export-tasks', {
+    body: { task_id: taskId },
+  });
+  if (error) {
+    // FunctionsHttpError wraps the actual response — extract the body for a useful message
+    const body = await (error as any).context?.json?.().catch(() => null);
+    throw new Error(body?.error ?? error.message);
+  }
+}
