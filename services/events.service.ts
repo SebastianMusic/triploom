@@ -128,18 +128,33 @@ export type EventParticipant = {
 };
 
 export async function getEventParticipants(eventId: string): Promise<EventParticipant[]> {
-  const { data, error } = await supabase
+  // Step 1: get all participant IDs — avoids inner-join RLS drop when embedding trip_participant
+  const { data: participations, error: epError } = await supabase
     .from('event_participation')
-    .select('participant_id, trip_participant(user_id, profile(user_name, profile_picture_url))')
+    .select('participant_id')
     .eq('event_id', eventId);
-  if (error) throw error;
-  return (data ?? []).map((row) => {
-    const tp = row.trip_participant as { user_id: string; profile: { user_name: string | null; profile_picture_url: string | null } | null } | null;
+  if (epError) throw epError;
+  if (!participations || participations.length === 0) return [];
+
+  const participantIds = participations.map((p) => p.participant_id);
+
+  // Step 2: fetch profile data for those participant IDs
+  const { data: tpData, error: tpError } = await supabase
+    .from('trip_participant')
+    .select('id, user_id, profile(user_name, profile_picture_url)')
+    .in('id', participantIds);
+  if (tpError) throw tpError;
+
+  const tpMap = new Map((tpData ?? []).map((tp) => [tp.id, tp]));
+
+  return participantIds.map((pid) => {
+    const tp = tpMap.get(pid);
+    const profile = tp?.profile as { user_name: string | null; profile_picture_url: string | null } | null;
     return {
-      participant_id: row.participant_id,
+      participant_id: pid,
       user_id: tp?.user_id ?? null,
-      user_name: tp?.profile?.user_name ?? null,
-      profile_picture_url: tp?.profile?.profile_picture_url ?? null,
+      user_name: profile?.user_name ?? null,
+      profile_picture_url: profile?.profile_picture_url ?? null,
     };
   });
 }
