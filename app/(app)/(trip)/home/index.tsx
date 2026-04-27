@@ -120,6 +120,7 @@ export default function HomeScreen() {
 				isOrganizer={isOrganizer}
 				tripId={currentTrip?.id ?? null}
 				currentParticipantId={currentParticipant?.id ?? null}
+				onRefreshParticipants={currentTrip?.id ? () => fetchParticipants(currentTrip.id) : undefined}
 			/>
 		</View>
 	);

@@ -46,6 +46,18 @@ export async function uploadProfileImage(localUri: string): Promise<string> {
 }
 
 /**
+ * Creates a signed URL for any user's profile image.
+ * userId is the auth user ID (= profile.id), imageId is profile.profile_picture_url.
+ */
+export async function getProfileImageUrlByPath(userId: string, imageId: string): Promise<string | null> {
+  const { data, error } = await supabase.storage
+    .from(PROFILE_IMAGE_BUCKET)
+    .createSignedUrl(`${userId}/${imageId}`, 3600);
+  if (error) return null;
+  return data.signedUrl;
+}
+
+/**
  * Creates a 60-second signed URL for a profile image.
  * imageId is the value stored in profile.profile_picture_url.
  */

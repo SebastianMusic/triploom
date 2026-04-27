@@ -1,12 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, Pressable, RefreshControl, ScrollView, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { GroupWithMembers } from '@/services/group.service';
-import { deleteGroup, getTripGroupsWithMembers, joinGroup, leaveGroup } from '@/services/group.service';
+import { deleteGroup, deleteGroups, getTripGroupsWithMembers, joinGroup, leaveGroup } from '@/services/group.service';
+import { getProfileImageUrlByPath } from '@/services/profile.service';
 import type { TripParticipantWithProfile } from '@/services/trip.service';
+import { kickParticipant } from '@/services/trip.service';
 import { CreateGroupsModal } from '@/components/trip/create-groups-modal';
+import { EditGroupModal } from '@/components/trip/edit-group-modal';
 import { Avatar } from '@/components/ui/avatar';
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
@@ -33,9 +36,10 @@ type Props = {
   isOrganizer: boolean;
   tripId: string | null;
   currentParticipantId: string | null;
+  onRefreshParticipants?: () => Promise<void>;
 };
 
-export function PersonsSheet({ visible, onClose, participants, isOrganizer, tripId, currentParticipantId }: Props) {
+export function PersonsSheet({ visible, onClose, participants, isOrganizer, tripId, currentParticipantId, onRefreshParticipants }: Props) {
   const insets = useSafeAreaInsets();
   const { height: screenHeight } = useWindowDimensions();
   const { theme: { colors, spacing, radius, stroke } } = useAppTheme();
@@ -43,11 +47,44 @@ export function PersonsSheet({ visible, onClose, participants, isOrganizer, trip
   const [groups, setGroups] = useState<GroupWithMembers[]>([]);
   const [loadingGroups, setLoadingGroups] = useState(false);
   const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [editingGroup, setEditingGroup] = useState<GroupWithMembers | null>(null);
   const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deletingSelected, setDeletingSelected] = useState(false);
+  const [kickingParticipantId, setKickingParticipantId] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [avatarUrls, setAvatarUrls] = useState<Record<string, string>>({});
 
   const slideAnim = useRef(new Animated.Value(screenHeight)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
+
+  function resolveAvatars(items: { participantId: string; userId: string; imageId: string }[]) {
+    if (items.length === 0) return;
+    Promise.all(
+      items.map(async ({ participantId, userId, imageId }) => {
+        const url = await getProfileImageUrlByPath(userId, imageId);
+        return { participantId, url };
+      }),
+    ).then((results) => {
+      setAvatarUrls((prev) => {
+        const next = { ...prev };
+        for (const { participantId, url } of results) {
+          if (url) next[participantId] = url;
+        }
+        return next;
+      });
+    }).catch(() => {});
+  }
+
+  useEffect(() => {
+    if (!visible) return;
+    const items = participants
+      .filter((p) => p.user_id && p.profile?.profile_picture_url)
+      .map((p) => ({ participantId: p.id, userId: p.user_id!, imageId: p.profile!.profile_picture_url! }));
+    resolveAvatars(items);
+  }, [visible, participants]);
 
   useEffect(() => {
     if (visible) {
@@ -68,7 +105,19 @@ export function PersonsSheet({ visible, onClose, participants, isOrganizer, trip
     if (!tripId) return;
     setLoadingGroups(true);
     getTripGroupsWithMembers(tripId)
-      .then(setGroups)
+      .then((data) => {
+        setGroups(data);
+        const items = data.flatMap((g) =>
+          g.group_membership
+            .filter((m) => m.trip_participant?.user_id && m.trip_participant?.profile?.profile_picture_url)
+            .map((m) => ({
+              participantId: m.participant_id,
+              userId: m.trip_participant!.user_id,
+              imageId: m.trip_participant!.profile!.profile_picture_url!,
+            })),
+        );
+        resolveAvatars(items);
+      })
       .catch(() => {})
       .finally(() => setLoadingGroups(false));
   }
@@ -120,6 +169,33 @@ export function PersonsSheet({ visible, onClose, participants, isOrganizer, trip
     }
   }
 
+  function handleKick(item: TripParticipantWithProfile) {
+    if (!tripId) return;
+    const resolvedTripId = tripId;
+    const name = item.profile?.user_name ?? 'this participant';
+    Alert.alert(
+      'Remove participant',
+      `Remove ${name} from the trip?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            setKickingParticipantId(item.id);
+            try {
+              await kickParticipant(resolvedTripId, item.user_id!);
+            } catch {
+              Alert.alert('Error', 'Could not remove participant. Please try again.');
+            } finally {
+              setKickingParticipantId(null);
+            }
+          },
+        },
+      ],
+    );
+  }
+
   function handleDelete(group: GroupWithMembers) {
     Alert.alert(
       'Delete group',
@@ -138,6 +214,59 @@ export function PersonsSheet({ visible, onClose, participants, isOrganizer, trip
               Alert.alert('Error', 'Could not delete group. Please try again.');
             } finally {
               setActionLoading(null);
+            }
+          },
+        },
+      ],
+    );
+  }
+
+  async function handleRefresh() {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        onRefreshParticipants?.(),
+        tripId ? getTripGroupsWithMembers(tripId).then(setGroups).catch(() => {}) : Promise.resolve(),
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
+  function toggleSelect(groupId: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
+      return next;
+    });
+  }
+
+  function exitSelectMode() {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+  }
+
+  function handleDeleteSelected() {
+    const count = selectedIds.size;
+    Alert.alert(
+      'Delete groups',
+      `Delete ${count} group${count === 1 ? '' : 's'}? This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            setDeletingSelected(true);
+            try {
+              await deleteGroups(Array.from(selectedIds));
+              exitSelectMode();
+              refreshGroups();
+            } catch {
+              Alert.alert('Error', 'Could not delete groups. Please try again.');
+            } finally {
+              setDeletingSelected(false);
             }
           },
         },
@@ -191,12 +320,25 @@ export function PersonsSheet({ visible, onClose, participants, isOrganizer, trip
             {tab === 'persons' ? `Persons (${participants.length})` : `Groups (${groups.length})`}
           </AppText>
           {tab === 'groups' && isOrganizer ? (
-            <Pressable
-              onPress={() => setCreateModalVisible(true)}
-              style={{ padding: spacing.xs / 2 }}
-              accessibilityLabel="Create group">
-              <Ionicons name="add" size={26} color={colors.primary} />
-            </Pressable>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+              {groups.length > 0 && (
+                <Pressable
+                  onPress={() => selectMode ? exitSelectMode() : setSelectMode(true)}
+                  style={{ padding: spacing.xs / 2 }}>
+                  <AppText style={{ color: selectMode ? colors.textMuted : colors.primary, fontSize: 14 }}>
+                    {selectMode ? 'Cancel' : 'Select'}
+                  </AppText>
+                </Pressable>
+              )}
+              {!selectMode && (
+                <Pressable
+                  onPress={() => setCreateModalVisible(true)}
+                  style={{ padding: spacing.xs / 2 }}
+                  accessibilityLabel="Create group">
+                  <Ionicons name="add" size={26} color={colors.primary} />
+                </Pressable>
+              )}
+            </View>
           ) : (
             <View style={{ width: 32 }} />
           )}
@@ -236,6 +378,13 @@ export function PersonsSheet({ visible, onClose, participants, isOrganizer, trip
 
         {/* Content */}
         <ScrollView
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => { void handleRefresh(); }}
+              tintColor={colors.primary}
+            />
+          }
           contentContainerStyle={{
             paddingBottom: insets.bottom + spacing.xl,
             paddingHorizontal: spacing.md,
@@ -250,6 +399,11 @@ export function PersonsSheet({ visible, onClose, participants, isOrganizer, trip
               const email = item.profile?.email ?? null;
               const phone = item.profile?.phonenumber ?? null;
 
+              const isCurrentUser = item.id === currentParticipantId;
+              const isOtherOrganizer = item.role === TripRole.Organizer && !isCurrentUser;
+              const canKick = isOrganizer && !isCurrentUser && !isOtherOrganizer;
+              const kicking = kickingParticipantId === item.id;
+
               return (
                 <View
                   key={item.id}
@@ -261,7 +415,11 @@ export function PersonsSheet({ visible, onClose, participants, isOrganizer, trip
                     borderBottomWidth: stroke.thin,
                     borderBottomColor: colors.border,
                   }}>
-                  <Avatar name={name} size="md" />
+                  <Avatar
+                    name={name}
+                    size="md"
+                    source={avatarUrls[item.id] ? { uri: avatarUrls[item.id] } : undefined}
+                  />
                   <View style={{ flex: 1, gap: 2 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
                       <AppText style={{ fontWeight: '600' }}>{name}</AppText>
@@ -289,6 +447,18 @@ export function PersonsSheet({ visible, onClose, participants, isOrganizer, trip
                       </View>
                     )}
                   </View>
+                  {canKick && (
+                    kicking ? (
+                      <ActivityIndicator size="small" color={colors.error} />
+                    ) : (
+                      <Pressable
+                        onPress={() => handleKick(item)}
+                        style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, padding: spacing.xs / 2 })}
+                        accessibilityLabel={`Remove ${name}`}>
+                        <Ionicons name="person-remove-outline" size={18} color={colors.error} />
+                      </Pressable>
+                    )
+                  )}
                 </View>
               );
             })
@@ -301,12 +471,45 @@ export function PersonsSheet({ visible, onClose, participants, isOrganizer, trip
               <AppText tone="muted">No groups yet.</AppText>
             </View>
           ) : (
-            groups.map((group) => {
+            <>
+              {/* Select-mode toolbar */}
+              {selectMode && (
+                <View style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  paddingVertical: spacing.xs,
+                  marginBottom: spacing.xs,
+                }}>
+                  <Pressable onPress={() => {
+                    if (selectedIds.size === groups.length) setSelectedIds(new Set());
+                    else setSelectedIds(new Set(groups.map((g) => g.id)));
+                  }}>
+                    <AppText style={{ color: colors.primary, fontSize: 14 }}>
+                      {selectedIds.size === groups.length ? 'Deselect all' : 'Select all'}
+                    </AppText>
+                  </Pressable>
+                  {selectedIds.size > 0 && (
+                    deletingSelected ? (
+                      <ActivityIndicator size="small" color={colors.error} />
+                    ) : (
+                      <Pressable onPress={handleDeleteSelected}>
+                        <AppText style={{ color: colors.error, fontSize: 14, fontWeight: '600' }}>
+                          Delete ({selectedIds.size})
+                        </AppText>
+                      </Pressable>
+                    )
+                  )}
+                </View>
+              )}
+
+              {groups.map((group) => {
               const members = group.group_membership ?? [];
               const expanded = expandedGroupId === group.id;
               const joined = isMember(group);
               const full = isFull(group);
               const loading = actionLoading === group.id;
+              const selected = selectedIds.has(group.id);
 
               return (
                 <View
@@ -314,13 +517,13 @@ export function PersonsSheet({ visible, onClose, participants, isOrganizer, trip
                   style={{
                     borderRadius: radius.md,
                     borderWidth: stroke.thin,
-                    borderColor: colors.border,
+                    borderColor: selectMode && selected ? colors.primary : colors.border,
                     backgroundColor: colors.surface,
                     overflow: 'hidden',
                     marginBottom: spacing.xs,
                   }}>
                   <Pressable
-                    onPress={() => setExpandedGroupId(expanded ? null : group.id)}
+                    onPress={() => selectMode ? toggleSelect(group.id) : setExpandedGroupId(expanded ? null : group.id)}
                     style={({ pressed }) => ({
                       flexDirection: 'row',
                       alignItems: 'center',
@@ -329,7 +532,15 @@ export function PersonsSheet({ visible, onClose, participants, isOrganizer, trip
                       paddingVertical: spacing.sm,
                       backgroundColor: pressed ? colors.surfaceMuted : 'transparent',
                     })}>
-                    <Ionicons name="people-circle-outline" size={20} color={colors.primary} />
+                    {selectMode ? (
+                      <Ionicons
+                        name={selected ? 'checkbox' : 'square-outline'}
+                        size={20}
+                        color={selected ? colors.primary : colors.textMuted}
+                      />
+                    ) : (
+                      <Ionicons name="people-circle-outline" size={20} color={colors.primary} />
+                    )}
                     <View style={{ flex: 1 }}>
                       <AppText style={{ fontWeight: '600' }}>{group.name}</AppText>
                       {group.description ? (
@@ -368,7 +579,11 @@ export function PersonsSheet({ visible, onClose, participants, isOrganizer, trip
                                 borderTopWidth: index > 0 ? stroke.thin : 0,
                                 borderTopColor: colors.border,
                               }}>
-                              <Avatar name={name} size="sm" />
+                              <Avatar
+                                name={name}
+                                size="sm"
+                                source={avatarUrls[m.participant_id] ? { uri: avatarUrls[m.participant_id] } : undefined}
+                              />
                               <AppText style={{ flex: 1 }}>{name}</AppText>
                             </View>
                           );
@@ -422,19 +637,34 @@ export function PersonsSheet({ visible, onClose, participants, isOrganizer, trip
                               </Pressable>
                             )}
                             {isOrganizer ? (
-                              <Pressable
-                                onPress={() => handleDelete(group)}
-                                style={({ pressed }) => ({
-                                  paddingVertical: spacing.xs,
-                                  paddingHorizontal: spacing.sm,
-                                  borderRadius: radius.sm,
-                                  borderWidth: stroke.thin,
-                                  borderColor: colors.error,
-                                  alignItems: 'center',
-                                  opacity: pressed ? 0.7 : 1,
-                                })}>
-                                <AppText variant="caption" style={{ color: colors.error }}>Delete</AppText>
-                              </Pressable>
+                              <>
+                                <Pressable
+                                  onPress={() => setEditingGroup(group)}
+                                  style={({ pressed }) => ({
+                                    paddingVertical: spacing.xs,
+                                    paddingHorizontal: spacing.sm,
+                                    borderRadius: radius.sm,
+                                    borderWidth: stroke.thin,
+                                    borderColor: colors.border,
+                                    alignItems: 'center',
+                                    opacity: pressed ? 0.7 : 1,
+                                  })}>
+                                  <AppText variant="caption" tone="muted">Edit</AppText>
+                                </Pressable>
+                                <Pressable
+                                  onPress={() => handleDelete(group)}
+                                  style={({ pressed }) => ({
+                                    paddingVertical: spacing.xs,
+                                    paddingHorizontal: spacing.sm,
+                                    borderRadius: radius.sm,
+                                    borderWidth: stroke.thin,
+                                    borderColor: colors.error,
+                                    alignItems: 'center',
+                                    opacity: pressed ? 0.7 : 1,
+                                  })}>
+                                  <AppText variant="caption" style={{ color: colors.error }}>Delete</AppText>
+                                </Pressable>
+                              </>
                             ) : null}
                           </>
                         )}
@@ -443,7 +673,8 @@ export function PersonsSheet({ visible, onClose, participants, isOrganizer, trip
                   ) : null}
                 </View>
               );
-            })
+            })}
+            </>
           )}
         </ScrollView>
       </Animated.View>
@@ -455,6 +686,18 @@ export function PersonsSheet({ visible, onClose, participants, isOrganizer, trip
           onClose={() => setCreateModalVisible(false)}
           onCreated={() => {
             setCreateModalVisible(false);
+            refreshGroups();
+          }}
+        />
+      ) : null}
+
+      {editingGroup ? (
+        <EditGroupModal
+          visible
+          group={editingGroup}
+          onClose={() => setEditingGroup(null)}
+          onUpdated={() => {
+            setEditingGroup(null);
             refreshGroups();
           }}
         />
