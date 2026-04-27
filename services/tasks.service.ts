@@ -30,6 +30,22 @@ export async function getAllTasks(tripId: string): Promise<Task[]> {
   return data;
 }
 
+export async function getUpcomingTasksForTrips(tripIds: string[]): Promise<Task[]> {
+  if (!tripIds.length) return [];
+
+  const now = new Date().toISOString();
+  const { data, error } = await supabase
+    .from('task')
+    .select('*')
+    .in('trip_id', tripIds)
+    .not('due_time', 'is', null)
+    .gte('due_time', now)
+    .order('due_time', { ascending: true });
+
+  if (error) throw error;
+  return data;
+}
+
 export async function createTask(tripId: string, dto: CreateTaskDTO): Promise<Task> {
   const { data, error } = await supabase
     .from('task')

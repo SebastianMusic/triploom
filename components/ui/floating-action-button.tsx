@@ -38,7 +38,7 @@ export function FloatingActionButton({
           borderRadius: radius.full,
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: colors.primary,
+          backgroundColor: colors.accent,
           opacity: disabled ? opacity.disabled : pressed ? opacity.pressed : hovered ? opacity.hover : 1,
         },
         shadows.md,
