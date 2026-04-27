@@ -75,6 +75,33 @@ export default function CreateEventScreen() {
   // Temp date while picking on iOS (committed on "Done")
   const [tempDate, setTempDate] = useState<Date>(new Date());
 
+  const hasData = title.trim() || description.trim() || location.trim() || priceRange.trim() || startDate || endDate || bannerUri;
+
+  function clearForm() {
+    setTitle('');
+    setDescription('');
+    setLocation('');
+    setStartDate(null);
+    setEndDate(null);
+    setPriceRange('');
+    setBannerUri(null);
+    setIsMandatory(false);
+    setLocationSuggestions([]);
+    setErrors({});
+  }
+
+  function handleClose() {
+    if (!hasData) { clearForm(); router.navigate('/(app)/(trip)/events'); return; }
+    Alert.alert(
+      'Discard draft?',
+      'You have unsaved changes. Do you want to discard them?',
+      [
+        { text: 'Keep editing', style: 'cancel' },
+        { text: 'Discard', style: 'destructive', onPress: () => { clearForm(); router.navigate('/(app)/(trip)/events'); } },
+      ],
+    );
+  }
+
   function openPicker(target: PickerTarget) {
     const current = target === 'start' ? startDate : endDate;
     setTempDate(current ?? new Date());
@@ -221,16 +248,7 @@ export default function CreateEventScreen() {
         banner_image_url: bannerPath,
       });
 
-      setTitle('');
-      setDescription('');
-      setLocation('');
-      setStartDate(null);
-      setEndDate(null);
-      setPriceRange('');
-      setBannerUri(null);
-      setIsMandatory(false);
-      setLocationSuggestions([]);
-
+      clearForm();
       router.replace('/(app)/(trip)/events');
     } catch {
       Alert.alert('Error', 'Could not create event. Please try again.');
@@ -268,7 +286,7 @@ export default function CreateEventScreen() {
         {/* Header row */}
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <Pressable
-            onPress={() => router.back()}
+            onPress={handleClose}
             style={{ padding: spacing.xs / 2 }}
             accessibilityLabel="Cancel">
             <Ionicons name="close" size={24} color={colors.text} />
