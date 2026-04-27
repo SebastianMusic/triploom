@@ -161,6 +161,41 @@ function ViewEvent({ event, onBack, isCreator, isOrganizer, onEdit, onDelete }: 
     }
   }, [event.banner_image_url]);
 
+  useEffect(() => {
+    setEventParticipants(null);
+    setParticipantAvatarUrls({});
+    setShowParticipants(false);
+  }, [event.id]);
+
+  useEffect(() => {
+    if (!showParticipants) {
+      setEventParticipants(null);
+      setParticipantAvatarUrls({});
+      return;
+    }
+    setLoadingParticipants(true);
+    getEventParticipants(event.id)
+      .then(async (participants) => {
+        setEventParticipants(participants);
+        const toResolve = participants.filter((p) => p.user_id && p.profile_picture_url);
+        const resolved = await Promise.all(
+          toResolve.map(async (p) => {
+            const url = await getProfileImageUrlByPath(p.user_id!, p.profile_picture_url!);
+            return { participant_id: p.participant_id, url };
+          }),
+        );
+        setParticipantAvatarUrls((prev) => {
+          const next = { ...prev };
+          for (const { participant_id, url } of resolved) {
+            if (url) next[participant_id] = url;
+          }
+          return next;
+        });
+      })
+      .catch(() => setEventParticipants([]))
+      .finally(() => setLoadingParticipants(false));
+  }, [event.event_participation.length, showParticipants]);
+
   async function handleToggle() {
     if (!participantId) return;
     setIsLoading(true);
@@ -177,34 +212,8 @@ function ViewEvent({ event, onBack, isCreator, isOrganizer, onEdit, onDelete }: 
 
   const participantCount = event.event_participation.length;
 
-  async function handleToggleParticipants() {
-    const next = !showParticipants;
-    setShowParticipants(next);
-    if (next && eventParticipants === null) {
-      setLoadingParticipants(true);
-      try {
-        const participants = await getEventParticipants(event.id);
-        setEventParticipants(participants);
-        const toResolve = participants.filter((p) => p.user_id && p.profile_picture_url);
-        const resolved = await Promise.all(
-          toResolve.map(async (p) => {
-            const url = await getProfileImageUrlByPath(p.user_id!, p.profile_picture_url!);
-            return { participant_id: p.participant_id, url };
-          }),
-        );
-        setParticipantAvatarUrls((prev) => {
-          const next2 = { ...prev };
-          for (const { participant_id, url } of resolved) {
-            if (url) next2[participant_id] = url;
-          }
-          return next2;
-        });
-      } catch {
-        setEventParticipants([]);
-      } finally {
-        setLoadingParticipants(false);
-      }
-    }
+  function handleToggleParticipants() {
+    setShowParticipants((v) => !v);
   }
 
   function Row({ icon, children }: { icon: string; children: React.ReactNode }) {
