@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, Pressable, RefreshControl, ScrollView, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { GroupWithMembers } from '@/services/group.service';
 import { deleteGroup, deleteGroups, getTripGroupsWithMembers, joinGroup, leaveGroup } from '@/services/group.service';
 import type { TripParticipantWithProfile } from '@/services/trip.service';
+import { kickParticipant } from '@/services/trip.service';
 import { CreateGroupsModal } from '@/components/trip/create-groups-modal';
 import { EditGroupModal } from '@/components/trip/edit-group-modal';
 import { Avatar } from '@/components/ui/avatar';
@@ -34,9 +35,10 @@ type Props = {
   isOrganizer: boolean;
   tripId: string | null;
   currentParticipantId: string | null;
+  onRefreshParticipants?: () => Promise<void>;
 };
 
-export function PersonsSheet({ visible, onClose, participants, isOrganizer, tripId, currentParticipantId }: Props) {
+export function PersonsSheet({ visible, onClose, participants, isOrganizer, tripId, currentParticipantId, onRefreshParticipants }: Props) {
   const insets = useSafeAreaInsets();
   const { height: screenHeight } = useWindowDimensions();
   const { theme: { colors, spacing, radius, stroke } } = useAppTheme();
@@ -50,6 +52,8 @@ export function PersonsSheet({ visible, onClose, participants, isOrganizer, trip
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [deletingSelected, setDeletingSelected] = useState(false);
+  const [kickingParticipantId, setKickingParticipantId] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   const slideAnim = useRef(new Animated.Value(screenHeight)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
@@ -125,6 +129,33 @@ export function PersonsSheet({ visible, onClose, participants, isOrganizer, trip
     }
   }
 
+  function handleKick(item: TripParticipantWithProfile) {
+    if (!tripId) return;
+    const resolvedTripId = tripId;
+    const name = item.profile?.user_name ?? 'this participant';
+    Alert.alert(
+      'Remove participant',
+      `Remove ${name} from the trip?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            setKickingParticipantId(item.id);
+            try {
+              await kickParticipant(resolvedTripId, item.user_id!);
+            } catch {
+              Alert.alert('Error', 'Could not remove participant. Please try again.');
+            } finally {
+              setKickingParticipantId(null);
+            }
+          },
+        },
+      ],
+    );
+  }
+
   function handleDelete(group: GroupWithMembers) {
     Alert.alert(
       'Delete group',
@@ -148,6 +179,18 @@ export function PersonsSheet({ visible, onClose, participants, isOrganizer, trip
         },
       ],
     );
+  }
+
+  async function handleRefresh() {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        onRefreshParticipants?.(),
+        tripId ? getTripGroupsWithMembers(tripId).then(setGroups).catch(() => {}) : Promise.resolve(),
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
   }
 
   function toggleSelect(groupId: string) {
@@ -295,6 +338,13 @@ export function PersonsSheet({ visible, onClose, participants, isOrganizer, trip
 
         {/* Content */}
         <ScrollView
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => { void handleRefresh(); }}
+              tintColor={colors.primary}
+            />
+          }
           contentContainerStyle={{
             paddingBottom: insets.bottom + spacing.xl,
             paddingHorizontal: spacing.md,
@@ -308,6 +358,11 @@ export function PersonsSheet({ visible, onClose, participants, isOrganizer, trip
               const roleLabel = item.role ? (ROLE_LABELS[item.role] ?? item.role) : 'Participant';
               const email = item.profile?.email ?? null;
               const phone = item.profile?.phonenumber ?? null;
+
+              const isCurrentUser = item.id === currentParticipantId;
+              const isOtherOrganizer = item.role === TripRole.Organizer && !isCurrentUser;
+              const canKick = isOrganizer && !isCurrentUser && !isOtherOrganizer;
+              const kicking = kickingParticipantId === item.id;
 
               return (
                 <View
@@ -348,6 +403,18 @@ export function PersonsSheet({ visible, onClose, participants, isOrganizer, trip
                       </View>
                     )}
                   </View>
+                  {canKick && (
+                    kicking ? (
+                      <ActivityIndicator size="small" color={colors.error} />
+                    ) : (
+                      <Pressable
+                        onPress={() => handleKick(item)}
+                        style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, padding: spacing.xs / 2 })}
+                        accessibilityLabel={`Remove ${name}`}>
+                        <Ionicons name="person-remove-outline" size={18} color={colors.error} />
+                      </Pressable>
+                    )
+                  )}
                 </View>
               );
             })
