@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { GroupWithMembers } from '@/services/group.service';
 import { deleteGroup, deleteGroups, getTripGroupsWithMembers, joinGroup, leaveGroup } from '@/services/group.service';
+import { getProfileImageUrlByPath } from '@/services/profile.service';
 import type { TripParticipantWithProfile } from '@/services/trip.service';
 import { kickParticipant } from '@/services/trip.service';
 import { CreateGroupsModal } from '@/components/trip/create-groups-modal';
@@ -54,9 +55,36 @@ export function PersonsSheet({ visible, onClose, participants, isOrganizer, trip
   const [deletingSelected, setDeletingSelected] = useState(false);
   const [kickingParticipantId, setKickingParticipantId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [avatarUrls, setAvatarUrls] = useState<Record<string, string>>({});
 
   const slideAnim = useRef(new Animated.Value(screenHeight)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
+
+  function resolveAvatars(items: { participantId: string; userId: string; imageId: string }[]) {
+    if (items.length === 0) return;
+    Promise.all(
+      items.map(async ({ participantId, userId, imageId }) => {
+        const url = await getProfileImageUrlByPath(userId, imageId);
+        return { participantId, url };
+      }),
+    ).then((results) => {
+      setAvatarUrls((prev) => {
+        const next = { ...prev };
+        for (const { participantId, url } of results) {
+          if (url) next[participantId] = url;
+        }
+        return next;
+      });
+    }).catch(() => {});
+  }
+
+  useEffect(() => {
+    if (!visible) return;
+    const items = participants
+      .filter((p) => p.user_id && p.profile?.profile_picture_url)
+      .map((p) => ({ participantId: p.id, userId: p.user_id!, imageId: p.profile!.profile_picture_url! }));
+    resolveAvatars(items);
+  }, [visible, participants]);
 
   useEffect(() => {
     if (visible) {
@@ -77,7 +105,19 @@ export function PersonsSheet({ visible, onClose, participants, isOrganizer, trip
     if (!tripId) return;
     setLoadingGroups(true);
     getTripGroupsWithMembers(tripId)
-      .then(setGroups)
+      .then((data) => {
+        setGroups(data);
+        const items = data.flatMap((g) =>
+          g.group_membership
+            .filter((m) => m.trip_participant?.user_id && m.trip_participant?.profile?.profile_picture_url)
+            .map((m) => ({
+              participantId: m.participant_id,
+              userId: m.trip_participant!.user_id,
+              imageId: m.trip_participant!.profile!.profile_picture_url!,
+            })),
+        );
+        resolveAvatars(items);
+      })
       .catch(() => {})
       .finally(() => setLoadingGroups(false));
   }
@@ -375,7 +415,11 @@ export function PersonsSheet({ visible, onClose, participants, isOrganizer, trip
                     borderBottomWidth: stroke.thin,
                     borderBottomColor: colors.border,
                   }}>
-                  <Avatar name={name} size="md" />
+                  <Avatar
+                    name={name}
+                    size="md"
+                    source={avatarUrls[item.id] ? { uri: avatarUrls[item.id] } : undefined}
+                  />
                   <View style={{ flex: 1, gap: 2 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
                       <AppText style={{ fontWeight: '600' }}>{name}</AppText>
@@ -535,7 +579,11 @@ export function PersonsSheet({ visible, onClose, participants, isOrganizer, trip
                                 borderTopWidth: index > 0 ? stroke.thin : 0,
                                 borderTopColor: colors.border,
                               }}>
-                              <Avatar name={name} size="sm" />
+                              <Avatar
+                                name={name}
+                                size="sm"
+                                source={avatarUrls[m.participant_id] ? { uri: avatarUrls[m.participant_id] } : undefined}
+                              />
                               <AppText style={{ flex: 1 }}>{name}</AppText>
                             </View>
                           );

@@ -105,6 +105,30 @@ export async function registerForEvent(
   if (error) throw error;
 }
 
+export type EventParticipant = {
+  participant_id: string;
+  user_id: string | null;
+  user_name: string | null;
+  profile_picture_url: string | null;
+};
+
+export async function getEventParticipants(eventId: string): Promise<EventParticipant[]> {
+  const { data, error } = await supabase
+    .from('event_participation')
+    .select('participant_id, trip_participant(user_id, profile(user_name, profile_picture_url))')
+    .eq('event_id', eventId);
+  if (error) throw error;
+  return (data ?? []).map((row) => {
+    const tp = row.trip_participant as { user_id: string; profile: { user_name: string | null; profile_picture_url: string | null } | null } | null;
+    return {
+      participant_id: row.participant_id,
+      user_id: tp?.user_id ?? null,
+      user_name: tp?.profile?.user_name ?? null,
+      profile_picture_url: tp?.profile?.profile_picture_url ?? null,
+    };
+  });
+}
+
 export async function unregisterFromEvent(
   eventId: string,
   participantId: string,

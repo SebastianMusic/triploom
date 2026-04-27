@@ -15,11 +15,13 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText } from '@/components/ui/text';
+import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAppTheme } from '@/components/ui/theme-provider';
-import { getEvent, getEventBannerUrl, uploadEventBanner } from '@/services/events.service';
-import type { EventWithCount } from '@/services/events.service';
+import { getEvent, getEventBannerUrl, getEventParticipants, uploadEventBanner } from '@/services/events.service';
+import type { EventParticipant, EventWithCount } from '@/services/events.service';
+import { getProfileImageUrlByPath } from '@/services/profile.service';
 import { EventBannerPicker } from '@/components/events/event-banner-picker';
 import { useEventsStore } from '@/store/events.store';
 import { useTripStore } from '@/store/trip.store';
@@ -145,6 +147,10 @@ function ViewEvent({ event, onBack, isCreator, isOrganizer, onEdit, onDelete }: 
   );
   const [isLoading, setIsLoading] = useState(false);
   const [bannerUrl, setBannerUrl] = useState<string | null>(null);
+  const [showParticipants, setShowParticipants] = useState(false);
+  const [eventParticipants, setEventParticipants] = useState<EventParticipant[] | null>(null);
+  const [participantAvatarUrls, setParticipantAvatarUrls] = useState<Record<string, string>>({});
+  const [loadingParticipants, setLoadingParticipants] = useState(false);
 
   useEffect(() => {
     if (event.banner_image_url) {
@@ -169,6 +175,36 @@ function ViewEvent({ event, onBack, isCreator, isOrganizer, onEdit, onDelete }: 
   }
 
   const participantCount = event.event_participation.length;
+
+  async function handleToggleParticipants() {
+    const next = !showParticipants;
+    setShowParticipants(next);
+    if (next && eventParticipants === null) {
+      setLoadingParticipants(true);
+      try {
+        const participants = await getEventParticipants(event.id);
+        setEventParticipants(participants);
+        const toResolve = participants.filter((p) => p.user_id && p.profile_picture_url);
+        const resolved = await Promise.all(
+          toResolve.map(async (p) => {
+            const url = await getProfileImageUrlByPath(p.user_id!, p.profile_picture_url!);
+            return { participant_id: p.participant_id, url };
+          }),
+        );
+        setParticipantAvatarUrls((prev) => {
+          const next2 = { ...prev };
+          for (const { participant_id, url } of resolved) {
+            if (url) next2[participant_id] = url;
+          }
+          return next2;
+        });
+      } catch {
+        setEventParticipants([]);
+      } finally {
+        setLoadingParticipants(false);
+      }
+    }
+  }
 
   function Row({ icon, children }: { icon: string; children: React.ReactNode }) {
     return (
@@ -224,10 +260,50 @@ function ViewEvent({ event, onBack, isCreator, isOrganizer, onEdit, onDelete }: 
           </Row>
         ) : null}
 
-        <Row icon="people-outline">
-          <AppText variant="caption" tone="muted">Participants</AppText>
-          <AppText>{participantCount} {participantCount === 1 ? 'participant' : 'participants'}</AppText>
-        </Row>
+        <Pressable onPress={() => { void handleToggleParticipants(); }}>
+          <Row icon="people-outline">
+            <AppText variant="caption" tone="muted">Participants</AppText>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+              <AppText>{participantCount} {participantCount === 1 ? 'participant' : 'participants'}</AppText>
+              {participantCount > 0 && (
+                <Ionicons
+                  name={showParticipants ? 'chevron-up' : 'chevron-down'}
+                  size={14}
+                  color={colors.textMuted}
+                />
+              )}
+            </View>
+            {showParticipants && (
+              loadingParticipants ? (
+                <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 4 }} />
+              ) : (
+                <View style={{ marginTop: spacing.xs, gap: spacing.xs }}>
+                  {(eventParticipants ?? []).map((p) => {
+                    const name = p.user_name ?? 'Unknown';
+                    const isEventCreator = p.participant_id === event.created_by_id;
+                    return (
+                      <View
+                        key={p.participant_id}
+                        style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 2 }}>
+                        <Avatar
+                          name={name}
+                          size="sm"
+                          source={participantAvatarUrls[p.participant_id] ? { uri: participantAvatarUrls[p.participant_id] } : undefined}
+                        />
+                        <AppText style={{ flex: 1 }}>{name}</AppText>
+                        <View style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: colors.surfaceMuted }}>
+                          <AppText variant="caption" tone="muted">
+                            {isEventCreator ? 'Event Organizer' : 'Participant'}
+                          </AppText>
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              )
+            )}
+          </Row>
+        </Pressable>
       </View>
 
       <Button
