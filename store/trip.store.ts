@@ -54,7 +54,7 @@ interface TripState {
   setParticipants: (participants: TripParticipant[]) => void;
   setLoading: (isLoading: boolean) => void;
   createTrip: (dto: CreateTripDTO) => Promise<Trip>;
-  updateTrip: (tripId: string, updates: Partial<Pick<Trip, 'name' | 'description' | 'start_date' | 'end_date' | 'banner_image_url' | 'event_permission'>>) => Promise<void>;
+  updateTrip: (tripId: string, updates: Partial<Pick<Trip, 'name' | 'description' | 'start_date' | 'end_date' | 'banner_image_url' | 'event_permission' | 'description_file_url'>>) => Promise<void>;
   deleteTrip: (tripId: string) => Promise<void>;
   fetchCurrentParticipant: (tripId: string, userId: string) => Promise<void>;
   fetchParticipants: (tripId: string) => Promise<void>;

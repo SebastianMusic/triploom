@@ -1,5 +1,45 @@
 import { supabase } from '@/lib/supabase';
 import type { Profile, Trip, TripParticipant, TripUpdate } from '@/types';
+
+const DESCRIPTION_FILE_BUCKET = 'trip_description';
+
+function generateUUID(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+export async function uploadTripDescriptionFile(
+  localUri: string,
+  tripId: string,
+  fileName: string,
+): Promise<string> {
+  const ext = fileName.split('.').pop() ?? 'pdf';
+  const path = `${tripId}/${generateUUID()}.${ext}`;
+  const response = await fetch(localUri);
+  const arrayBuffer = await response.arrayBuffer();
+
+  const { error } = await supabase.storage
+    .from(DESCRIPTION_FILE_BUCKET)
+    .upload(path, arrayBuffer, { contentType: 'application/octet-stream', upsert: false });
+
+  if (error) throw error;
+  return path;
+}
+
+export async function getTripDescriptionFileUrl(path: string): Promise<string | null> {
+  const { data, error } = await supabase.storage
+    .from(DESCRIPTION_FILE_BUCKET)
+    .createSignedUrl(path, 3600);
+  if (error) return null;
+  return data.signedUrl;
+}
+
+export async function deleteTripDescriptionFile(path: string): Promise<void> {
+  await supabase.storage.from(DESCRIPTION_FILE_BUCKET).remove([path]);
+}
 import type { CreateTripDTO, TripWithRole } from '@/types/trip.types';
 import { TripRole } from '@/types/trip.types';
 

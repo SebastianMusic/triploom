@@ -603,6 +603,7 @@ export type Database = {
           banner_image_url: string | null
           created_at: string
           description: string | null
+          description_file_url: string | null
           end_date: string | null
           event_permission: string | null
           id: string
@@ -614,6 +615,7 @@ export type Database = {
           banner_image_url?: string | null
           created_at?: string
           description?: string | null
+          description_file_url?: string | null
           end_date?: string | null
           event_permission?: string | null
           id?: string
@@ -625,6 +627,7 @@ export type Database = {
           banner_image_url?: string | null
           created_at?: string
           description?: string | null
+          description_file_url?: string | null
           end_date?: string | null
           event_permission?: string | null
           id?: string
@@ -706,7 +709,7 @@ export type Database = {
           {
             foreignKeyName: "trip_invite_url_trip_id_fkey"
             columns: ["trip_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "trip"
             referencedColumns: ["id"]
           },

@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as WebBrowser from 'expo-web-browser';
 import { useState } from 'react';
-import { Image, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, View } from 'react-native';
 
 import { TripEditForm } from '@/components/trip/trip-edit-form';
 import { Card } from '@/components/ui/card';
@@ -38,13 +39,14 @@ function InfoRow({ icon, label, value }: InfoRowProps) {
 
 export function TripInfoCard() {
   const {
-    theme: { colors, radius, spacing, typography },
+    theme: { colors, radius, spacing, stroke, typography },
   } = useAppTheme();
 
   const currentTrip = useTripStore((s) => s.currentTrip);
   const currentParticipant = useTripStore((s) => s.currentParticipant);
 
   const [editing, setEditing] = useState(false);
+  const [openingFile, setOpeningFile] = useState(false);
 
   if (!currentTrip) return null;
 
@@ -56,6 +58,19 @@ export function TripInfoCard() {
     currentTrip.start_date || currentTrip.end_date
       ? `${formatDate(currentTrip.start_date)} – ${formatDate(currentTrip.end_date)}`
       : null;
+
+  const fileUrl = currentTrip.description_file_url;
+  const fileName = fileUrl ? (fileUrl.split('/').pop() ?? 'Attachment') : null;
+
+  async function handleOpenFile() {
+    if (!fileUrl) return;
+    setOpeningFile(true);
+    try {
+      await WebBrowser.openBrowserAsync(fileUrl);
+    } finally {
+      setOpeningFile(false);
+    }
+  }
 
   if (editing) {
     return <TripEditForm onClose={() => setEditing(false)} />;
@@ -99,6 +114,34 @@ export function TripInfoCard() {
         <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
           <InfoRow icon="calendar-outline" label="Dates" value={dateRange} />
         </View>
+      ) : null}
+
+      {fileName ? (
+        <Pressable
+          onPress={() => { void handleOpenFile(); }}
+          disabled={openingFile}
+          style={({ pressed }) => ({
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: spacing.sm,
+            marginTop: spacing.sm,
+            paddingHorizontal: spacing.sm,
+            paddingVertical: spacing.sm,
+            borderRadius: radius.md,
+            borderWidth: stroke.thin,
+            borderColor: colors.border,
+            backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
+          })}>
+          {openingFile ? (
+            <ActivityIndicator size="small" color={colors.primary} />
+          ) : (
+            <Ionicons name="document-outline" size={16} color={colors.primary} />
+          )}
+          <AppText style={{ flex: 1, fontSize: 13, color: colors.primary }} numberOfLines={1}>
+            {fileName}
+          </AppText>
+          <Ionicons name="open-outline" size={14} color={colors.textMuted} />
+        </Pressable>
       ) : null}
     </Card>
   );
