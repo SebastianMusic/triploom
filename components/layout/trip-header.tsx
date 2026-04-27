@@ -4,7 +4,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/ui/avatar';
 import { IconButton } from '@/components/ui/icon-button';
+import { ProfileBadgeFrame } from '@/components/ui/profile-badge-frame';
 import { useAppTheme } from '@/components/ui/theme-provider';
+import { getProfileBadge } from '@/constants/profile-badges';
 import { useProfileStore } from '@/store/profile.store';
 
 type TripHeaderProps = {
@@ -14,11 +16,12 @@ type TripHeaderProps = {
 export function TripHeader({ routeName }: TripHeaderProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { displayAvatarUrl, profile } = useProfileStore();
+  const { displayAvatarUrl, profile, participatedTripCount } = useProfileStore();
   const {
     theme: { layout, spacing },
   } = useAppTheme();
   const isProfileRoute = routeName === 'account/index';
+  const badgeLevel = getProfileBadge(participatedTripCount ?? 0).level;
 
   function handleOpenProfile() {
     if (isProfileRoute) return;
@@ -48,11 +51,13 @@ export function TripHeader({ routeName }: TripHeaderProps) {
           accessibilityLabel="Open profile"
           active={isProfileRoute}
           icon={
-            <Avatar
-              name={profile?.user_name ?? 'Profile'}
-              size="sm"
-              source={displayAvatarUrl ? { uri: displayAvatarUrl } : undefined}
-            />
+            <ProfileBadgeFrame level={badgeLevel} size={36}>
+              <Avatar
+                name={profile?.user_name ?? 'Profile'}
+                size="sm"
+                source={displayAvatarUrl ? { uri: displayAvatarUrl } : undefined}
+              />
+            </ProfileBadgeFrame>
           }
           onPress={handleOpenProfile}
         />
