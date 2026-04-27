@@ -70,8 +70,8 @@ export function TaskStatsModal({
   const title = selectedPerson
     ? selectedPerson.name
     : selectedOption ? selectedOption.label
-    : completionView ? 'Fullføring'
-    : selectedTask ? selectedTask.title : 'Statistikk';
+    : completionView ? 'Completion'
+    : selectedTask ? selectedTask.title : 'Statistics';
 
   const showBack = !!(selectedTask);
   const totalParticipants = participants.length;
@@ -154,7 +154,7 @@ function TaskOverallList({
   if (tasks.length === 0) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <AppText tone="muted">Ingen oppgaver ennå</AppText>
+        <AppText tone="muted">No tasks yet</AppText>
       </View>
     );
   }
@@ -184,7 +184,7 @@ function TaskOverallList({
               <AppText style={{ flex: 1, fontWeight: '600' }}>{task.title}</AppText>
               <Row gap="xs">
                 <AppText variant="caption" tone="muted">
-                  {total === 0 ? 'Ingen svar' : `${completed}/${total}`}
+                  {total === 0 ? 'No responses' : `${completed}/${total}`}
                 </AppText>
                 <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
               </Row>
@@ -233,9 +233,9 @@ function CompletionList({
     setSending(true);
     try {
       await onSendReminder(taskTitle, userIds);
-      Alert.alert('Sendt!', `Påminnelse sendt til ${nonCompleters.length} deltaker${nonCompleters.length === 1 ? '' : 'e'}.`);
+      Alert.alert('Sent!', `Reminder sent to ${nonCompleters.length} participant${nonCompleters.length === 1 ? '' : 's'}.`);
     } catch {
-      Alert.alert('Feil', 'Kunne ikke sende påminnelse. Prøv igjen.');
+      Alert.alert('Error', 'Could not send reminder. Try again.');
     } finally {
       setSending(false);
     }
@@ -259,7 +259,7 @@ function CompletionList({
         <Row gap="xs">
           <Ionicons name="checkmark-circle-outline" size={18} color={colors.textMuted} />
           <AppText variant="caption" style={{ fontWeight: '600' }}>
-            {completedCount}/{participants.length} fullført
+            {completedCount}/{participants.length} completed
           </AppText>
         </Row>
         {nonCompleters.length > 0 && (
@@ -274,7 +274,7 @@ function CompletionList({
             })}>
             <Ionicons name="notifications-outline" size={14} color={colors.textOnPrimary} />
             <AppText variant="caption" style={{ color: colors.textOnPrimary, fontWeight: '600' }}>
-              {sending ? 'Sender…' : 'Send påminnelse'}
+              {sending ? 'Sending…' : 'Send reminder'}
             </AppText>
           </Pressable>
         )}
@@ -283,7 +283,7 @@ function CompletionList({
       <ScrollView contentContainerStyle={{ padding: spacing.md, gap: spacing.xs }}>
         {sorted.map((participant) => {
           const assignment = allAssignments.find(a => a.participant_id === participant.id) ?? null;
-          const name = participant.profile?.user_name ?? 'Ukjent';
+          const name = participant.profile?.user_name ?? 'Unknown';
           const avatarUrl = participant.profile?.profile_picture_url ?? undefined;
           const isCompleted = assignment?.is_completed ?? false;
           return (
@@ -344,9 +344,9 @@ function TaskDetailStats({
         <Row gap="xs">
           <Ionicons name="calendar-outline" size={sizes.icon.sm} color={colors.textMuted} />
           <AppText variant="caption" tone="muted">
-            {new Date(task.due_time).toLocaleDateString('nb-NO', { day: 'numeric', month: 'long', year: 'numeric' })}
+            {new Date(task.due_time).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
             {' '}
-            {new Date(task.due_time).toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' })}
+            {new Date(task.due_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
           </AppText>
         </Row>
       ) : null}
@@ -364,7 +364,7 @@ function TaskDetailStats({
         <Row gap="xs">
           <Ionicons name="people-outline" size={16} color={colors.textMuted} />
           <AppText variant="caption" style={{ fontWeight: '600' }}>
-            Fullføring — {completed}/{totalParticipants}
+            Completion — {completed}/{totalParticipants}
           </AppText>
         </Row>
         <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
@@ -464,9 +464,9 @@ function TaskDetailStats({
                 paddingHorizontal: spacing.sm, paddingVertical: spacing.sm,
                 flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
               }}>
-                <AppText tone="muted" variant="caption">Tekstsvar</AppText>
+                <AppText tone="muted" variant="caption">Text responses</AppText>
                 <AppText variant="caption" tone="muted">
-                  {count === 0 ? 'Ingen svar' : `${count} svart`}
+                  {count === 0 ? 'No responses' : `${count} responded`}
                 </AppText>
               </View>
             </Stack>
@@ -507,7 +507,7 @@ function PersonDetailStats({
           color={isCompleted ? colors.success : colors.textMuted}
         />
         <AppText style={{ color: isCompleted ? colors.success : colors.textMuted, fontWeight: '600' }}>
-          {isCompleted ? 'Fullført' : 'Ikke fullført'}
+          {isCompleted ? 'Completed' : 'Not completed'}
         </AppText>
       </Row>
 
@@ -588,7 +588,7 @@ function PersonDetailStats({
       })}
 
       {fields.length === 0 && (
-        <AppText tone="muted">Ingen felt for denne oppgaven</AppText>
+        <AppText tone="muted">No fields for this task</AppText>
       )}
     </ScrollView>
   );
@@ -600,7 +600,7 @@ function OptionDetailList({ responses }: { responses: FieldResponseWithParticipa
   if (responses.length === 0) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <AppText tone="muted">Ingen har valgt dette</AppText>
+        <AppText tone="muted">Nobody picked this</AppText>
       </View>
     );
   }
@@ -608,7 +608,7 @@ function OptionDetailList({ responses }: { responses: FieldResponseWithParticipa
   return (
     <ScrollView contentContainerStyle={{ padding: spacing.md, gap: spacing.xs }}>
       {responses.map((r) => {
-        const name = r.trip_participant?.profile?.user_name ?? 'Ukjent';
+        const name = r.trip_participant?.profile?.user_name ?? 'Unknown';
         const avatarUrl = r.trip_participant?.profile?.profile_picture_url;
         return (
           <Row key={r.id} gap="sm" style={{

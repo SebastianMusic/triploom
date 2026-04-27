@@ -115,9 +115,9 @@ export function TaskDetailModal({
             <Row gap="xs">
               <Ionicons name="calendar-outline" size={sizes.icon.sm} color={colors.textMuted} />
               <AppText variant="caption" tone="muted">
-                {new Date(task.due_time).toLocaleDateString('nb-NO', { day: 'numeric', month: 'long', year: 'numeric' })}
+                {new Date(task.due_time).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
                 {' '}
-                {new Date(task.due_time).toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' })}
+                {new Date(task.due_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
               </AppText>
             </Row>
           ) : null}
@@ -125,7 +125,7 @@ export function TaskDetailModal({
           {fields.length > 0 && isCompleted && (
             <Row gap="xs">
               <Ionicons name="lock-closed-outline" size={14} color={colors.textMuted} />
-              <AppText variant="caption" tone="muted">Angre fullføring for å redigere svarene dine</AppText>
+              <AppText variant="caption" tone="muted">Undo completion to edit your responses</AppText>
             </Row>
           )}
 
@@ -216,13 +216,13 @@ export function TaskDetailModal({
               })}>
               <Row gap="xs">
                 <Ionicons name="checkmark-circle" size={18} color={colors.success} />
-                <AppText style={{ color: colors.success, fontWeight: '600' }}>Fullført</AppText>
+                <AppText style={{ color: colors.success, fontWeight: '600' }}>Completed</AppText>
               </Row>
-              <AppText variant="caption" tone="muted">Trykk for å angre</AppText>
+              <AppText variant="caption" tone="muted">Tap to undo</AppText>
             </Pressable>
           ) : (
             <Button
-              label={completing ? 'Lagrer...' : 'Marker som ferdig'}
+              label={completing ? 'Saving...' : 'Mark as done'}
               fullWidth
               loading={completing}
               onPress={handleMarkComplete}
@@ -258,7 +258,7 @@ function TextResponseInput({
       onFocus={() => { isFocused.current = true; }}
       onBlur={() => { isFocused.current = false; onSave(localValue); }}
       editable={editable}
-      placeholder="Skriv her..."
+      placeholder="Type here..."
       multiline
       placeholderTextColor={colors.textMuted}
       style={{
