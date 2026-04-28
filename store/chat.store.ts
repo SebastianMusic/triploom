@@ -71,11 +71,11 @@ export const useChatStore = create<ChatState>()((set, get) => ({
     try {
       const nextPage = get().currentPage + 1;
       const olderMessages = await chatService.getAllMessages(roomId, nextPage);
-      set((state) => ({
-        messages: [...state.messages, ...olderMessages],
-        currentPage: nextPage,
-        isLoading: false,
-      }));
+      set((state) => {
+        const existingIds = new Set(state.messages.map((m) => m.id));
+        const unique = olderMessages.filter((m) => !existingIds.has(m.id));
+        return { messages: [...state.messages, ...unique], currentPage: nextPage, isLoading: false };
+      });
     } catch (error) {
       set({ isLoading: false });
       throw error;
@@ -148,7 +148,11 @@ export const useChatStore = create<ChatState>()((set, get) => ({
               .getAllMessages(roomId, 0, lastSeenAt)
               .then((missed) => {
                 if (missed.length > 0) {
-                  set((state) => ({ messages: [...missed, ...state.messages] }));
+                  set((state) => {
+                    const existingIds = new Set(state.messages.map((m) => m.id));
+                    const unique = missed.filter((m) => !existingIds.has(m.id));
+                    return unique.length > 0 ? { messages: [...unique, ...state.messages] } : state;
+                  });
                 }
               })
               .catch(() => {

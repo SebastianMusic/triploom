@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Linking, Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Alert, ActivityIndicator, Linking, Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import WebView from 'react-native-webview';
@@ -49,7 +49,7 @@ function buildMapHtml(lat: number, lng: number): string {
 
 async function openInMaps(lat: number, lng: number, displayLabel?: string | null) {
   const label = encodeURIComponent(displayLabel ?? `${lat},${lng}`);
-  const fallback = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+  const webUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
 
   const primary = Platform.OS === 'ios'
     ? `maps://?ll=${lat},${lng}&q=${label}`
@@ -58,7 +58,11 @@ async function openInMaps(lat: number, lng: number, displayLabel?: string | null
   try {
     await Linking.openURL(primary);
   } catch {
-    await Linking.openURL(fallback);
+    try {
+      await Linking.openURL(webUrl);
+    } catch {
+      Alert.alert('Kunne ikke åpne kart', 'Ingen kart-app ble funnet på enheten.');
+    }
   }
 }
 
