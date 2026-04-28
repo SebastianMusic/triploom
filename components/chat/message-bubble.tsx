@@ -94,7 +94,7 @@ export function MessageBubble({ message, isOwnMessage, onEdit, onDelete }: Props
             <View style={[styles.locationContent, { gap: spacing.xs / 2 }]}>
               <View style={styles.locationRow}>
                 <Ionicons
-                  name="location"
+                  name={message.location!.label === null ? 'navigate' : 'location'}
                   size={16}
                   color={isOwnMessage ? colors.textOnPrimary : colors.primary}
                 />
@@ -103,21 +103,21 @@ export function MessageBubble({ message, isOwnMessage, onEdit, onDelete }: Props
                     styles.content,
                     { color: isOwnMessage ? colors.textOnPrimary : colors.text, fontWeight: '600' },
                   ]}>
-                  Posisjon delt
+                  {message.location!.label === null ? 'My location' : 'Location shared'}
                 </AppText>
               </View>
-              {message.location?.label ? (
+              {message.location!.label !== null ? (
                 <AppText
                   variant="caption"
                   numberOfLines={2}
                   style={{ color: isOwnMessage ? colors.textOnPrimary : colors.textMuted }}>
-                  {message.location.label}
+                  {message.location!.label}
                 </AppText>
               ) : null}
               <AppText
                 variant="caption"
                 style={{ color: isOwnMessage ? colors.textOnPrimary : colors.primary, marginTop: 2 }}>
-                Trykk for å åpne
+                Tap to open
               </AppText>
             </View>
           ) : (

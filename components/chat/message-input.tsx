@@ -88,7 +88,7 @@ export function MessageInput({
             variant="ghost"
             onPress={onShareLocation}
             disabled={isBusy}
-            accessibilityLabel="Del posisjon"
+            accessibilityLabel="Share location"
           />
         )}
         <View style={styles.inputWrapper}>
