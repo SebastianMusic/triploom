@@ -2,6 +2,26 @@ import { supabase } from '@/lib/supabase';
 import type { Profile, Trip, TripParticipant, TripUpdate } from '@/types';
 
 const DESCRIPTION_FILE_BUCKET = 'trip_description';
+const TRIP_BANNER_BUCKET = 'trip_banner';
+
+export async function uploadTripBanner(localUri: string, tripId: string): Promise<string> {
+  const path = `${tripId}/${generateUUID()}`;
+  const response = await fetch(localUri);
+  const arrayBuffer = await response.arrayBuffer();
+  const { error } = await supabase.storage
+    .from(TRIP_BANNER_BUCKET)
+    .upload(path, arrayBuffer, { contentType: 'image/jpeg', upsert: false });
+  if (error) throw error;
+  return path;
+}
+
+export async function getTripBannerUrl(path: string): Promise<string | null> {
+  const { data, error } = await supabase.storage
+    .from(TRIP_BANNER_BUCKET)
+    .createSignedUrl(path, 3600);
+  if (error) return null;
+  return data.signedUrl;
+}
 
 function generateUUID(): string {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {

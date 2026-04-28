@@ -22,6 +22,7 @@ import { useAppTheme } from '@/components/ui/theme-provider';
 import { useProfileStore } from '@/store/profile.store';
 import { useTripStore } from '@/store/trip.store';
 import { createTripSchema, TripEventPermission } from '@/types';
+import { uploadTripBanner } from '@/services/trip.service';
 
 type DateTarget = 'start' | 'end' | null;
 
@@ -36,7 +37,7 @@ function formatDate(date: Date | null): string {
 
 export default function CreateTripScreen() {
   const insets = useSafeAreaInsets();
-  const { createTrip, isLoading } = useTripStore();
+  const { createTrip, updateTrip, isLoading } = useTripStore();
   const { setSelectedTrip } = useProfileStore();
   const {
     theme: { colors, opacity, radius, spacing, stroke, typography },
@@ -102,7 +103,11 @@ export default function CreateTripScreen() {
     }
 
     try {
-      const trip = await createTrip(result.data);
+      const trip = await createTrip({ ...result.data, banner_image_url: null });
+      if (bannerUri) {
+        const bannerPath = await uploadTripBanner(bannerUri, trip.id);
+        await updateTrip(trip.id, { banner_image_url: bannerPath });
+      }
       await setSelectedTrip(trip.id);
     } catch (error: unknown) {
       Alert.alert(
