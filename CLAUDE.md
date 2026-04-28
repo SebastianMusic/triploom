@@ -1,8 +1,10 @@
 # Triploom Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-04-14
+Auto-generated from all feature plans. Last updated: 2026-04-27
 
 ## Active Technologies
+- TypeScript 5 + React Native, Expo Router, `@supabase/supabase-js`, Zustand, Zod v4, `expo-image-picker` (~17.0.10), `expo-image` (~3.0.11) (003-chat-image-sharing)
+- Supabase PostgreSQL (`message`, `chat_image` tables) + Supabase Storage (`chat_images` bucket, private) (003-chat-image-sharing)
 
 - TypeScript 5, React Native, Expo Router (file-based routing)
 - Supabase (PostgreSQL + Realtime + RLS) via `@supabase/supabase-js`
@@ -81,6 +83,7 @@ npx supabase gen types --lang=typescript --project-id <project-id> > types/datab
   See `specs/001-chat-system/` for full plan and contracts.
 
 ## Recent Changes
+- 003-chat-image-sharing: Added TypeScript 5 + React Native, Expo Router, `@supabase/supabase-js`, Zustand, Zod v4, `expo-image-picker` (~17.0.10), `expo-image` (~3.0.11)
 
 - 001-chat-system: Full implementation plan created (plan.md, research.md, data-model.md, contracts/, quickstart.md)
 

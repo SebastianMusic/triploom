@@ -15,21 +15,6 @@ function chunkArray<T>(arr: T[], size: number): T[][] {
 	return chunks;
 }
 
-/** Returns expo push tokens for a list of user IDs. */
-export async function getPushTokensForUsers(userIds: string[]): Promise<string[]> {
-	if (!userIds.length) return [];
-	const { data, error } = await supabase
-		.from("profile")
-		.select("expo_push_token")
-		.in("id", userIds);
-
-	if (error) throw new Error(`Failed to fetch user profiles: ${error.message}`);
-
-	return (data as any[])
-		.map((row) => row.expo_push_token)
-		.filter((token): token is string => typeof token === "string");
-}
-
 /** Returns all expo push tokens for participants of a given trip. */
 export async function getPushTokensForTrip(tripId: string): Promise<string[]> {
 	return getPushTokensForTripExcluding(tripId, null);

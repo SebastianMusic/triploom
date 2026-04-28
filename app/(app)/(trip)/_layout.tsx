@@ -3,6 +3,7 @@ import { Tabs, useSegments } from 'expo-router';
 import { View } from 'react-native';
 import { useProfileStore } from '@/store/profile.store';
 import { useTripStore } from '@/store/trip.store';
+import { useChatStore } from '@/store/chat.store';
 import { getTripById } from '@/services/trip.service';
 
 import { TripFadeOverlays, TripHeader, TripTabBar } from '@/components/layout';
@@ -33,13 +34,17 @@ export default function TripLayout() {
   const setCurrentTrip = useTripStore((s) => s.setCurrentTrip);
   const routeName = getActiveTripRouteName(segments);
   const isPrimaryRoute = isPrimaryTripTab(routeName);
+  const { getAllChatRooms, resetChatState } = useChatStore();
 
   useEffect(() => {
     if (!selectedTrip) {
       setCurrentTrip(null);
+      resetChatState();
       return;
     }
     getTripById(selectedTrip).then(setCurrentTrip).catch(() => setCurrentTrip(null));
+    getAllChatRooms(selectedTrip).catch(() => {});
+    return () => { resetChatState(); };
   }, [selectedTrip, setCurrentTrip]);
 
   return (

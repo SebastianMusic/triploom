@@ -9,6 +9,7 @@ import { useAppTheme } from '@/components/ui/theme-provider';
 import { useTripStore } from '@/store/trip.store';
 import { TripRole } from '@/types/trip.types';
 import { useTripChromeStore } from '@/store/trip-chrome.store';
+import { useChatStore } from '@/store/chat.store';
 
 export function TripTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
@@ -19,6 +20,7 @@ export function TripTabBar({ state, descriptors, navigation }: BottomTabBarProps
     theme: { colors, layout, opacity, radius, shadows, sizes, spacing },
   } = useAppTheme();
   const { currentParticipant } = useTripStore();
+  const hasAnyUnread = useChatStore((s) => s.chatRooms.some((r) => r.hasUnread));
 
   const isAdmin =
     currentParticipant?.role === TripRole.Organizer ||
@@ -113,6 +115,7 @@ export function TripTabBar({ state, descriptors, navigation }: BottomTabBarProps
         {tabs.map(({ item, route }, index) => {
           const isFocused = index === activeIndex;
           const options = descriptors[route.key]?.options;
+          const showUnreadDot = item.routeName === 'chat/index' && hasAnyUnread;
 
           return (
             <Pressable
@@ -145,11 +148,26 @@ export function TripTabBar({ state, descriptors, navigation }: BottomTabBarProps
                 justifyContent: 'center',
                 opacity: pressed ? opacity.pressed : 1,
               })}>
-              <Ionicons
-                name={isFocused ? item.activeIcon : item.icon}
-                size={sizes.icon.md}
-                color={isFocused ? colors.primary : colors.icon}
-              />
+              <View style={{ position: 'relative' }}>
+                <Ionicons
+                  name={isFocused ? item.activeIcon : item.icon}
+                  size={sizes.icon.md}
+                  color={isFocused ? colors.primary : colors.icon}
+                />
+                {showUnreadDot && (
+                  <View
+                    style={{
+                      position: 'absolute',
+                      top: -1,
+                      right: -3,
+                      width: 7,
+                      height: 7,
+                      borderRadius: 3.5,
+                      backgroundColor: colors.primary,
+                    }}
+                  />
+                )}
+              </View>
             </Pressable>
           );
         })}

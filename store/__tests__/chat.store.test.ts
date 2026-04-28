@@ -7,7 +7,9 @@ jest.mock('@/services/chat.service', () => ({
   sendMessage: jest.fn(),
   updateMessage: jest.fn(),
   deleteMessage: jest.fn(),
+  deleteUploadedImages: jest.fn().mockResolvedValue(undefined),
   subscribeToMessages: jest.fn(() => jest.fn()),
+  subscribeToAllRoomMessages: jest.fn(() => jest.fn()),
   markChatRead: jest.fn().mockResolvedValue(undefined),
 }));
 
@@ -496,5 +498,121 @@ describe('deleteMessage store action', () => {
 
     expect(caughtError?.message).toBe('delete failed');
     expect(useChatStore.getState().isDeleting).toBe(false);
+  });
+});
+
+// --- getAllChatRooms global subscription ---
+
+describe('getAllChatRooms global subscription', () => {
+  it('starts the global subscription after loading rooms', async () => {
+    (chatService.getAllChatRooms as jest.Mock).mockResolvedValue([mockRoom]);
+
+    await act(async () => {
+      await useChatStore.getState().getAllChatRooms('trip-1');
+    });
+
+    expect(chatService.subscribeToAllRoomMessages).toHaveBeenCalledTimes(1);
+  });
+
+  it('marks a room as unread when a message arrives for an inactive room', async () => {
+    const unreadRoom = { ...mockRoom, hasUnread: false };
+    (chatService.getAllChatRooms as jest.Mock).mockResolvedValue([unreadRoom]);
+
+    let capturedCallback: ((groupChatId: string) => void) | null = null;
+    (chatService.subscribeToAllRoomMessages as jest.Mock).mockImplementation((cb) => {
+      capturedCallback = cb;
+      return jest.fn();
+    });
+
+    await act(async () => {
+      await useChatStore.getState().getAllChatRooms('trip-1');
+    });
+
+    act(() => {
+      capturedCallback!('room-1');
+    });
+
+    const room = useChatStore.getState().chatRooms.find((r) => r.id === 'room-1');
+    expect(room?.hasUnread).toBe(true);
+  });
+
+  it('does not mark a room as unread when the message is for the active room', async () => {
+    const unreadRoom = { ...mockRoom, hasUnread: false };
+    (chatService.getAllChatRooms as jest.Mock).mockResolvedValue([unreadRoom]);
+    useChatStore.setState({ activeChatRoomId: 'room-1' });
+
+    let capturedCallback: ((groupChatId: string) => void) | null = null;
+    (chatService.subscribeToAllRoomMessages as jest.Mock).mockImplementation((cb) => {
+      capturedCallback = cb;
+      return jest.fn();
+    });
+
+    await act(async () => {
+      await useChatStore.getState().getAllChatRooms('trip-1');
+    });
+
+    act(() => {
+      capturedCallback!('room-1');
+    });
+
+    const room = useChatStore.getState().chatRooms.find((r) => r.id === 'room-1');
+    expect(room?.hasUnread).toBe(false);
+  });
+});
+
+// --- resetChatState ---
+
+describe('resetChatState store action', () => {
+  it('clears all chat state', async () => {
+    useChatStore.setState({
+      chatRooms: [mockRoom],
+      messages: [mockMessage],
+      activeChatRoomId: 'room-1',
+      currentPage: 3,
+      editingMessage: mockMessage,
+    });
+
+    act(() => {
+      useChatStore.getState().resetChatState();
+    });
+
+    const state = useChatStore.getState();
+    expect(state.chatRooms).toEqual([]);
+    expect(state.messages).toEqual([]);
+    expect(state.activeChatRoomId).toBeNull();
+    expect(state.currentPage).toBe(0);
+    expect(state.editingMessage).toBeNull();
+  });
+
+  it('calls the global unsubscribe function', async () => {
+    const mockGlobalUnsub = jest.fn();
+    (chatService.subscribeToAllRoomMessages as jest.Mock).mockReturnValue(mockGlobalUnsub);
+    (chatService.getAllChatRooms as jest.Mock).mockResolvedValue([mockRoom]);
+
+    await act(async () => {
+      await useChatStore.getState().getAllChatRooms('trip-1');
+    });
+
+    act(() => {
+      useChatStore.getState().resetChatState();
+    });
+
+    expect(mockGlobalUnsub).toHaveBeenCalled();
+  });
+
+  it('calls the per-room unsubscribe function', async () => {
+    const mockUnsub = jest.fn();
+    (chatService.subscribeToMessages as jest.Mock).mockReturnValue(mockUnsub);
+    (chatService.getAllMessages as jest.Mock).mockResolvedValue([]);
+
+    await act(async () => {
+      await useChatStore.getState().openChatRoom('room-1');
+    });
+
+    act(() => {
+      useChatStore.getState().resetChatState();
+    });
+
+    expect(mockUnsub).toHaveBeenCalled();
   });
 });

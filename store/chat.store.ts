@@ -1,10 +1,13 @@
 import { create } from 'zustand';
 import * as chatService from '@/services/chat.service';
 import type { ChatRoomWithMeta, EditMessageDTO, MessageWithSender, SendMessageDTO, SendLocationMessageDTO } from '@/types';
+import type { ImagePickerAsset } from 'expo-image-picker';
 
 // Held outside Zustand state — not serialisable
 let unsubscribeRef: (() => void) | null = null;
+let globalUnsubRef: (() => void) | null = null;
 let channelWasError = false;
+const uploadCancelledRef: { current: boolean } = { current: false };
 
 interface ChatState {
   chatRooms: ChatRoomWithMeta[];
@@ -13,6 +16,8 @@ interface ChatState {
   currentPage: number;
   isLoading: boolean;
   isSending: boolean;
+  isUploadingImages: boolean;
+  uploadProgress: number;
   editingMessage: MessageWithSender | null;
   isUpdating: boolean;
   isDeleting: boolean;
@@ -20,7 +25,7 @@ interface ChatState {
   getAllChatRooms: (tripId: string) => Promise<void>;
   getAllMessages: (roomId: string) => Promise<void>;
   loadMoreMessages: (roomId: string) => Promise<void>;
-  sendMessage: (dto: SendMessageDTO) => Promise<void>;
+  sendMessage: (dto: SendMessageDTO, imageAssets?: ImagePickerAsset[]) => Promise<void>;
   sendLocationMessage: (dto: SendLocationMessageDTO) => Promise<void>;
   openChatRoom: (roomId: string) => Promise<void>;
   closeChatRoom: () => void;
@@ -31,6 +36,7 @@ interface ChatState {
   cancelEditingMessage: () => void;
   updateMessage: (dto: EditMessageDTO) => Promise<void>;
   deleteMessage: (messageId: string) => Promise<void>;
+  resetChatState: () => void;
 }
 
 export const useChatStore = create<ChatState>()((set, get) => ({
@@ -40,6 +46,8 @@ export const useChatStore = create<ChatState>()((set, get) => ({
   currentPage: 0,
   isLoading: false,
   isSending: false,
+  isUploadingImages: false,
+  uploadProgress: 0,
   editingMessage: null,
   isUpdating: false,
   isDeleting: false,
@@ -49,6 +57,17 @@ export const useChatStore = create<ChatState>()((set, get) => ({
     try {
       const chatRooms = await chatService.getAllChatRooms(tripId);
       set({ chatRooms, isLoading: false });
+
+      globalUnsubRef?.();
+      globalUnsubRef = chatService.subscribeToAllRoomMessages(chatRooms.map((r) => r.id), (groupChatId) => {
+        const { activeChatRoomId } = get();
+        if (groupChatId === activeChatRoomId) return;
+        set((state) => ({
+          chatRooms: state.chatRooms.map((room) =>
+            room.id === groupChatId ? { ...room, hasUnread: true } : room
+          ),
+        }));
+      });
     } catch (error) {
       set({ isLoading: false });
       throw error;
@@ -82,14 +101,44 @@ export const useChatStore = create<ChatState>()((set, get) => ({
     }
   },
 
-  sendMessage: async (dto) => {
+  sendMessage: async (dto, imageAssets) => {
+    const uploadedPaths: string[] = [];
+    if (imageAssets && imageAssets.length > 0) {
+      uploadCancelledRef.current = false;
+      set({ isUploadingImages: true, uploadProgress: 0 });
+      try {
+        for (const asset of imageAssets) {
+          if (uploadCancelledRef.current) {
+            await chatService.deleteUploadedImages(uploadedPaths).catch(() => {});
+            set({ isUploadingImages: false, uploadProgress: 0 });
+            return;
+          }
+          const path = await chatService.uploadChatImage(dto.group_chat_id, {
+            uri: asset.uri,
+            mimeType: asset.mimeType ?? undefined,
+          });
+          uploadedPaths.push(path);
+          set({ uploadProgress: uploadedPaths.length });
+        }
+      } catch (error) {
+        await chatService.deleteUploadedImages(uploadedPaths).catch(() => {});
+        set({ isUploadingImages: false, uploadProgress: 0 });
+        throw error;
+      }
+      set({ isUploadingImages: false, uploadProgress: 0 });
+    }
+
     set({ isSending: true });
     try {
-      const message = await chatService.sendMessage(dto);
+      const message = await chatService.sendMessage({
+        ...dto,
+        imageStoragePaths: uploadedPaths.length > 0 ? uploadedPaths : undefined,
+      });
       get().addMessage(message);
       chatService.markChatRead(dto.group_chat_id).catch(() => {});
       set({ isSending: false });
     } catch (error) {
+      await chatService.deleteUploadedImages(uploadedPaths).catch(() => {});
       set({ isSending: false });
       throw error;
     }
@@ -165,6 +214,7 @@ export const useChatStore = create<ChatState>()((set, get) => ({
   },
 
   closeChatRoom: () => {
+    uploadCancelledRef.current = true;
     const { activeChatRoomId } = get();
     if (unsubscribeRef) {
       unsubscribeRef();
@@ -231,5 +281,13 @@ export const useChatStore = create<ChatState>()((set, get) => ({
       set({ isDeleting: false });
       throw error;
     }
+  },
+
+  resetChatState: () => {
+    globalUnsubRef?.();
+    globalUnsubRef = null;
+    if (unsubscribeRef) { unsubscribeRef(); unsubscribeRef = null; }
+    channelWasError = false;
+    set({ chatRooms: [], messages: [], activeChatRoomId: null, currentPage: 0, editingMessage: null });
   },
 }));

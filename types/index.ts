@@ -10,7 +10,7 @@ export type { CreateAnnouncementDTO, UpdateAnnouncementDTO } from './announcemen
 export { signInSchema, signUpSchema } from './auth.types';
 export type { SignInDTO, SignUpDTO } from './auth.types';
 export { sendMessageSchema, editMessageSchema, sendLocationMessageSchema } from './chat.types';
-export type { ChatRoomWithMeta, MessageWithSender, SendMessageDTO, EditMessageDTO, SendLocationMessageDTO, MessageLocationData } from './chat.types';
+export type { ChatRoomWithMeta, MessageImage, MessageWithSender, SendMessageDTO, EditMessageDTO, SendLocationMessageDTO, MessageLocationData } from './chat.types';
 export type { Database, Enums, Json, Tables, TablesInsert, TablesUpdate } from './database.types';
 export { createEventSchema } from './events.types';
 export type { CreateEventDTO } from './events.types';

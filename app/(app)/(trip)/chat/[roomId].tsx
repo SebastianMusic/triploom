@@ -1,9 +1,12 @@
+import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useEffect, useState } from 'react';
 import { Alert, FlatList, KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 
 import { ChatLocationMapPicker, type PickedLocation } from '@/components/chat/chat-location-picker';
 import { LocationActionSheet } from '@/components/chat/location-action-sheet';
+import { ImageViewer } from '@/components/chat/image-viewer';
 import { MessageBubble } from '@/components/chat/message-bubble';
 import { MessageInput } from '@/components/chat/message-input';
 import { useTripChromeInsets } from '@/components/layout/use-trip-chrome';
@@ -12,7 +15,7 @@ import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import { useAuthStore } from '@/store/auth.store';
 import { useChatStore } from '@/store/chat.store';
-import type { MessageWithSender, SendMessageDTO, SendLocationMessageDTO } from '@/types';
+import type { MessageImage, MessageWithSender, SendMessageDTO, SendLocationMessageDTO } from '@/types';
 
 export default function ChatRoomScreen() {
   const { roomId } = useLocalSearchParams<{ roomId: string }>();
@@ -22,6 +25,7 @@ export default function ChatRoomScreen() {
   } = useAppTheme();
   const {
     messages, chatRooms, isLoading, isSending,
+    isUploadingImages, uploadProgress,
     editingMessage, isUpdating,
     openChatRoom, closeChatRoom, loadMoreMessages, sendMessage, sendLocationMessage,
     updateMessage, deleteMessage, startEditingMessage, cancelEditingMessage,
@@ -32,6 +36,10 @@ export default function ChatRoomScreen() {
   const [pendingText, setPendingText] = useState<string | null>(null);
   const [actionSheetVisible, setActionSheetVisible] = useState(false);
   const [locationPickerVisible, setLocationPickerVisible] = useState(false);
+  const [pendingImages, setPendingImages] = useState<ImagePicker.ImagePickerAsset[]>([]);
+  const [viewerImages, setViewerImages] = useState<MessageImage[]>([]);
+  const [viewerIndex, setViewerIndex] = useState(0);
+  const [viewerVisible, setViewerVisible] = useState(false);
 
   const roomName = chatRooms.find((r) => r.id === roomId)?.chat_name ?? 'Chat';
 
@@ -47,6 +55,12 @@ export default function ChatRoomScreen() {
     };
   }, [closeChatRoom, openChatRoom, roomId]);
 
+  function handleImagePress(message: MessageWithSender, index: number) {
+    setViewerImages(message.images);
+    setViewerIndex(index);
+    setViewerVisible(true);
+  }
+
   async function handleLoadMore() {
     if (!roomId || isLoading || messages.length === 0) return;
     try {
@@ -56,15 +70,15 @@ export default function ChatRoomScreen() {
     }
   }
 
-  async function handleSubmit(text: string) {
+  async function handleSubmit(text: string, images: ImagePicker.ImagePickerAsset[]) {
     if (!roomId) return;
     setSendError(null);
-    setPendingText(text);
-    const dto: SendMessageDTO = { content: text, group_chat_id: roomId };
+    const dto: SendMessageDTO = { content: text || null, group_chat_id: roomId };
     try {
-      await sendMessage(dto);
-      setPendingText(null);
+      await sendMessage(dto, images);
+      setPendingImages([]);
     } catch (err) {
+      // Constitution §IV: UI is the only catch boundary — display error, keep pendingImages so user can retry
       setSendError(err instanceof Error ? err.message : 'Failed to send message');
     }
   }
@@ -167,6 +181,7 @@ export default function ChatRoomScreen() {
               isOwnMessage={item.user_id === currentUserId}
               onEdit={item.user_id === currentUserId ? () => startEditingMessage(item) : undefined}
               onDelete={item.user_id === currentUserId ? () => handleDeleteMessage(item) : undefined}
+              onImagePress={item.images.length > 0 ? (index) => handleImagePress(item, index) : undefined}
             />
           )}
           inverted
@@ -200,20 +215,33 @@ export default function ChatRoomScreen() {
           <AppText
             tone="primary"
             onPress={() => {
-              if (pendingText) handleSubmit(pendingText);
+              setSendError(null);
+              handleSubmit('', pendingImages);
             }}>
             Retry
           </AppText>
         </View>
       )}
 
+      <ImageViewer
+        images={viewerImages}
+        initialIndex={viewerIndex}
+        visible={viewerVisible}
+        onClose={() => setViewerVisible(false)}
+      />
+
       <MessageInput
-        onSubmit={(text) => {
+        onSubmit={(text, images) => {
           setSendError(null);
-          handleSubmit(text);
+          handleSubmit(text, images);
         }}
         onShareLocation={() => setActionSheetVisible(true)}
         isSending={isSending}
+        isUploadingImages={isUploadingImages}
+        uploadProgress={uploadProgress}
+        pendingImages={pendingImages}
+        onAddImages={(assets) => setPendingImages((prev) => [...prev, ...assets])}
+        onRemoveImage={(index) => setPendingImages((prev) => prev.filter((_, i) => i !== index))}
         editingMessage={editingMessage}
         onCancelEdit={cancelEditingMessage}
         isUpdating={isUpdating}

@@ -5,6 +5,7 @@ import * as Clipboard from 'expo-clipboard';
 
 import { MessageContextMenu } from '@/components/chat/message-context-menu';
 import { LocationViewModal } from '@/components/ui/location-view-modal';
+import { MessageImageGrid } from '@/components/chat/message-image-grid';
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import type { MessageWithSender } from '@/types';
@@ -21,9 +22,10 @@ interface Props {
   isOwnMessage: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
+  onImagePress?: (imageIndex: number) => void;
 }
 
-export function MessageBubble({ message, isOwnMessage, onEdit, onDelete }: Props) {
+export function MessageBubble({ message, isOwnMessage, onEdit, onDelete, onImagePress }: Props) {
   const {
     theme: { colors, radius, spacing },
   } = useAppTheme();
@@ -121,6 +123,13 @@ export function MessageBubble({ message, isOwnMessage, onEdit, onDelete }: Props
               </AppText>
             </View>
           ) : (
+            <>
+              {!isDeleted && message.images.length > 0 && onImagePress && (
+                <View style={styles.imageGrid}>
+                  <MessageImageGrid images={message.images} onImagePress={onImagePress} />
+                </View>
+              )}
+              {(isDeleted || message.content) && (
             <AppText
               style={[
                 styles.content,
@@ -130,6 +139,8 @@ export function MessageBubble({ message, isOwnMessage, onEdit, onDelete }: Props
               ]}>
               {isDeleted ? 'This message was deleted' : message.content}
             </AppText>
+              )}
+            </>
           )}
         </View>
       </Pressable>
@@ -178,7 +189,12 @@ const styles = StyleSheet.create({
   sender: {
     marginBottom: 2,
   },
-  bubble: {},
+  bubble: {
+    overflow: 'hidden',
+  },
+  imageGrid: {
+    marginBottom: 4,
+  },
   locationContent: {
     gap: 4,
   },

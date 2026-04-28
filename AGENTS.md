@@ -8,8 +8,6 @@ This document captures the workflow and hard-won learnings for implementing feat
 
 Every feature follows this exact order. Do not skip layers or implement them out of order — tests at each step tell you if the layer is correct before you build the next one.
 
-**UI/design work:** Before changing screens, components, layout, colors, spacing, cards, images, navigation chrome, or reusable UI primitives, read `constants/README.md`. It defines the app's design-token rules, 60-30-10 color model, visual composition rules, and when to use large image/content surfaces.
-
 ```
 1. types/          — Zod schema + DTO
 2. services/       — Supabase call using the DTO
