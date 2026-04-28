@@ -112,6 +112,7 @@ export function TaskStatsModal({
             participants={participants}
             allAssignments={allAssignments[selectedTask.id] ?? []}
             taskTitle={selectedTask.title ?? ''}
+            isMandatory={selectedTask.is_mandatory ?? false}
             onSelectPerson={setSelectedPerson}
             onSendReminder={onSendReminder}
           />
@@ -159,9 +160,16 @@ function TaskOverallList({
     );
   }
 
+  const sorted = [...tasks].sort((a, b) => {
+    const aMandatory = a.is_mandatory ?? false;
+    const bMandatory = b.is_mandatory ?? false;
+    if (aMandatory !== bMandatory) return aMandatory ? -1 : 1;
+    return 0;
+  });
+
   return (
     <ScrollView contentContainerStyle={{ padding: spacing.md, gap: spacing.sm }}>
-      {tasks.map((task) => {
+      {sorted.map((task) => {
         const assignments = allAssignments[task.id] ?? [];
         const completed = assignments.filter(a => a.is_completed).length;
         const total = totalParticipants;
@@ -175,7 +183,7 @@ function TaskOverallList({
               backgroundColor: colors.surface,
               borderRadius: radius.lg,
               borderWidth: stroke.thin,
-              borderColor: colors.border,
+              borderColor: (task.is_mandatory ?? false) ? colors.warning : colors.border,
               padding: spacing.md,
               gap: spacing.xs,
               opacity: pressed ? 0.8 : 1,
@@ -212,12 +220,14 @@ function CompletionList({
   participants,
   allAssignments,
   taskTitle,
+  isMandatory,
   onSelectPerson,
   onSendReminder,
 }: {
   participants: TripParticipantWithProfile[];
   allAssignments: AssignmentWithParticipant[];
   taskTitle: string;
+  isMandatory: boolean;
   onSelectPerson: (p: SelectedPerson) => void;
   onSendReminder: (taskTitle: string, userIds: string[]) => Promise<void>;
 }) {
@@ -262,7 +272,7 @@ function CompletionList({
             {completedCount}/{participants.length} completed
           </AppText>
         </Row>
-        {nonCompleters.length > 0 && (
+        {isMandatory && nonCompleters.length > 0 && (
           <Pressable
             onPress={handleSendReminder}
             disabled={sending}

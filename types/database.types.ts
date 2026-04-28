@@ -419,7 +419,9 @@ export type Database = {
           created_at: string
           description: string | null
           due_time: string | null
+          event_id: string | null
           id: string
+          is_mandatory: boolean
           title: string | null
           trip_id: string | null
         }
@@ -427,7 +429,9 @@ export type Database = {
           created_at?: string
           description?: string | null
           due_time?: string | null
+          event_id?: string | null
           id?: string
+          is_mandatory?: boolean
           title?: string | null
           trip_id?: string | null
         }
@@ -435,11 +439,20 @@ export type Database = {
           created_at?: string
           description?: string | null
           due_time?: string | null
+          event_id?: string | null
           id?: string
+          is_mandatory?: boolean
           title?: string | null
           trip_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "task_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "task_trip_id_fkey"
             columns: ["trip_id"]
@@ -709,7 +722,7 @@ export type Database = {
           {
             foreignKeyName: "trip_invite_url_trip_id_fkey"
             columns: ["trip_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "trip"
             referencedColumns: ["id"]
           },

@@ -7,6 +7,7 @@ import WebView from 'react-native-webview';
 
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
+import { reverseGeocode } from '@/hooks/use-location';
 
 type Props = {
   visible: boolean;
@@ -89,11 +90,15 @@ export function LocationViewModal({ visible, onClose, latitude, longitude, label
     hasCoords ? { lat: latitude, lng: longitude } : null
   );
   const [isGeocoding, setIsGeocoding] = useState(false);
+  const [resolvedLabel, setResolvedLabel] = useState<string | null>(null);
 
   useEffect(() => {
     if (!visible) return;
     if (hasCoords) {
       setResolvedCoords({ lat: latitude, lng: longitude });
+      if (label === null && !address) {
+        reverseGeocode(latitude, longitude).then((addr) => setResolvedLabel(addr));
+      }
       return;
     }
     if (!address) return;
@@ -102,9 +107,9 @@ export function LocationViewModal({ visible, onClose, latitude, longitude, label
       setResolvedCoords(coords);
       setIsGeocoding(false);
     });
-  }, [visible, address, hasCoords, latitude, longitude]);
+  }, [visible, address, hasCoords, label, latitude, longitude]);
 
-  const displayLabel = label ?? address ?? null;
+  const displayLabel = label ?? resolvedLabel ?? address ?? null;
 
   function renderMap() {
     if (isGeocoding || !resolvedCoords) {
