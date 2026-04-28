@@ -68,18 +68,23 @@ async function ensurePermission(): Promise<boolean> {
 }
 
 export async function getCurrentLocation(): Promise<DeviceLocation | null> {
+  const servicesEnabled = await Location.hasServicesEnabledAsync();
+  if (!servicesEnabled) {
+    Alert.alert(
+      'Posisjonstjenester er av',
+      'Slå på posisjonstjenester i innstillingene på telefonen for å dele posisjon.',
+    );
+    return null;
+  }
+
   if (!await ensurePermission()) return null;
 
   if (Platform.OS === 'ios') {
-    // iOS last-known is kept fresh by the OS — safe to use as instant path
     const last = await Location.getLastKnownPositionAsync();
     if (last) return { latitude: last.coords.latitude, longitude: last.coords.longitude };
   }
 
-  // Android: last-known can be hours stale, always get a fresh fix
-  const pos = await Location.getCurrentPositionAsync({
-    accuracy: Location.Accuracy.Balanced,
-  });
+  const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
   return { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
 }
 
