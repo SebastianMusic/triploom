@@ -21,7 +21,7 @@ describe('sendMessageSchema', () => {
     });
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.issues[0].message).toBe('Message cannot be empty');
+      expect(result.error.issues[0].message).toBe('Message must have text or at least one image');
     }
   });
 

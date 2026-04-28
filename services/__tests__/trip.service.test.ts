@@ -1,5 +1,4 @@
 import { createTripSchema } from '@/types/trip.types';
-import { TripEventPermission } from '@/types';
 
 // Pure Zod schema tests — no Supabase dependency.
 // Service behaviour is covered by __integration__/trip.test.ts,
@@ -18,7 +17,6 @@ describe('createTripSchema', () => {
         start_date: '2026-07-01',
         end_date: '2026-07-14',
         banner_image_url: null,
-        event_permission: TripEventPermission.All,
       }).success
     ).toBe(true);
   });

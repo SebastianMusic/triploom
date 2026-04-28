@@ -1,10 +1,13 @@
 import { z } from 'zod';
-import type { MessageInsert } from '@/types';
 
 export const sendMessageSchema = z.object({
-  content: z.string().min(1, 'Message cannot be empty').max(2000),
+  content: z.string().max(2000).nullable().optional(),
   group_chat_id: z.string().uuid(),
-}) satisfies z.ZodType<Pick<MessageInsert, 'content' | 'group_chat_id'>>;
+  imageStoragePaths: z.array(z.string()).max(10).optional(),
+}).refine(
+  (d) => (d.content?.trim() ?? '').length > 0 || (d.imageStoragePaths?.length ?? 0) > 0,
+  { message: 'Message must have text or at least one image' }
+);
 
 export type SendMessageDTO = z.infer<typeof sendMessageSchema>;
 
@@ -31,6 +34,11 @@ export type MessageLocationData = {
   label: string | null;
 };
 
+export type MessageImage = {
+  path: string;
+  url: string;
+};
+
 export type MessageWithSender = {
   id: string;
   content: string | null;
@@ -42,6 +50,7 @@ export type MessageWithSender = {
   user_id: string | null;
   senderName: string | null;
   location: MessageLocationData | null;
+  images: MessageImage[];
 };
 
 export type ChatRoomWithMeta = {

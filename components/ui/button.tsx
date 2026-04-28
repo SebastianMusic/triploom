@@ -61,7 +61,7 @@ export function Button({
         : {
             backgroundColor: colors.primary,
             textColor: colors.textOnPrimary,
-            shadow: shadows.none,
+            shadow: shadows.sm,
           };
 
   return (

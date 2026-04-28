@@ -26,30 +26,17 @@ All ny UI skal starte herfra, ikke med lokale hex-verdier eller tilfeldige margi
 
 Systemet er bevisst smalt:
 
-- Primary / dominant: `background`, `surface`, `surfaceMuted`, store bilde- og innholdsflater
-- Secondary / supporting: `secondary`, `secondarySoft`, borders, muted text, metadata og struktur
-- Accent / action: `primary`, `primarySoft`, `accent`, aktive states og viktige handlinger
+- Dominant: `background`, `surface`, `surfaceMuted`
+- Actions / hierarchy: `primary`, `primarySoft`
+- Supporting tone: `secondary`, `secondarySoft`
+- Sparsom accent: `accent`
 - Semantic feedback: `success`, `warning`, `error`
 
-Målet er rolig, premium UI med streng 60-30-10-tankegang:
+Målet er rolig, premium UI med 60-30-10-tankegang:
 
-- 60% primary/dominant: store rolige bakgrunner, bilder, cards og hovedflater
-- 30% secondary/supporting: struktur, seksjonsskiller, muted surfaces, metadata og sekundære kontroller
-- 10% accent/action: CTA-er, active states, badges, highlights og destruktive/semantiske signaler
-
-Ikke la aksentfarger dominere en skjerm. Hvis en skjerm føles "fargerik", er det som regel fordi 10%-laget brukes som dekor i stedet for handling/status. Bruk `primary`, `accent`, `success`, `warning` og `error` med klar hensikt.
-
-## Visual composition
-
-Triploom skal føles visuelt rikt uten å bli rotete. Bruk store flater og tydelig hierarki før du legger til flere små elementer.
-
-- Bruk store bildeflater når skjermen handler om en trip, destination, event eller et annet visuelt objekt.
-- La bilder og hovedkort være primære blikkfang; ikke pakk alle seksjoner inn i mange like små cards.
-- Bruk whitespace, store touch targets og få tydelige grupper fremfor mange tette knapper.
-- Hold sekundær informasjon som datoer, rolle, deltakerantall og metadata visuelt lavere enn navn/tittel og primær handling.
-- Destruktive handlinger som delete og leave skal ikke være primære synlige handlinger på oversiktsskjermer. Legg dem bak en options-meny og bekreftelse.
-- FAB kan brukes for globale "create/add"-handlinger på en skjerm, men skal ikke konkurrere med hovedinnholdet. Den er del av 10%-laget.
-- Swipe/carousel kan brukes for visuelt utvalgte eller aktive elementer, men må støttes av tydelig tekst, snap-punkter eller en enkel liste for mindre intuitive flows.
+- 60% nøytrale bakgrunner og flater
+- 30% støttefarger og struktur
+- 10% handling, highlights og states
 
 ## Layout contract
 

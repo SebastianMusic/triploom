@@ -19,7 +19,7 @@ export function Input({ label, hint, error, multiline = false, containerStyle, s
     theme: { colors, radius, sizes, spacing, stroke, typography },
   } = useAppTheme();
 
-  const borderColor = error ? colors.error : isFocused ? colors.focusRing : colors.transparent;
+  const borderColor = error ? colors.error : isFocused ? colors.focusRing : colors.border;
   const borderWidth = isFocused ? stroke.focus : stroke.thin;
 
   const textInputEl = (
@@ -42,7 +42,7 @@ export function Input({ label, hint, error, multiline = false, containerStyle, s
             borderRadius: radius.md,
             borderWidth,
             borderColor,
-            backgroundColor: colors.surfaceMuted,
+            backgroundColor: colors.surface,
             paddingHorizontal: spacing.sm,
             paddingVertical: spacing.sm - spacing.xs / 2,
           }),
@@ -74,7 +74,7 @@ export function Input({ label, hint, error, multiline = false, containerStyle, s
             borderRadius: radius.md,
             borderWidth,
             borderColor,
-            backgroundColor: colors.surfaceMuted,
+            backgroundColor: colors.surface,
             overflow: 'hidden',
           }}>
           {textInputEl}

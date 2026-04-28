@@ -135,8 +135,9 @@ exists between this document and any other guide, this document takes precedence
 The "Constitution Check" gate in `plan-template.md` reflects the NON-NEGOTIABLE
 principles (I and II).
 
-**Runtime guidance**: See `README.md` and `AGENTS.md` for implementation patterns,
-code examples, FK chain details, RLS policy patterns, and test helpers. This
-constitution defines the rules; those files show how to follow them.
+**Runtime guidance**: See `README.md`, `AGENTS.md`, and `code-review-checklist.md`
+for implementation patterns, code examples, FK chain details, RLS policy patterns,
+test helpers, and pre-merge verification steps. This constitution defines the rules;
+those files show how to follow them.
 
 **Version**: 2.0.0 | **Ratified**: 2026-04-14 | **Last Amended**: 2026-04-14
