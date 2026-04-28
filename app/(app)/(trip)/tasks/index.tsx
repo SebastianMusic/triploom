@@ -15,6 +15,7 @@ import { Stack } from '@/components/ui/stack';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import { TaskCard } from '@/components/tasks/task-card';
 import { TaskDetailModal } from '@/components/tasks/task-detail-modal';
+import { TaskStatsModal } from '@/components/tasks/task-stats-modal';
 import { useTasksStore } from '@/store/tasks.store';
 import { useTripStore } from '@/store/trip.store';
 import { useProfileStore } from '@/store/profile.store';
@@ -35,11 +36,12 @@ export default function TasksScreen() {
 		createTaskField, deleteTaskField,
 		upsertAssignment, upsertFieldResponse, deleteMyFieldResponses, sendTaskReminder, exportTask,
 	} = useTasksStore();
-	const { currentParticipant } = useTripStore();
+	const { currentParticipant, participantsWithProfiles } = useTripStore();
 	const { selectedTrip } = useProfileStore();
 
 	const [detailTask, setDetailTask] = useState<Task | null>(null);
 	const [adminVisible, setAdminVisible] = useState(false);
+	const [statsVisible, setStatsVisible] = useState(false);
 	const [editingTask, setEditingTask] = useState<Task | null>(null);
 	const [refreshing, setRefreshing] = useState(false);
 
@@ -294,22 +296,53 @@ export default function TasksScreen() {
 			</ScrollView>
 
 			{isOrganizer && (
-				<Pressable
-					onPress={() => { resetForm(); setAdminVisible(true); }}
-					style={({ pressed }) => ({
-						position: 'absolute',
-						bottom: bottomOverlayOffset - spacing.xl,
-						right: spacing.md,
-						width: sizes.iconButton.lg,
-						height: sizes.iconButton.lg,
-						borderRadius: radius.full,
-						backgroundColor: colors.accent,
-						alignItems: 'center', justifyContent: 'center',
-						opacity: pressed ? 0.8 : 1,
-					})}>
-					<Ionicons name="add" size={sizes.icon.lg} color={colors.text} />
-				</Pressable>
+				<>
+					<Pressable
+						onPress={() => setStatsVisible(true)}
+						style={({ pressed }) => ({
+							position: 'absolute',
+							bottom: bottomOverlayOffset - spacing.xl,
+							right: spacing.md + sizes.iconButton.lg + spacing.sm,
+							width: sizes.iconButton.lg,
+							height: sizes.iconButton.lg,
+							borderRadius: radius.full,
+							backgroundColor: colors.surface,
+							borderWidth: 1.5,
+							borderColor: colors.border,
+							alignItems: 'center', justifyContent: 'center',
+							opacity: pressed ? 0.8 : 1,
+						})}>
+						<Ionicons name="bar-chart-outline" size={sizes.icon.md} color={colors.text} />
+					</Pressable>
+
+					<Pressable
+						onPress={() => { resetForm(); setAdminVisible(true); }}
+						style={({ pressed }) => ({
+							position: 'absolute',
+							bottom: bottomOverlayOffset - spacing.xl,
+							right: spacing.md,
+							width: sizes.iconButton.lg,
+							height: sizes.iconButton.lg,
+							borderRadius: radius.full,
+							backgroundColor: colors.accent,
+							alignItems: 'center', justifyContent: 'center',
+							opacity: pressed ? 0.8 : 1,
+						})}>
+						<Ionicons name="add" size={sizes.icon.lg} color={colors.text} />
+					</Pressable>
+				</>
 			)}
+
+			<TaskStatsModal
+				visible={statsVisible}
+				tasks={tasks}
+				fields={fields}
+				allAssignments={allAssignments}
+				allFieldResponses={allFieldResponses}
+				participants={participantsWithProfiles}
+				onSendReminder={sendTaskReminder}
+				onClose={() => setStatsVisible(false)}
+			/>
 
 			{/* Task detail */}
 			<TaskDetailModal
