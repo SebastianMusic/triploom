@@ -10,6 +10,7 @@ import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import { useTripStore } from '@/store/trip.store';
 import { TripRole } from '@/types';
+import { useTripBannerUrl } from '@/hooks/use-trip-banner-url';
 
 function formatDate(iso: string | null | undefined): string {
   if (!iso) return '—';
@@ -48,6 +49,8 @@ export function TripInfoCard() {
   const [editing, setEditing] = useState(false);
   const [openingFile, setOpeningFile] = useState(false);
 
+  const bannerUrl = useTripBannerUrl(currentTrip?.banner_image_url);
+
   if (!currentTrip) return null;
 
   const canEdit =
@@ -78,9 +81,9 @@ export function TripInfoCard() {
 
   return (
     <Card variant="elevated">
-      {currentTrip.banner_image_url ? (
+      {bannerUrl ? (
         <Image
-          source={{ uri: currentTrip.banner_image_url }}
+          source={{ uri: bannerUrl }}
           style={{
             width: '100%',
             height: 140,

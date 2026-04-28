@@ -1,7 +1,7 @@
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Alert,
   Image,
@@ -21,6 +21,7 @@ import { useAppTheme } from '@/components/ui/theme-provider';
 import { TripSummaryPreviewCard } from '@/components/trip/trip-summary-preview-card';
 import { useTripStore } from '@/store/trip.store';
 import { TripEventPermission, TripRole } from '@/types';
+import { getTripBannerUrl, uploadTripBanner } from '@/services/trip.service';
 
 type Props = {
   onClose?: () => void;
@@ -100,6 +101,16 @@ export function TripEditForm({ onClose }: Props) {
     currentTrip?.end_date ? new Date(currentTrip.end_date) : null,
   );
   const [bannerUri, setBannerUri] = useState(currentTrip?.banner_image_url ?? null);
+  const [displayBannerUri, setDisplayBannerUri] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!bannerUri) { setDisplayBannerUri(null); return; }
+    if (bannerUri.startsWith('http') || bannerUri.startsWith('file://') || bannerUri.startsWith('content://')) {
+      setDisplayBannerUri(bannerUri);
+      return;
+    }
+    getTripBannerUrl(bannerUri).then(setDisplayBannerUri).catch(() => setDisplayBannerUri(null));
+  }, [bannerUri]);
   const [eventPermission, setEventPermission] = useState<TripEventPermission>(
     currentTrip?.event_permission === TripEventPermission.Organizer
       ? TripEventPermission.Organizer
@@ -210,12 +221,17 @@ export function TripEditForm({ onClose }: Props) {
     setError(null);
 
     try {
+      let finalBannerPath: string | null = bannerUri;
+      if (bannerUri && (bannerUri.startsWith('file://') || bannerUri.startsWith('content://'))) {
+        finalBannerPath = await uploadTripBanner(bannerUri, currentTrip.id);
+      }
+
       await updateTrip(currentTrip.id, {
         name: name.trim(),
         description: description.trim() || null,
         start_date: startDate ? startDate.toISOString().slice(0, 10) : null,
         end_date: endDate ? endDate.toISOString().slice(0, 10) : null,
-        banner_image_url: bannerUri,
+        banner_image_url: finalBannerPath,
         event_permission: eventPermission,
         description_file_url: trimmedUrl || null,
       });
@@ -278,7 +294,7 @@ export function TripEditForm({ onClose }: Props) {
       <View style={{ gap: spacing.lg }}>
         <PreviewCard
           name={name}
-          bannerUri={bannerUri}
+          bannerUri={displayBannerUri}
           dateLabel={formatDateRange(startDate, endDate)}
           highlight={actionPreview.label}
           meta={actionPreview.meta}

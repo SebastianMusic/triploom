@@ -16,6 +16,7 @@ import { useAppTheme } from '@/components/ui/theme-provider';
 import { getProfileBadge } from '@/constants/profile-badges';
 import { useProfileStore } from '@/store/profile.store';
 import { useTripStore } from '@/store/trip.store';
+import { useTripBannerUrl } from '@/hooks/use-trip-banner-url';
 import type { TripNextAction } from '@/types';
 import { TripRole, type TripWithRole } from '@/types/trip.types';
 
@@ -152,11 +153,12 @@ function TripSummaryCard({
   nextAction,
   onSelect,
 }: TripActionProps & { nextAction: TripNextAction | null | undefined }) {
+  const resolvedBannerUri = useTripBannerUrl(trip.banner_image_url);
   const actionPreview = getNextActionPreview(nextAction);
 
   return (
     <TripSummaryPreviewCard
-      bannerUri={trip.banner_image_url}
+      bannerUri={resolvedBannerUri}
       dateLabel={formatDateRange(trip)}
       title={valueOrFallback(trip.name)}
       highlight={actionPreview.label}
@@ -173,7 +175,7 @@ function CompactPastTripCard({ trip, disabled, selecting, onSelect, onOptions }:
   const {
     theme: { colors, radius, spacing, typography },
   } = useAppTheme();
-  const bannerSource = trip.banner_image_url;
+  const bannerSource = useTripBannerUrl(trip.banner_image_url);
 
   return (
     <Pressable
