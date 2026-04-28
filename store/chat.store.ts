@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import * as chatService from '@/services/chat.service';
-import type { ChatRoomWithMeta, EditMessageDTO, MessageWithSender, SendMessageDTO } from '@/types';
+import type { ChatRoomWithMeta, EditMessageDTO, MessageWithSender, SendMessageDTO, SendLocationMessageDTO } from '@/types';
 
 // Held outside Zustand state — not serialisable
 let unsubscribeRef: (() => void) | null = null;
@@ -21,6 +21,7 @@ interface ChatState {
   getAllMessages: (roomId: string) => Promise<void>;
   loadMoreMessages: (roomId: string) => Promise<void>;
   sendMessage: (dto: SendMessageDTO) => Promise<void>;
+  sendLocationMessage: (dto: SendLocationMessageDTO) => Promise<void>;
   openChatRoom: (roomId: string) => Promise<void>;
   closeChatRoom: () => void;
   addMessage: (message: MessageWithSender) => void;
@@ -85,6 +86,19 @@ export const useChatStore = create<ChatState>()((set, get) => ({
     set({ isSending: true });
     try {
       const message = await chatService.sendMessage(dto);
+      get().addMessage(message);
+      chatService.markChatRead(dto.group_chat_id).catch(() => {});
+      set({ isSending: false });
+    } catch (error) {
+      set({ isSending: false });
+      throw error;
+    }
+  },
+
+  sendLocationMessage: async (dto) => {
+    set({ isSending: true });
+    try {
+      const message = await chatService.sendLocationMessage(dto);
       get().addMessage(message);
       chatService.markChatRead(dto.group_chat_id).catch(() => {});
       set({ isSending: false });

@@ -10,6 +10,7 @@ import type { MessageWithSender } from '@/types';
 
 interface Props {
   onSubmit: (text: string) => void;
+  onShareLocation?: () => void;
   isSending: boolean;
   editingMessage?: MessageWithSender | null;
   onCancelEdit?: () => void;
@@ -19,6 +20,7 @@ interface Props {
 
 export function MessageInput({
   onSubmit,
+  onShareLocation,
   isSending,
   editingMessage,
   onCancelEdit,
@@ -80,6 +82,15 @@ export function MessageInput({
             borderTopColor: colors.border,
           },
         ]}>
+        {!isEditing && onShareLocation && (
+          <IconButton
+            icon={<Ionicons name="location-outline" size={20} color={colors.textMuted} />}
+            variant="ghost"
+            onPress={onShareLocation}
+            disabled={isBusy}
+            accessibilityLabel="Del posisjon"
+          />
+        )}
         <View style={styles.inputWrapper}>
           <Input
             value={text}
