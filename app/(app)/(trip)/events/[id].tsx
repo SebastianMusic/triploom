@@ -1,7 +1,7 @@
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -17,13 +17,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '@/components/ui/text';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { EventLocationInput } from '@/components/events/event-location-input';
 import { Input } from '@/components/ui/input';
+import { LocationViewModal } from '@/components/ui/location-view-modal';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import { getEvent, getEventBannerUrl, getEventParticipants, uploadEventBanner } from '@/services/events.service';
 import type { EventParticipant, EventWithCount } from '@/services/events.service';
 import { getProfileImageUrlByPath } from '@/services/profile.service';
 import { EventBannerPicker } from '@/components/events/event-banner-picker';
-import { LocationMapPicker } from '@/components/events/location-map-picker';
 import { Container } from '@/components/ui/container';
 import { useEventsStore } from '@/store/events.store';
 import { useTripStore } from '@/store/trip.store';
@@ -143,6 +144,7 @@ function ViewEvent({ event, onBack, isCreator, isOrganizer, onEdit, onDelete }: 
   const { theme: { colors, spacing } } = useAppTheme();
   const { currentParticipant } = useTripStore();
   const { registerForEvent, unregisterFromEvent } = useEventsStore();
+  const [locationModalVisible, setLocationModalVisible] = useState(false);
 
   const participantId = currentParticipant?.id;
   const isRegistered = !!participantId && event.event_participation.some(
@@ -251,10 +253,20 @@ function ViewEvent({ event, onBack, isCreator, isOrganizer, onEdit, onDelete }: 
 
           <View style={{ gap: spacing.sm }}>
             {event.location ? (
-              <Row icon="location-outline">
-                <AppText variant="caption" tone="muted">Location</AppText>
-                <AppText>{event.location}</AppText>
-              </Row>
+              <Pressable onPress={() => setLocationModalVisible(true)}>
+                <Row icon="location-outline">
+                  <AppText variant="caption" tone="muted">Location</AppText>
+                  <AppText tone="primary">{event.location}</AppText>
+                </Row>
+              </Pressable>
+            ) : null}
+
+            {event.location ? (
+              <LocationViewModal
+                visible={locationModalVisible}
+                onClose={() => setLocationModalVisible(false)}
+                address={event.location}
+              />
             ) : null}
 
             <Row icon="time-outline">
@@ -378,10 +390,6 @@ function EditEvent({ event, onBack, onDeleteSuccess }: { event: EventWithCount; 
   const [isMandatory, setIsMandatory] = useState(event.is_optional === false);
   const [bannerLocalUri, setBannerLocalUri] = useState<string | null>(null);
   const [existingBannerUrl, setExistingBannerUrl] = useState<string | null>(null);
-  const [mapVisible, setMapVisible] = useState(false);
-  const [locationSuggestions, setLocationSuggestions] = useState<string[]>([]);
-  const [isFetchingSuggestions, setIsFetchingSuggestions] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [bannerRemoved, setBannerRemoved] = useState(false);
 
   useEffect(() => {
@@ -398,29 +406,6 @@ function EditEvent({ event, onBack, onDeleteSuccess }: { event: EventWithCount; 
     setExistingBannerUrl(null);
   }
 
-  function handleLocationChange(text: string) {
-    setLocation(text);
-    setErrors((e) => ({ ...e, location: undefined }));
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (text.length < 3) { setLocationSuggestions([]); return; }
-    debounceRef.current = setTimeout(() => {
-      void (async () => {
-        setIsFetchingSuggestions(true);
-        try {
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(text)}&limit=5`,
-            { headers: { 'Accept-Language': 'en', 'User-Agent': 'Triploom/1.0' } },
-          );
-          const data = await res.json() as { display_name: string }[];
-          setLocationSuggestions(data.map((item) => item.display_name));
-        } catch {
-          // silently ignore
-        } finally {
-          setIsFetchingSuggestions(false);
-        }
-      })();
-    }, 400);
-  }
 
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -520,70 +505,10 @@ function EditEvent({ event, onBack, onDeleteSuccess }: { event: EventWithCount; 
 
             <Input label="Title *" placeholder="Event title" value={title} onChangeText={setTitle} error={errors.title} />
             <Input label="Description *" placeholder="What is this event about?" value={description} onChangeText={setDescription} multiline error={errors.description} />
-            <Input
-              label="Location *"
-              placeholder="Where is it?"
+            <EventLocationInput
               value={location}
-              onChangeText={handleLocationChange}
+              onChangeText={(text) => { setLocation(text); setErrors((e) => ({ ...e, location: undefined })); }}
               error={errors.location}
-              rightElement={
-                <Pressable
-                  onPress={() => setMapVisible(true)}
-                  style={{ paddingHorizontal: spacing.sm }}
-                  accessibilityLabel="Pick location on map">
-                  <Ionicons
-                    name={isFetchingSuggestions ? 'reload-outline' : 'map-outline'}
-                    size={20}
-                    color={colors.textMuted}
-                  />
-                </Pressable>
-              }
-            />
-
-            {locationSuggestions.length > 0 && (
-              <View
-                style={{
-                  borderRadius: radius.md,
-                  borderWidth: stroke.thin,
-                  borderColor: colors.border,
-                  backgroundColor: colors.surface,
-                  overflow: 'hidden',
-                  marginTop: -spacing.xs,
-                }}>
-                {locationSuggestions.map((suggestion, index) => (
-                  <Pressable
-                    key={index}
-                    onPress={() => {
-                      setLocation(suggestion);
-                      setLocationSuggestions([]);
-                      setErrors((e) => ({ ...e, location: undefined }));
-                    }}
-                    style={{
-                      paddingHorizontal: spacing.sm,
-                      paddingVertical: spacing.sm,
-                      borderTopWidth: index > 0 ? stroke.thin : 0,
-                      borderTopColor: colors.border,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: spacing.xs,
-                    }}>
-                    <Ionicons name="location-outline" size={14} color={colors.textMuted} />
-                    <AppText numberOfLines={2} style={{ flex: 1, fontSize: 13 }}>
-                      {suggestion}
-                    </AppText>
-                  </Pressable>
-                ))}
-              </View>
-            )}
-
-            <LocationMapPicker
-              visible={mapVisible}
-              onClose={() => setMapVisible(false)}
-              onSelectLocation={(address) => {
-                setLocation(address);
-                setLocationSuggestions([]);
-                setErrors((e) => ({ ...e, location: undefined }));
-              }}
             />
 
             <View style={{ gap: spacing.xs }}>
@@ -666,6 +591,7 @@ function EditEvent({ event, onBack, onDeleteSuccess }: { event: EventWithCount; 
         radius={radius}
         spacing={spacing}
       />
+
     </KeyboardAvoidingView>
   );
 }

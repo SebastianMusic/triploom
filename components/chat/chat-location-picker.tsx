@@ -7,17 +7,23 @@ import WebView, { type WebViewMessageEvent } from 'react-native-webview';
 
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
-import { ANDROID_MAP_HTML, getLastKnownLocation, requestLocationForMap, reverseGeocode } from '@/hooks/use-location';
+import { ANDROID_MAP_HTML, requestLocationForMap, getLastKnownLocation, reverseGeocode } from '@/hooks/use-location';
+
+export type PickedLocation = {
+  lat: number;
+  lng: number;
+  label: string;
+};
 
 type Props = {
   visible: boolean;
   onClose: () => void;
-  onSelectLocation: (address: string) => void;
+  onSelectLocation: (location: PickedLocation) => void;
 };
 
 const OSLO = { latitude: 59.9139, longitude: 10.7522 };
 
-function IOSPicker({ onClose, onSelectLocation }: Omit<Props, 'visible'>) {
+function IOSMapPicker({ onClose, onSelectLocation }: Omit<Props, 'visible'>) {
   const insets = useSafeAreaInsets();
   const { theme: { colors, spacing, radius } } = useAppTheme();
   const mapRef = useRef<MapView>(null);
@@ -46,10 +52,9 @@ function IOSPicker({ onClose, onSelectLocation }: Omit<Props, 'visible'>) {
   async function handleConfirm() {
     const { latitude, longitude } = regionRef.current;
     setIsGeocoding(true);
-    const address = await reverseGeocode(latitude, longitude);
+    const label = await reverseGeocode(latitude, longitude);
     setIsGeocoding(false);
-    onSelectLocation(address);
-    onClose();
+    onSelectLocation({ lat: latitude, lng: longitude, label });
   }
 
   return (
@@ -123,7 +128,7 @@ function IOSPicker({ onClose, onSelectLocation }: Omit<Props, 'visible'>) {
   );
 }
 
-function AndroidPicker({ onClose, onSelectLocation }: Omit<Props, 'visible'>) {
+function AndroidMapPicker({ onClose, onSelectLocation }: Omit<Props, 'visible'>) {
   const insets = useSafeAreaInsets();
   const { theme: { colors, spacing, radius } } = useAppTheme();
   const webViewRef = useRef<WebView>(null);
@@ -146,11 +151,10 @@ function AndroidPicker({ onClose, onSelectLocation }: Omit<Props, 'visible'>) {
     try {
       const { lat, lng } = JSON.parse(event.nativeEvent.data) as { lat: number; lng: number };
       setIsGeocoding(true);
-      const address = await reverseGeocode(lat, lng);
-      onSelectLocation(address);
-      onClose();
+      const label = await reverseGeocode(lat, lng);
+      onSelectLocation({ lat, lng, label });
     } catch {
-      Alert.alert('Error', 'Could not fetch location. Please try again.');
+      Alert.alert('Feil', 'Kunne ikke hente adresse. Prøv igjen.');
     } finally {
       setIsGeocoding(false);
     }
@@ -223,12 +227,12 @@ function AndroidPicker({ onClose, onSelectLocation }: Omit<Props, 'visible'>) {
   );
 }
 
-export function LocationMapPicker({ visible, onClose, onSelectLocation }: Props) {
+export function ChatLocationMapPicker({ visible, onClose, onSelectLocation }: Props) {
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       {Platform.OS === 'ios'
-        ? <IOSPicker onClose={onClose} onSelectLocation={onSelectLocation} />
-        : <AndroidPicker onClose={onClose} onSelectLocation={onSelectLocation} />}
+        ? <IOSMapPicker onClose={onClose} onSelectLocation={onSelectLocation} />
+        : <AndroidMapPicker onClose={onClose} onSelectLocation={onSelectLocation} />}
     </Modal>
   );
 }

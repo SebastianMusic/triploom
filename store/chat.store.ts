@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import * as chatService from '@/services/chat.service';
-import type { ChatRoomWithMeta, EditMessageDTO, MessageWithSender, SendMessageDTO } from '@/types';
+import type { ChatRoomWithMeta, EditMessageDTO, MessageWithSender, SendMessageDTO, SendLocationMessageDTO } from '@/types';
 
 // Held outside Zustand state — not serialisable
 let unsubscribeRef: (() => void) | null = null;
@@ -21,6 +21,7 @@ interface ChatState {
   getAllMessages: (roomId: string) => Promise<void>;
   loadMoreMessages: (roomId: string) => Promise<void>;
   sendMessage: (dto: SendMessageDTO) => Promise<void>;
+  sendLocationMessage: (dto: SendLocationMessageDTO) => Promise<void>;
   openChatRoom: (roomId: string) => Promise<void>;
   closeChatRoom: () => void;
   addMessage: (message: MessageWithSender) => void;
@@ -70,11 +71,11 @@ export const useChatStore = create<ChatState>()((set, get) => ({
     try {
       const nextPage = get().currentPage + 1;
       const olderMessages = await chatService.getAllMessages(roomId, nextPage);
-      set((state) => ({
-        messages: [...state.messages, ...olderMessages],
-        currentPage: nextPage,
-        isLoading: false,
-      }));
+      set((state) => {
+        const existingIds = new Set(state.messages.map((m) => m.id));
+        const unique = olderMessages.filter((m) => !existingIds.has(m.id));
+        return { messages: [...state.messages, ...unique], currentPage: nextPage, isLoading: false };
+      });
     } catch (error) {
       set({ isLoading: false });
       throw error;
@@ -85,6 +86,19 @@ export const useChatStore = create<ChatState>()((set, get) => ({
     set({ isSending: true });
     try {
       const message = await chatService.sendMessage(dto);
+      get().addMessage(message);
+      chatService.markChatRead(dto.group_chat_id).catch(() => {});
+      set({ isSending: false });
+    } catch (error) {
+      set({ isSending: false });
+      throw error;
+    }
+  },
+
+  sendLocationMessage: async (dto) => {
+    set({ isSending: true });
+    try {
+      const message = await chatService.sendLocationMessage(dto);
       get().addMessage(message);
       chatService.markChatRead(dto.group_chat_id).catch(() => {});
       set({ isSending: false });
@@ -134,7 +148,11 @@ export const useChatStore = create<ChatState>()((set, get) => ({
               .getAllMessages(roomId, 0, lastSeenAt)
               .then((missed) => {
                 if (missed.length > 0) {
-                  set((state) => ({ messages: [...missed, ...state.messages] }));
+                  set((state) => {
+                    const existingIds = new Set(state.messages.map((m) => m.id));
+                    const unique = missed.filter((m) => !existingIds.has(m.id));
+                    return unique.length > 0 ? { messages: [...unique, ...state.messages] } : state;
+                  });
                 }
               })
               .catch(() => {

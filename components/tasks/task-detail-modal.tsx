@@ -9,76 +9,41 @@ import { Stack } from '@/components/ui/stack';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import { TaskFieldType } from '@/types/tasks.types';
 import type { Task, TaskAssignment, TaskFieldResponse } from '@/types';
-import type { TaskFieldWithOptions } from '@/services/tasks.service';
-
-export type PendingResponseMap = Record<string, { option_id?: string | null; is_checked?: boolean | null; value?: string | null }[]>;
-
-type ResponseLike = { option_id?: string | null; is_checked?: boolean | null; value?: string | null };
+import type { AssignmentWithParticipant, FieldResponseWithParticipant, TaskFieldWithOptions } from '@/services/tasks.service';
 
 export function TaskDetailModal({
   task,
   fields,
   assignment,
+  allAssignments,
   myFieldResponses,
+  allFieldResponses: _allFieldResponses,
   onClose,
-  onMarkComplete,
-  onUndoComplete,
+  onToggleComplete,
+  onToggleCheckbox,
+  onSelectDropdown,
+  onChangeTextInput,
   onEdit,
   onDelete,
 }: {
   task: Task | null;
   fields: TaskFieldWithOptions[];
   assignment: TaskAssignment | null;
+  allAssignments?: AssignmentWithParticipant[];
   myFieldResponses: Record<string, TaskFieldResponse[]>;
+  allFieldResponses?: Record<string, FieldResponseWithParticipant[]>;
   onClose: () => void;
-  onMarkComplete: (pending: PendingResponseMap) => Promise<void>;
-  onUndoComplete: () => void;
+  onToggleComplete: () => void;
+  onToggleCheckbox: (fieldId: string, optionId: string, current: boolean) => void;
+  onSelectDropdown: (fieldId: string, optionId: string) => void;
+  onChangeTextInput: (fieldId: string, value: string) => void;
   onEdit?: () => void;
   onDelete?: () => void;
 }) {
   const { theme: { colors, spacing, sizes, radius, stroke } } = useAppTheme();
-  const [pending, setPending] = useState<PendingResponseMap>({});
-  const [completing, setCompleting] = useState(false);
   const isCompleted = assignment?.is_completed ?? false;
 
-  useEffect(() => {
-    setPending({});
-  }, [task?.id]);
-
   if (!task) return null;
-
-  function getResponses(fieldId: string): ResponseLike[] {
-    if (isCompleted) return myFieldResponses[fieldId] ?? [];
-    return pending[fieldId] ?? [];
-  }
-
-  function handleToggleCheckbox(fieldId: string, optionId: string) {
-    setPending((prev) => {
-      const existing = prev[fieldId] ?? [];
-      const found = existing.find((r) => r.option_id === optionId);
-      if (found) {
-        return { ...prev, [fieldId]: existing.map((r) => r.option_id === optionId ? { ...r, is_checked: !r.is_checked } : r) };
-      }
-      return { ...prev, [fieldId]: [...existing, { option_id: optionId, is_checked: true }] };
-    });
-  }
-
-  function handleSelectDropdown(fieldId: string, optionId: string) {
-    setPending((prev) => ({ ...prev, [fieldId]: [{ option_id: optionId, is_checked: null, value: null }] }));
-  }
-
-  function handleChangeText(fieldId: string, value: string) {
-    setPending((prev) => ({ ...prev, [fieldId]: [{ option_id: null, is_checked: null, value }] }));
-  }
-
-  async function handleMarkComplete() {
-    setCompleting(true);
-    try {
-      await onMarkComplete(pending);
-    } finally {
-      setCompleting(false);
-    }
-  }
 
   return (
     <Modal visible={!!task} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
@@ -131,7 +96,7 @@ export function TaskDetailModal({
 
           {/* Fields */}
           {fields.map((field) => {
-            const responses = getResponses(field.id);
+            const responses = myFieldResponses[field.id] ?? [];
 
             if (field.type === TaskFieldType.Checkbox) {
               return (
@@ -143,7 +108,7 @@ export function TaskDetailModal({
                       <Pressable
                         key={opt.id}
                         disabled={isCompleted}
-                        onPress={() => handleToggleCheckbox(field.id, opt.id)}
+                        onPress={() => onToggleCheckbox(field.id, opt.id, checked)}
                         style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
                         <View style={{
                           width: 22, height: 22, borderRadius: 6, borderWidth: 2,
@@ -172,7 +137,7 @@ export function TaskDetailModal({
                       <Pressable
                         key={opt.id}
                         disabled={isCompleted}
-                        onPress={() => handleSelectDropdown(field.id, opt.id)}
+                        onPress={() => onSelectDropdown(field.id, opt.id)}
                         style={{
                           borderRadius: radius.md, borderWidth: 1.5,
                           borderColor: active ? colors.primary : colors.border,
@@ -195,7 +160,7 @@ export function TaskDetailModal({
                   <TextResponseInput
                     initialValue={value}
                     editable={!isCompleted}
-                    onSave={(text) => handleChangeText(field.id, text)}
+                    onSave={(text) => onChangeTextInput(field.id, text)}
                   />
                 </Stack>
               );
@@ -204,10 +169,29 @@ export function TaskDetailModal({
             return null;
           })}
 
+          {/* Organizer: completion overview */}
+          {allAssignments && allAssignments.length > 0 && (
+            <Stack space="xs">
+              <AppText variant="caption" tone="muted">Completion overview</AppText>
+              {allAssignments.map((a) => (
+                <Row key={a.participant_id + a.task_id} gap="sm" align="center">
+                  <Ionicons
+                    name={a.is_completed ? 'checkmark-circle' : 'ellipse-outline'}
+                    size={16}
+                    color={a.is_completed ? colors.success : colors.textMuted}
+                  />
+                  <AppText variant="caption" tone={a.is_completed ? 'default' : 'muted'}>
+                    {a.trip_participant.profile?.user_name ?? 'Unknown'}
+                  </AppText>
+                </Row>
+              ))}
+            </Stack>
+          )}
+
           {/* Complete toggle */}
           {isCompleted ? (
             <Pressable
-              onPress={onUndoComplete}
+              onPress={onToggleComplete}
               style={({ pressed }) => ({
                 flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
                 borderRadius: radius.full, borderWidth: 1.5, borderColor: colors.success,
@@ -222,10 +206,9 @@ export function TaskDetailModal({
             </Pressable>
           ) : (
             <Button
-              label={completing ? 'Saving...' : 'Mark as done'}
+              label="Mark as done"
               fullWidth
-              loading={completing}
-              onPress={handleMarkComplete}
+              onPress={onToggleComplete}
             />
           )}
         </ScrollView>
