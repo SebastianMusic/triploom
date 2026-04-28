@@ -7,7 +7,7 @@ import WebView, { type WebViewMessageEvent } from 'react-native-webview';
 
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
-import { ANDROID_MAP_HTML, getLastKnownLocation, reverseGeocode } from '@/hooks/use-location';
+import { ANDROID_MAP_HTML, getLastKnownLocation, requestLocationForMap, reverseGeocode } from '@/hooks/use-location';
 
 type Props = {
   visible: boolean;
@@ -129,6 +129,15 @@ function AndroidPicker({ onClose, onSelectLocation }: Omit<Props, 'visible'>) {
   const webViewRef = useRef<WebView>(null);
   const [isGeocoding, setIsGeocoding] = useState(false);
 
+  async function handleLoadEnd() {
+    const coords = await requestLocationForMap();
+    if (coords) {
+      webViewRef.current?.injectJavaScript(
+        `window.setCenter(${coords.latitude}, ${coords.longitude}); true;`
+      );
+    }
+  }
+
   function handleConfirm() {
     webViewRef.current?.injectJavaScript('window.getMapCenter(); true;');
   }
@@ -173,7 +182,7 @@ function AndroidPicker({ onClose, onSelectLocation }: Omit<Props, 'visible'>) {
         style={{ flex: 1 }}
         originWhitelist={['*']}
         javaScriptEnabled
-        geolocationEnabled
+        onLoadEnd={handleLoadEnd}
         onMessage={handleMessage}
       />
 

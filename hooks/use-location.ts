@@ -1,5 +1,5 @@
 import * as Location from 'expo-location';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 
 export async function reverseGeocode(lat: number, lng: number): Promise<string> {
   try {
@@ -41,11 +41,7 @@ export const ANDROID_MAP_HTML = `<!DOCTYPE html>
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19, attribution: '&copy; OpenStreetMap'
     }).addTo(map);
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(function(pos) {
-        map.setView([pos.coords.latitude, pos.coords.longitude], 15);
-      });
-    }
+    window.setCenter = function(lat, lng) { map.setView([lat, lng], 15); };
     window.getMapCenter = function() {
       var c = map.getCenter();
       window.ReactNativeWebView.postMessage(JSON.stringify({ lat: c.lat, lng: c.lng }));
@@ -74,24 +70,38 @@ async function ensurePermission(): Promise<boolean> {
 export async function getCurrentLocation(): Promise<DeviceLocation | null> {
   if (!await ensurePermission()) return null;
 
-  // Use cached position if available — instant response
-  const last = await Location.getLastKnownPositionAsync();
-  if (last) {
-    return { latitude: last.coords.latitude, longitude: last.coords.longitude };
+  if (Platform.OS === 'ios') {
+    // iOS last-known is kept fresh by the OS — safe to use as instant path
+    const last = await Location.getLastKnownPositionAsync();
+    if (last) return { latitude: last.coords.latitude, longitude: last.coords.longitude };
   }
 
-  // No cache — fall back to fresh fix
+  // Android: last-known can be hours stale, always get a fresh fix
   const pos = await Location.getCurrentPositionAsync({
     accuracy: Location.Accuracy.Balanced,
   });
   return { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
 }
 
-// For map centering — silent, no alert if permission denied
+// For iOS map picker centering — silent, no alert if permission denied
 export async function getLastKnownLocation(): Promise<DeviceLocation | null> {
   const { status } = await Location.getForegroundPermissionsAsync();
   if (status !== 'granted') return null;
   const last = await Location.getLastKnownPositionAsync();
   if (!last) return null;
   return { latitude: last.coords.latitude, longitude: last.coords.longitude };
+}
+
+// For Android map picker centering — requests permission, no alert on denial
+export async function requestLocationForMap(): Promise<DeviceLocation | null> {
+  const { status } = await Location.requestForegroundPermissionsAsync();
+  if (status !== 'granted') return null;
+  try {
+    const last = await Location.getLastKnownPositionAsync();
+    if (last) return { latitude: last.coords.latitude, longitude: last.coords.longitude };
+    const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+    return { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
+  } catch {
+    return null;
+  }
 }

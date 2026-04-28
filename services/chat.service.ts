@@ -92,12 +92,14 @@ export async function getAllMessages(
     mapToMessageWithSender({
       id: row.id,
       content: row.content,
+      type: row.type,
       created_at: row.created_at,
       updated_at: row.updated_at,
       deleted_at: row.deleted_at,
       group_chat_id: row.group_chat_id,
       user_id: row.user_id,
       profile: Array.isArray(row.profile) ? (row.profile[0] ?? null) : row.profile,
+      message_location: row.message_location ?? null,
     })
   );
 }
