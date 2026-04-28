@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import type { MessageInsert } from '@/types';
 
-// DTO for sending a message (form validation boundary)
 export const sendMessageSchema = z.object({
   content: z.string().min(1, 'Message cannot be empty').max(2000),
   group_chat_id: z.string().uuid(),
@@ -9,7 +8,6 @@ export const sendMessageSchema = z.object({
 
 export type SendMessageDTO = z.infer<typeof sendMessageSchema>;
 
-// DTO for editing an existing message
 export const editMessageSchema = z.object({
   id: z.string().uuid(),
   content: z.string().min(1, 'Message cannot be empty').max(2000),
@@ -17,19 +15,35 @@ export const editMessageSchema = z.object({
 
 export type EditMessageDTO = z.infer<typeof editMessageSchema>;
 
-// Message enriched with the sender's display name (from profile JOIN)
+export const sendLocationMessageSchema = z.object({
+  group_chat_id: z.string().uuid(),
+  latitude: z.number(),
+  longitude: z.number(),
+  label: z.string().nullable().optional(),
+});
+
+export type SendLocationMessageDTO = z.infer<typeof sendLocationMessageSchema>;
+
+export type MessageLocationData = {
+  id: string;
+  latitude: number;
+  longitude: number;
+  label: string | null;
+};
+
 export type MessageWithSender = {
   id: string;
   content: string | null;
+  type: 'text' | 'location';
   created_at: string;
   updated_at: string | null;
   deleted_at: string | null;
   group_chat_id: string | null;
   user_id: string | null;
   senderName: string | null;
+  location: MessageLocationData | null;
 };
 
-// Chat room enriched with unread status, last activity, and avatar image (from getAllChatRooms)
 export type ChatRoomWithMeta = {
   id: string;
   chat_name: string | null;

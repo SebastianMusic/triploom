@@ -7,8 +7,8 @@ export { createAnnouncementSchema, updateAnnouncementSchema } from './announceme
 export type { CreateAnnouncementDTO, UpdateAnnouncementDTO } from './announcement.types';
 export { signInSchema, signUpSchema } from './auth.types';
 export type { SignInDTO, SignUpDTO } from './auth.types';
-export { sendMessageSchema, editMessageSchema } from './chat.types';
-export type { ChatRoomWithMeta, MessageWithSender, SendMessageDTO, EditMessageDTO } from './chat.types';
+export { sendMessageSchema, editMessageSchema, sendLocationMessageSchema } from './chat.types';
+export type { ChatRoomWithMeta, MessageWithSender, SendMessageDTO, EditMessageDTO, SendLocationMessageDTO, MessageLocationData } from './chat.types';
 export type { Database, Enums, Json, Tables, TablesInsert, TablesUpdate } from './database.types';
 export { createEventSchema } from './events.types';
 export type { CreateEventDTO } from './events.types';
@@ -97,6 +97,11 @@ export type ChatParticipantUpdate = TablesUpdate<'chat_participant'>;
 export type ChatImage = Tables<'chat_image'>;
 export type ChatImageInsert = TablesInsert<'chat_image'>;
 export type ChatImageUpdate = TablesUpdate<'chat_image'>;
+
+// Message location
+export type MessageLocation = Tables<'message_location'>;
+export type MessageLocationInsert = TablesInsert<'message_location'>;
+export type MessageLocationUpdate = TablesUpdate<'message_location'>;
 
 // Announcement
 export type Announcement = Tables<'announcement'>;

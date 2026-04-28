@@ -3,14 +3,17 @@ import { useEffect, useState } from 'react';
 import { Alert, FlatList, KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
+import { ChatLocationMapPicker, type PickedLocation } from '@/components/chat/chat-location-picker';
+import { LocationActionSheet } from '@/components/chat/location-action-sheet';
 import { MessageBubble } from '@/components/chat/message-bubble';
 import { MessageInput } from '@/components/chat/message-input';
+import { getCurrentLocation } from '@/hooks/use-location';
 import { IconButton } from '@/components/ui/icon-button';
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import { useAuthStore } from '@/store/auth.store';
 import { useChatStore } from '@/store/chat.store';
-import type { MessageWithSender, SendMessageDTO } from '@/types';
+import type { MessageWithSender, SendMessageDTO, SendLocationMessageDTO } from '@/types';
 
 export default function ChatRoomScreen() {
   const { roomId } = useLocalSearchParams<{ roomId: string }>();
@@ -21,13 +24,15 @@ export default function ChatRoomScreen() {
   const {
     messages, chatRooms, isLoading, isSending,
     editingMessage, isUpdating,
-    openChatRoom, closeChatRoom, loadMoreMessages, sendMessage,
+    openChatRoom, closeChatRoom, loadMoreMessages, sendMessage, sendLocationMessage,
     updateMessage, deleteMessage, startEditingMessage, cancelEditingMessage,
   } = useChatStore();
   const currentUserId = useAuthStore((s) => s.session?.user.id ?? null);
   const [error, setError] = useState<string | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
   const [pendingText, setPendingText] = useState<string | null>(null);
+  const [actionSheetVisible, setActionSheetVisible] = useState(false);
+  const [locationPickerVisible, setLocationPickerVisible] = useState(false);
 
   const roomName = chatRooms.find((r) => r.id === roomId)?.chat_name ?? 'Chat';
 
@@ -72,6 +77,39 @@ export default function ChatRoomScreen() {
       await updateMessage({ id: editingMessage.id, content });
     } catch (err) {
       setSendError(err instanceof Error ? err.message : 'Failed to update message');
+    }
+  }
+
+  async function handleCurrentLocation() {
+    if (!roomId) return;
+    setSendError(null);
+    try {
+      const coords = await getCurrentLocation();
+      if (!coords) return;
+      await sendLocationMessage({
+        group_chat_id: roomId,
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        label: null,
+      });
+    } catch (err) {
+      setSendError(err instanceof Error ? err.message : 'Kunne ikke sende posisjon');
+    }
+  }
+
+  async function handleLocationSelected(location: PickedLocation) {
+    if (!roomId) return;
+    setSendError(null);
+    const dto: SendLocationMessageDTO = {
+      group_chat_id: roomId,
+      latitude: location.lat,
+      longitude: location.lng,
+      label: location.label,
+    };
+    try {
+      await sendLocationMessage(dto);
+    } catch (err) {
+      setSendError(err instanceof Error ? err.message : 'Failed to send location');
     }
   }
 
@@ -198,11 +236,28 @@ export default function ChatRoomScreen() {
           setSendError(null);
           handleSubmit(text);
         }}
+        onShareLocation={() => setActionSheetVisible(true)}
         isSending={isSending}
         editingMessage={editingMessage}
         onCancelEdit={cancelEditingMessage}
         isUpdating={isUpdating}
         onSubmitEdit={handleSubmitEdit}
+      />
+
+      <LocationActionSheet
+        visible={actionSheetVisible}
+        onDismiss={() => setActionSheetVisible(false)}
+        onCurrentLocation={handleCurrentLocation}
+        onPickOnMap={() => setLocationPickerVisible(true)}
+      />
+
+      <ChatLocationMapPicker
+        visible={locationPickerVisible}
+        onClose={() => setLocationPickerVisible(false)}
+        onSelectLocation={(loc) => {
+          setLocationPickerVisible(false);
+          handleLocationSelected(loc);
+        }}
       />
     </KeyboardAvoidingView>
   );

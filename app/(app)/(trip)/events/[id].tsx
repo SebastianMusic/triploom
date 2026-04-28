@@ -16,7 +16,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
+import { EventLocationInput } from '@/components/events/event-location-input';
 import { Input } from '@/components/ui/input';
+import { LocationViewModal } from '@/components/ui/location-view-modal';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import { getEvent, getEventBannerUrl, uploadEventBanner } from '@/services/events.service';
 import type { EventWithCount } from '@/services/events.service';
@@ -138,6 +140,7 @@ function ViewEvent({ event, onBack, isCreator, isOrganizer, onEdit, onDelete }: 
   const { theme: { colors, layout, spacing } } = useAppTheme();
   const { currentParticipant } = useTripStore();
   const { registerForEvent, unregisterFromEvent } = useEventsStore();
+  const [locationModalVisible, setLocationModalVisible] = useState(false);
 
   const participantId = currentParticipant?.id;
   const isRegistered = !!participantId && event.event_participation.some(
@@ -201,10 +204,20 @@ function ViewEvent({ event, onBack, isCreator, isOrganizer, onEdit, onDelete }: 
 
       <View style={{ gap: spacing.sm }}>
         {event.location ? (
-          <Row icon="location-outline">
-            <AppText variant="caption" tone="muted">Location</AppText>
-            <AppText>{event.location}</AppText>
-          </Row>
+          <Pressable onPress={() => setLocationModalVisible(true)}>
+            <Row icon="location-outline">
+              <AppText variant="caption" tone="muted">Location</AppText>
+              <AppText tone="primary">{event.location}</AppText>
+            </Row>
+          </Pressable>
+        ) : null}
+
+        {event.location ? (
+          <LocationViewModal
+            visible={locationModalVisible}
+            onClose={() => setLocationModalVisible(false)}
+            address={event.location}
+          />
         ) : null}
 
         <Row icon="time-outline">
@@ -397,7 +410,11 @@ function EditEvent({ event, onBack, onDeleteSuccess }: { event: EventWithCount; 
 
         <Input label="Title *" placeholder="Event title" value={title} onChangeText={setTitle} error={errors.title} />
         <Input label="Description *" placeholder="What is this event about?" value={description} onChangeText={setDescription} multiline error={errors.description} />
-        <Input label="Location *" placeholder="Where is it?" value={location} onChangeText={setLocation} error={errors.location} />
+        <EventLocationInput
+          value={location}
+          onChangeText={(text) => { setLocation(text); setErrors((e) => ({ ...e, location: undefined })); }}
+          error={errors.location}
+        />
 
         <View style={{ gap: spacing.xs }}>
           <AppText variant="caption">Start time *</AppText>
@@ -477,6 +494,7 @@ function EditEvent({ event, onBack, onDeleteSuccess }: { event: EventWithCount; 
         radius={radius}
         spacing={spacing}
       />
+
     </KeyboardAvoidingView>
   );
 }
