@@ -35,7 +35,7 @@ function buildMapHtml(lat: number, lng: number): string {
   <div id="map"></div>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    var map = L.map('map', { zoomControl: false, dragging: false, scrollWheelZoom: false })
+    var map = L.map('map', { zoomControl: true })
                .setView([${lat}, ${lng}], 15);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
@@ -52,7 +52,7 @@ async function openInMaps(lat: number, lng: number, displayLabel?: string | null
   const fallback = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
 
   const primary = Platform.OS === 'ios'
-    ? `https://maps.apple.com/?ll=${lat},${lng}&q=${label}`
+    ? `maps://?ll=${lat},${lng}&q=${label}`
     : `geo:0,0?q=${lat},${lng}(${label})`;
 
   try {
@@ -136,7 +136,6 @@ export function LocationViewModal({ visible, onClose, latitude, longitude, label
         style={{ flex: 1 }}
         originWhitelist={['*']}
         javaScriptEnabled
-        scrollEnabled={false}
       />
     );
   }
