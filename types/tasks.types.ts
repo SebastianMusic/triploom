@@ -1,5 +1,5 @@
+import type { TaskFieldInsert, TaskFieldOptionInsert, TaskInsert } from '@/types';
 import { z } from 'zod';
-import type { TaskInsert, TaskFieldInsert, TaskFieldOptionInsert } from '@/types';
 
 export enum TaskFieldType {
   Checkbox = 'checkbox',
@@ -23,6 +23,8 @@ export const createTaskSchema = z.object({
   title: z.string().min(1, 'Task title is required'),
   description: z.string().nullable().optional(),
   due_time: z.string().nullable().optional(),
+  event_id: z.string().nullable().optional(),
+  is_mandatory: z.boolean().optional(),
 }) satisfies z.ZodType<Omit<TaskInsert, 'id' | 'created_at' | 'trip_id'>>;
 
 export const updateTaskSchema = createTaskSchema.partial();

@@ -1,7 +1,7 @@
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -69,6 +69,8 @@ export default function CreateEventScreen() {
     currentTrip?.event_permission !== TripEventPermission.Organizer || isOrganizer;
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  useFocusEffect(useCallback(() => { clearForm(); }, []));
+
   // Picker state
   const [pickerTarget, setPickerTarget] = useState<PickerTarget>(null);
   const [pickerMode, setPickerMode] = useState<PickerMode>('date');
@@ -84,7 +86,6 @@ export default function CreateEventScreen() {
     setPriceRange('');
     setBannerUri(null);
     setIsMandatory(false);
-    setLocationSuggestions([]);
     setErrors({});
   }
 

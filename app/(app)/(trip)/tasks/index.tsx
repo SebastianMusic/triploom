@@ -17,6 +17,7 @@ import { TaskCard } from '@/components/tasks/task-card';
 import { TaskDetailModal } from '@/components/tasks/task-detail-modal';
 import { TaskStatsModal } from '@/components/tasks/task-stats-modal';
 import { useTasksStore } from '@/store/tasks.store';
+import { useEventsStore } from '@/store/events.store';
 import { useTripStore } from '@/store/trip.store';
 import { useProfileStore } from '@/store/profile.store';
 import { TaskFieldType, TASK_FIELD_TYPE_LABELS, TASK_FIELD_TYPE_OPTIONS, fieldNeedsOptions, createTaskSchema } from '@/types/tasks.types';
@@ -34,10 +35,11 @@ export default function TasksScreen() {
 		fetchMyFieldResponses, fetchAllFieldResponses,
 		createTask, updateTask, deleteTask,
 		createTaskField, deleteTaskField,
-		upsertAssignment, upsertFieldResponse, sendTaskReminder, exportTask,
+		upsertAssignment, upsertFieldResponse, deleteMyFieldResponses, sendTaskReminder, exportTask,
 	} = useTasksStore();
 	const { currentParticipant, participantsWithProfiles } = useTripStore();
 	const { selectedTrip } = useProfileStore();
+	const { events, fetchEvents } = useEventsStore();
 
 	const [detailTask, setDetailTask] = useState<Task | null>(null);
 	const [adminVisible, setAdminVisible] = useState(false);
@@ -52,6 +54,9 @@ export default function TasksScreen() {
 	const [dueDate, setDueDate] = useState<Date | null>(null);
 	const [showDatePicker, setShowDatePicker] = useState(false);
 	const [tempDate, setTempDate] = useState<Date>(new Date());
+	const [eventId, setEventId] = useState<string | null>(null);
+	const [eventPickerVisible, setEventPickerVisible] = useState(false);
+	const [isMandatory, setIsMandatory] = useState(false);
 	const [saving, setSaving] = useState(false);
 	const [titleError, setTitleError] = useState('');
 	const nextTempId = useRef(0);
@@ -61,8 +66,11 @@ export default function TasksScreen() {
 		currentParticipant?.role === TripRole.CoOrganizer;
 
 	useEffect(() => {
-		if (selectedTrip) getAllTasks(selectedTrip);
-	}, [getAllTasks, selectedTrip]);
+		if (selectedTrip) {
+			getAllTasks(selectedTrip);
+			void fetchEvents(selectedTrip);
+		}
+	}, [getAllTasks, fetchEvents, selectedTrip]);
 
 	useEffect(() => {
 		if (!currentParticipant || tasks.length === 0) return;
@@ -83,9 +91,19 @@ export default function TasksScreen() {
 	const sortedTasks = [...tasks].sort((a, b) => {
 		const aCompleted = assignments[a.id]?.is_completed ?? false;
 		const bCompleted = assignments[b.id]?.is_completed ?? false;
-		if (aCompleted === bCompleted) return 0;
-		return aCompleted ? 1 : -1;
+		if (aCompleted !== bCompleted) return aCompleted ? 1 : -1;
+		const aMandatory = a.is_mandatory ?? false;
+		const bMandatory = b.is_mandatory ?? false;
+		if (aMandatory !== bMandatory) return aMandatory ? -1 : 1;
+		return 0;
 	});
+
+	// Group tasks: event-linked groups first (in event order), then general
+	const eventGroups = events
+		.map((e) => ({ eventId: e.id, title: e.title ?? 'Untitled event', tasks: sortedTasks.filter((t) => t.event_id === e.id) }))
+		.filter((g) => g.tasks.length > 0);
+	const generalTasks = sortedTasks.filter((t) => !t.event_id);
+	const hasGroups = eventGroups.length > 0;
 
 	async function handleRefresh() {
 		if (!selectedTrip || !currentParticipant) return;
@@ -101,6 +119,8 @@ export default function TasksScreen() {
 		setDescription('');
 		setDraftFields([]);
 		setDueDate(null);
+		setEventId(null);
+		setIsMandatory(false);
 		setShowDatePicker(false);
 		setTitleError('');
 	}
@@ -118,6 +138,8 @@ export default function TasksScreen() {
 			}))
 		);
 		setDueDate(task.due_time ? new Date(task.due_time) : null);
+		setEventId(task.event_id ?? null);
+		setIsMandatory(task.is_mandatory ?? false);
 		setTitleError('');
 		setAdminVisible(true);
 	}
@@ -188,6 +210,8 @@ export default function TasksScreen() {
 			title,
 			description: description || null,
 			due_time: dueDate ? dueDate.toISOString() : null,
+			event_id: eventId,
+			is_mandatory: isMandatory,
 		};
 
 		const result = createTaskSchema.safeParse(dto);
@@ -259,15 +283,35 @@ export default function TasksScreen() {
 						</View>
 					) : (
 						<Stack space="sm">
-							{sortedTasks.map((task) => (
-								<TaskCard
-									key={task.id}
-									task={task}
-									assignment={assignments[task.id] ?? null}
-									isOrganizer={isOrganizer}
-									onPress={() => setDetailTask(task)}
-									onExportPress={() => handleExport(task)}
-								/>
+							{generalTasks.length > 0 && (
+								<View style={{ gap: spacing.xs }}>
+									{hasGroups && <AppText variant="caption" tone="muted" style={{ paddingHorizontal: 2 }}>General</AppText>}
+									{generalTasks.map((task) => (
+										<TaskCard
+											key={task.id}
+											task={task}
+											assignment={assignments[task.id] ?? null}
+											isOrganizer={isOrganizer}
+											onPress={() => setDetailTask(task)}
+											onExportPress={() => handleExport(task)}
+										/>
+									))}
+								</View>
+							)}
+							{eventGroups.map((group) => (
+								<View key={group.eventId} style={{ gap: spacing.xs }}>
+									<AppText variant="caption" tone="muted" style={{ paddingHorizontal: 2 }}>{group.title}</AppText>
+									{group.tasks.map((task) => (
+										<TaskCard
+											key={task.id}
+											task={task}
+											assignment={assignments[task.id] ?? null}
+											isOrganizer={isOrganizer}
+											onPress={() => setDetailTask(task)}
+											onExportPress={() => handleExport(task)}
+										/>
+									))}
+								</View>
 							))}
 						</Stack>
 					)}
@@ -333,23 +377,23 @@ export default function TasksScreen() {
 				onMarkComplete={async (pending) => {
 					if (!currentParticipant || !detailTask) return;
 					const taskFields = fields[detailTask.id] ?? [];
+					const allFieldIds = taskFields.map((f) => f.id);
+
+					// Wipe all existing responses first — guarantees no stale rows survive,
+					// including old dropdown option rows that differ from the current selection.
+					if (allFieldIds.length > 0) {
+						await deleteMyFieldResponses(currentParticipant.id, allFieldIds);
+					}
+
+					// Save only what the user currently has in pending
 					for (const field of taskFields) {
 						const fieldPending = pending[field.id];
-						if (fieldPending) {
-							for (const resp of fieldPending) {
-								await upsertFieldResponse(field.id, currentParticipant.id, resp);
-							}
-						} else {
-							// No pending entry — explicitly reset to clear any stale saved response
-							const empty =
-								field.type === TaskFieldType.Checkbox
-									? { option_id: null, is_checked: false, value: null }
-									: field.type === TaskFieldType.TextInput
-										? { option_id: null, is_checked: null, value: '' }
-										: null;
-							if (empty) await upsertFieldResponse(field.id, currentParticipant.id, empty);
+						if (!fieldPending) continue;
+						for (const resp of fieldPending) {
+							await upsertFieldResponse(field.id, currentParticipant.id, resp);
 						}
 					}
+
 					await upsertAssignment(detailTask.id, currentParticipant.id, { is_completed: true });
 				}}
 				onUndoComplete={() => {
@@ -397,6 +441,41 @@ export default function TasksScreen() {
 									onChangeText={setDescription}
 									multiline
 								/>
+
+								<Pressable
+									onPress={() => setIsMandatory((v) => !v)}
+									style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+									<View style={{
+										width: 22, height: 22, borderRadius: 6,
+										borderWidth: 2,
+										borderColor: isMandatory ? colors.warning : colors.border,
+										backgroundColor: isMandatory ? colors.warning : 'transparent',
+										alignItems: 'center', justifyContent: 'center',
+									}}>
+										{isMandatory ? <Ionicons name="checkmark" size={14} color="#fff" /> : null}
+									</View>
+									<AppText>Mandatory</AppText>
+								</Pressable>
+
+								{events.length > 0 && (
+									<Stack space="xs">
+										<AppText variant="caption">Event</AppText>
+										<Pressable
+											onPress={() => setEventPickerVisible(true)}
+											style={{
+												minHeight: 52, borderRadius: radius.md,
+												borderWidth: stroke.thin, borderColor: colors.border,
+												backgroundColor: colors.surface,
+												paddingHorizontal: spacing.sm, paddingVertical: spacing.sm,
+												flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+											}}>
+											<AppText style={{ color: eventId ? colors.text : colors.textMuted }}>
+												{eventId ? (events.find((e) => e.id === eventId)?.title ?? 'Unknown event') : 'None'}
+											</AppText>
+											<Ionicons name="chevron-down" size={16} color={colors.textMuted} />
+										</Pressable>
+									</Stack>
+								)}
 
 								<Stack space="xs">
 									<AppText variant="caption">Frist</AppText>
@@ -472,6 +551,52 @@ export default function TasksScreen() {
 							</Stack>
 						</Container>
 					</ScrollView>
+
+					{/* Event picker bottom sheet */}
+					<Modal
+						visible={eventPickerVisible}
+						transparent
+						animationType="slide"
+						onRequestClose={() => setEventPickerVisible(false)}>
+						<Pressable style={{ flex: 1 }} onPress={() => setEventPickerVisible(false)} />
+						<View style={{
+							backgroundColor: colors.surface,
+							borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg,
+							paddingBottom: insets.bottom + spacing.sm,
+							maxHeight: '60%',
+						}}>
+							<View style={{
+								flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+								paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.xs,
+								borderBottomWidth: stroke.thin, borderBottomColor: colors.border,
+							}}>
+								<AppText variant="body" style={{ fontWeight: '600' }}>Link to event</AppText>
+								<Pressable onPress={() => setEventPickerVisible(false)}>
+									<Ionicons name="close" size={22} color={colors.textMuted} />
+								</Pressable>
+							</View>
+							<ScrollView keyboardShouldPersistTaps="handled">
+								{[{ id: null, title: 'None' }, ...events].map((e) => {
+									const selected = e.id === eventId;
+									return (
+										<Pressable
+											key={e.id ?? '__general'}
+											onPress={() => { setEventId(e.id); setEventPickerVisible(false); }}
+											style={({ pressed }) => ({
+												flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+												paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 2,
+												opacity: pressed ? 0.7 : 1,
+											})}>
+											<AppText style={{ color: selected ? colors.primary : colors.text, fontWeight: selected ? '600' : '400' }}>
+												{e.title}
+											</AppText>
+											{selected && <Ionicons name="checkmark" size={18} color={colors.primary} />}
+										</Pressable>
+									);
+								})}
+							</ScrollView>
+						</View>
+					</Modal>
 
 					{Platform.OS === 'android' && showDatePicker && (
 						<DateTimePicker
