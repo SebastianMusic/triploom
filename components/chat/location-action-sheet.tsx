@@ -36,8 +36,8 @@ export function LocationActionSheet({ visible, onDismiss, onCurrentLocation, onP
           onPress={() => { onDismiss(); onCurrentLocation(); }}>
           <Ionicons name="navigate" size={20} color={colors.primary} />
           <View style={styles.textGroup}>
-            <AppText style={{ fontWeight: '600' }}>Min eksakte posisjon</AppText>
-            <AppText variant="caption" tone="muted">Henter GPS-posisjonen din</AppText>
+            <AppText style={{ fontWeight: '600' }}>My exact location</AppText>
+            <AppText variant="caption" tone="muted">Uses your GPS position</AppText>
           </View>
         </Pressable>
 
@@ -48,8 +48,8 @@ export function LocationActionSheet({ visible, onDismiss, onCurrentLocation, onP
           onPress={() => { onDismiss(); onPickOnMap(); }}>
           <Ionicons name="map-outline" size={20} color={colors.text} />
           <View style={styles.textGroup}>
-            <AppText style={{ fontWeight: '600' }}>Velg på kart</AppText>
-            <AppText variant="caption" tone="muted">Flytt pinen til ønsket posisjon</AppText>
+            <AppText style={{ fontWeight: '600' }}>Pick on map</AppText>
+            <AppText variant="caption" tone="muted">Move the pin to your desired location</AppText>
           </View>
         </Pressable>
       </View>

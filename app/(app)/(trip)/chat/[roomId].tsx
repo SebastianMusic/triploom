@@ -92,7 +92,7 @@ export default function ChatRoomScreen() {
         label: null,
       });
     } catch (err) {
-      setSendError(err instanceof Error ? err.message : 'Kunne ikke sende posisjon');
+      setSendError(err instanceof Error ? err.message : 'Could not send location');
     }
   }
 

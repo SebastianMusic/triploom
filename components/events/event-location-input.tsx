@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import { LocationMapPicker } from '@/components/events/location-map-picker';
+import { buildShortLabel, type NominatimAddress } from '@/hooks/use-location';
 
 interface Props {
   value: string;
@@ -33,11 +34,11 @@ export function EventLocationInput({ value, onChangeText, error }: Props) {
         setIsFetching(true);
         try {
           const res = await fetch(
-            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(text)}&limit=5`,
+            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(text)}&limit=5&addressdetails=1`,
             { headers: { 'Accept-Language': 'en', 'User-Agent': 'Triploom/1.0' } }
           );
-          const data = await res.json() as { display_name: string }[];
-          setSuggestions(data.map((item) => item.display_name));
+          const data = await res.json() as { display_name: string; address?: NominatimAddress }[];
+          setSuggestions(data.map((item) => buildShortLabel(item.address, item.display_name)));
         } catch {
           // silently ignore network errors for suggestions
         } finally {

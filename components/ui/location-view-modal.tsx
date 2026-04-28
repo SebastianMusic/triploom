@@ -161,7 +161,7 @@ export function LocationViewModal({ visible, onClose, latitude, longitude, label
           <Pressable onPress={onClose} style={{ padding: spacing.xs / 2 }} accessibilityLabel="Lukk">
             <Ionicons name="close" size={24} color={colors.text} />
           </Pressable>
-          <AppText variant="subtitle">Posisjon</AppText>
+          <AppText variant="subtitle">Location</AppText>
           <View style={{ width: 32 }} />
         </View>
 

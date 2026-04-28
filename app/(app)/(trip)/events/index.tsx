@@ -5,18 +5,23 @@ import { ActivityIndicator, Pressable, RefreshControl, ScrollView, View } from '
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { EventCard } from '@/components/events/event-card';
+import { EventDetailModal } from '@/components/events/event-detail-modal';
 import { Container } from '@/components/ui/container';
 import { Stack } from '@/components/ui/stack';
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import { useEventsStore } from '@/store/events.store';
 import { useProfileStore } from '@/store/profile.store';
+import { useTripStore } from '@/store/trip.store';
+import { TripRole } from '@/types/trip.types';
+import type { EventWithCount } from '@/services/events.service';
 
 export default function EventsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { selectedTrip } = useProfileStore();
-  const { events, isLoading, fetchEvents } = useEventsStore();
+  const { events, isLoading, fetchEvents, deleteEvent } = useEventsStore();
+  const { currentParticipant, fetchParticipants } = useTripStore();
   const {
     theme: { colors, layout, sizes, spacing },
   } = useAppTheme();
@@ -25,13 +30,16 @@ export default function EventsScreen() {
   const addButtonRight = layout.headerPaddingHorizontal + sizes.iconButton.md + spacing.xs;
 
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const selectedEvent = selectedEventId ? (events.find((e) => e.id === selectedEventId) ?? null) : null;
 
   useFocusEffect(
     useCallback(() => {
       if (selectedTrip) {
         void fetchEvents(selectedTrip);
+        void fetchParticipants(selectedTrip);
       }
-    }, [fetchEvents, selectedTrip]),
+    }, [fetchEvents, fetchParticipants, selectedTrip]),
   );
 
   async function handleRefresh() {
@@ -73,7 +81,7 @@ export default function EventsScreen() {
                 <EventCard
                   key={event.id}
                   event={event}
-                  onPress={() => router.push({ pathname: '/(app)/(trip)/events/[id]', params: { id: event.id } })}
+                  onPress={() => setSelectedEventId(event.id)}
                 />
               ))
             )}
@@ -104,6 +112,31 @@ export default function EventsScreen() {
         })}>
         <Ionicons name="add" size={22} color={colors.text} />
       </Pressable>
+
+      <EventDetailModal
+        event={selectedEvent}
+        onClose={() => setSelectedEventId(null)}
+        onEdit={isCreatorOf(selectedEvent) ? () => {
+          const id = selectedEvent!.id;
+          setSelectedEventId(null);
+          router.push({ pathname: '/(app)/(trip)/events/[id]', params: { id, edit: '1' } });
+        } : undefined}
+        onDelete={canDeleteEvent(selectedEvent) ? () => {
+          const id = selectedEvent!.id;
+          setSelectedEventId(null);
+          void deleteEvent(id);
+        } : undefined}
+      />
     </View>
   );
+
+  function isCreatorOf(event: EventWithCount | null) {
+    return !!event && !!currentParticipant?.id && event.created_by_id === currentParticipant.id;
+  }
+
+  function canDeleteEvent(event: EventWithCount | null) {
+    if (!event || !currentParticipant) return false;
+    const isOrganizer = currentParticipant.role === TripRole.Organizer || currentParticipant.role === TripRole.CoOrganizer;
+    return isOrganizer && event.created_by_id !== currentParticipant.id;
+  }
 }

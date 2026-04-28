@@ -418,38 +418,29 @@ function TaskDetailStats({
         }
 
         if (field.type === TaskFieldType.Checkbox) {
+          const checked = responses.filter(r => r.is_checked);
           return (
-            <Stack key={field.id} space="xs">
-              <AppText variant="caption" tone="muted">{field.label}</AppText>
-              {field.options.map((opt) => {
-                const checked = responses.filter(r => r.option_id === opt.id && r.is_checked);
-                return (
-                  <Pressable
-                    key={opt.id}
-                    onPress={() => onSelectOption(opt.label, checked)}
-                    style={({ pressed }) => ({
-                      flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
-                      opacity: pressed ? 0.7 : 1,
-                    })}>
-                    <View style={{
-                      width: 22, height: 22, borderRadius: 6, borderWidth: 2,
-                      borderColor: checked.length > 0 ? colors.primary : colors.border,
-                      backgroundColor: checked.length > 0 ? colors.primary : 'transparent',
-                      alignItems: 'center', justifyContent: 'center',
-                    }}>
-                      {checked.length > 0
-                        ? <Ionicons name="checkmark" size={14} color={colors.textOnPrimary} />
-                        : null}
-                    </View>
-                    <AppText style={{ flex: 1 }}>{opt.label}</AppText>
-                    <Row gap="xs">
-                      <AppText variant="caption" tone="muted">{checked.length}</AppText>
-                      <Ionicons name="chevron-forward" size={12} color={colors.textMuted} />
-                    </Row>
-                  </Pressable>
-                );
-              })}
-            </Stack>
+            <Pressable
+              key={field.id}
+              onPress={() => onSelectOption(field.label, checked)}
+              style={({ pressed }) => ({
+                flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+                opacity: pressed ? 0.7 : 1,
+              })}>
+              <View style={{
+                width: 22, height: 22, borderRadius: 6, borderWidth: 2,
+                borderColor: checked.length > 0 ? colors.primary : colors.border,
+                backgroundColor: checked.length > 0 ? colors.primary : 'transparent',
+                alignItems: 'center', justifyContent: 'center',
+              }}>
+                {checked.length > 0 ? <Ionicons name="checkmark" size={14} color={colors.textOnPrimary} /> : null}
+              </View>
+              <AppText style={{ flex: 1 }}>{field.label}</AppText>
+              <Row gap="xs">
+                <AppText variant="caption" tone="muted">{checked.length}</AppText>
+                <Ionicons name="chevron-forward" size={12} color={colors.textMuted} />
+              </Row>
+            </Pressable>
           );
         }
 
@@ -516,28 +507,19 @@ function PersonDetailStats({
         const myResponses = allResponses.filter(r => r.participant_id === participantId);
 
         if (field.type === TaskFieldType.Checkbox) {
+          const checked = myResponses[0]?.is_checked ?? false;
           return (
-            <Stack key={field.id} space="xs">
-              <AppText variant="caption" tone="muted" style={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                {field.label}
-              </AppText>
-              {field.options.map((opt) => {
-                const checked = myResponses.some(r => r.option_id === opt.id && r.is_checked);
-                return (
-                  <Row key={opt.id} gap="sm" style={{
-                    backgroundColor: colors.surfaceMuted, borderRadius: radius.md,
-                    paddingHorizontal: spacing.sm, paddingVertical: spacing.xs,
-                  }}>
-                    <Ionicons
-                      name={checked ? 'checkbox' : 'square-outline'}
-                      size={18}
-                      color={checked ? colors.primary : colors.textMuted}
-                    />
-                    <AppText variant="caption">{opt.label}</AppText>
-                  </Row>
-                );
-              })}
-            </Stack>
+            <Row key={field.id} gap="sm" style={{
+              backgroundColor: colors.surfaceMuted, borderRadius: radius.md,
+              paddingHorizontal: spacing.sm, paddingVertical: spacing.xs,
+            }}>
+              <Ionicons
+                name={checked ? 'checkbox' : 'square-outline'}
+                size={18}
+                color={checked ? colors.primary : colors.textMuted}
+              />
+              <AppText variant="caption">{field.label}</AppText>
+            </Row>
           );
         }
 

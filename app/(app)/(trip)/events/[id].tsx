@@ -599,14 +599,14 @@ function EditEvent({ event, onBack, onDeleteSuccess }: { event: EventWithCount; 
 // ─── Main screen ─────────────────────────────────────────────────────────────
 
 export default function EventScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, edit } = useLocalSearchParams<{ id: string; edit?: string }>();
   const router = useRouter();
   const { currentParticipant } = useTripStore();
   const { events, deleteEvent } = useEventsStore();
 
   const [event, setEvent] = useState<EventWithCount | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(edit === '1');
   const { theme: { colors } } = useAppTheme();
 
   useEffect(() => {
@@ -645,7 +645,7 @@ export default function EventScreen() {
   const isOrganizer = currentParticipant?.role === TripRole.Organizer;
 
   if (isEditing && isCreator) {
-    return <EditEvent event={event} onBack={() => setIsEditing(false)} onDeleteSuccess={() => router.navigate('/(app)/(trip)/events')} />;
+    return <EditEvent event={event} onBack={() => edit === '1' ? router.navigate('/(app)/(trip)/events') : setIsEditing(false)} onDeleteSuccess={() => router.navigate('/(app)/(trip)/events')} />;
   }
 
   return (

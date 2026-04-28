@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Alert, Modal, Platform, Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
@@ -34,7 +34,7 @@ export default function TasksScreen() {
 		fetchMyFieldResponses, fetchAllFieldResponses,
 		createTask, updateTask, deleteTask,
 		createTaskField, deleteTaskField,
-		upsertAssignment, upsertFieldResponse, deleteMyFieldResponses, sendTaskReminder, exportTask,
+		upsertAssignment, upsertFieldResponse, sendTaskReminder, exportTask,
 	} = useTasksStore();
 	const { currentParticipant, participantsWithProfiles } = useTripStore();
 	const { selectedTrip } = useProfileStore();
@@ -94,27 +94,6 @@ export default function TasksScreen() {
 		finally { setRefreshing(false); }
 	}
 
-	function handleToggleComplete(task: Task) {
-		if (!currentParticipant) return;
-		const current = assignments[task.id];
-		void upsertAssignment(task.id, currentParticipant.id, { is_completed: !(current?.is_completed ?? false) });
-	}
-
-	function handleToggleCheckbox(fieldId: string, optionId: string, current: boolean) {
-		if (!currentParticipant) return;
-		void upsertFieldResponse(fieldId, currentParticipant.id, { option_id: optionId, is_checked: !current });
-	}
-
-	function handleSelectDropdown(fieldId: string, optionId: string) {
-		if (!currentParticipant) return;
-		// Remove previous selection then set new one
-		void upsertFieldResponse(fieldId, currentParticipant.id, { option_id: optionId, is_checked: null, value: null });
-	}
-
-	const handleChangeTextInput = useCallback((fieldId: string, value: string) => {
-		if (!currentParticipant) return;
-		void upsertFieldResponse(fieldId, currentParticipant.id, { option_id: null, value, is_checked: null });
-	}, [currentParticipant, upsertFieldResponse]);
 
 	function resetForm() {
 		setEditingTask(null);
@@ -349,14 +328,34 @@ export default function TasksScreen() {
 				task={detailTask}
 				fields={detailTask ? (fields[detailTask.id] ?? []) : []}
 				assignment={detailTask ? (assignments[detailTask.id] ?? null) : null}
-				allAssignments={isOrganizer && detailTask ? (allAssignments[detailTask.id] ?? []) : undefined}
 				myFieldResponses={myFieldResponses}
-				allFieldResponses={isOrganizer ? allFieldResponses : undefined}
 				onClose={() => setDetailTask(null)}
-				onToggleComplete={() => { if (detailTask) handleToggleComplete(detailTask); }}
-				onToggleCheckbox={handleToggleCheckbox}
-				onSelectDropdown={handleSelectDropdown}
-				onChangeTextInput={handleChangeTextInput}
+				onMarkComplete={async (pending) => {
+					if (!currentParticipant || !detailTask) return;
+					const taskFields = fields[detailTask.id] ?? [];
+					for (const field of taskFields) {
+						const fieldPending = pending[field.id];
+						if (fieldPending) {
+							for (const resp of fieldPending) {
+								await upsertFieldResponse(field.id, currentParticipant.id, resp);
+							}
+						} else {
+							// No pending entry — explicitly reset to clear any stale saved response
+							const empty =
+								field.type === TaskFieldType.Checkbox
+									? { option_id: null, is_checked: false, value: null }
+									: field.type === TaskFieldType.TextInput
+										? { option_id: null, is_checked: null, value: '' }
+										: null;
+							if (empty) await upsertFieldResponse(field.id, currentParticipant.id, empty);
+						}
+					}
+					await upsertAssignment(detailTask.id, currentParticipant.id, { is_completed: true });
+				}}
+				onUndoComplete={() => {
+					if (!currentParticipant || !detailTask) return;
+					void upsertAssignment(detailTask.id, currentParticipant.id, { is_completed: false });
+				}}
 				onEdit={isOrganizer && detailTask ? () => { setDetailTask(null); openEdit(detailTask); } : undefined}
 				onDelete={isOrganizer && detailTask ? () => { setDetailTask(null); handleDelete(detailTask); } : undefined}
 			/>

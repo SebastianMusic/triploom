@@ -16,7 +16,7 @@ export const TASK_FIELD_TYPE_LABELS: Record<TaskFieldType, string> = {
 export const TASK_FIELD_TYPE_OPTIONS = Object.values(TaskFieldType);
 
 export function fieldNeedsOptions(type: TaskFieldType): boolean {
-  return type === TaskFieldType.Checkbox || type === TaskFieldType.Dropdown;
+  return type === TaskFieldType.Dropdown;
 }
 
 export const createTaskSchema = z.object({

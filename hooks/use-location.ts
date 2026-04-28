@@ -1,14 +1,42 @@
 import * as Location from 'expo-location';
 import { Alert, Platform } from 'react-native';
 
+export type NominatimAddress = {
+  tourism?: string;
+  amenity?: string;
+  leisure?: string;
+  building?: string;
+  shop?: string;
+  house_number?: string;
+  road?: string;
+  pedestrian?: string;
+  city?: string;
+  town?: string;
+  village?: string;
+  municipality?: string;
+  county?: string;
+  state?: string;
+  country?: string;
+};
+
+export function buildShortLabel(address: NominatimAddress | undefined, fallback: string): string {
+  if (!address) return fallback;
+  const name = address.tourism ?? address.amenity ?? address.leisure ?? address.building ?? address.shop;
+  const streetName = address.road ?? address.pedestrian;
+  const street = streetName && address.house_number ? `${streetName} ${address.house_number}` : streetName;
+  const city = address.city ?? address.town ?? address.village ?? address.municipality ?? address.county;
+  const parts = [name, street, city, address.country].filter(Boolean);
+  return parts.length > 0 ? parts.join(', ') : fallback;
+}
+
 export async function reverseGeocode(lat: number, lng: number): Promise<string> {
   try {
     const response = await fetch(
       `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18`,
       { headers: { 'Accept-Language': 'en', 'User-Agent': 'Triploom/1.0' } }
     );
-    const data = await response.json() as { display_name?: string };
-    return data.display_name ?? `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+    const data = await response.json() as { display_name?: string; address?: NominatimAddress };
+    return buildShortLabel(data.address, data.display_name ?? `${lat.toFixed(5)}, ${lng.toFixed(5)}`);
   } catch {
     return `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
   }
@@ -59,8 +87,8 @@ async function ensurePermission(): Promise<boolean> {
   const { status } = await Location.requestForegroundPermissionsAsync();
   if (status !== 'granted') {
     Alert.alert(
-      'Tilgang nektet',
-      'Appen trenger tilgang til posisjonen din for å dele den. Aktiver dette i innstillingene.',
+      'Permission denied',
+      'The app needs access to your location to share it. Enable this in your settings.',
     );
     return false;
   }
@@ -71,8 +99,8 @@ export async function getCurrentLocation(): Promise<DeviceLocation | null> {
   const servicesEnabled = await Location.hasServicesEnabledAsync();
   if (!servicesEnabled) {
     Alert.alert(
-      'Posisjonstjenester er av',
-      'Slå på posisjonstjenester i innstillingene på telefonen for å dele posisjon.',
+      'Location services are off',
+      'Turn on location services in your phone settings to share your location.',
     );
     return null;
   }

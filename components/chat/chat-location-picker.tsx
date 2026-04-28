@@ -70,10 +70,10 @@ function IOSMapPicker({ onClose, onSelectLocation }: Omit<Props, 'visible'>) {
             borderBottomColor: colors.border,
           },
         ]}>
-        <Pressable onPress={onClose} style={{ padding: spacing.xs / 2 }} accessibilityLabel="Lukk kart">
+        <Pressable onPress={onClose} style={{ padding: spacing.xs / 2 }} accessibilityLabel="Close map">
           <Ionicons name="close" size={24} color={colors.text} />
         </Pressable>
-        <AppText variant="subtitle">Velg posisjon</AppText>
+        <AppText variant="subtitle">Pick location</AppText>
         <View style={{ width: 32 }} />
       </View>
 
@@ -120,7 +120,7 @@ function IOSMapPicker({ onClose, onSelectLocation }: Omit<Props, 'visible'>) {
             ? <ActivityIndicator color="#fff" size="small" />
             : <Ionicons name="checkmark" size={18} color="#fff" />}
           <AppText style={{ color: '#fff', fontWeight: '600' }}>
-            {isGeocoding ? 'Henter adresse…' : 'Bekreft posisjon'}
+            {isGeocoding ? 'Fetching address…' : 'Confirm location'}
           </AppText>
         </Pressable>
       </View>
@@ -173,10 +173,10 @@ function AndroidMapPicker({ onClose, onSelectLocation }: Omit<Props, 'visible'>)
             borderBottomColor: colors.border,
           },
         ]}>
-        <Pressable onPress={onClose} style={{ padding: spacing.xs / 2 }} accessibilityLabel="Lukk kart">
+        <Pressable onPress={onClose} style={{ padding: spacing.xs / 2 }} accessibilityLabel="Close map">
           <Ionicons name="close" size={24} color={colors.text} />
         </Pressable>
-        <AppText variant="subtitle">Velg posisjon</AppText>
+        <AppText variant="subtitle">Pick location</AppText>
         <View style={{ width: 32 }} />
       </View>
 
@@ -219,7 +219,7 @@ function AndroidMapPicker({ onClose, onSelectLocation }: Omit<Props, 'visible'>)
             ? <ActivityIndicator color="#fff" size="small" />
             : <Ionicons name="checkmark" size={18} color="#fff" />}
           <AppText style={{ color: '#fff', fontWeight: '600' }}>
-            {isGeocoding ? 'Henter adresse…' : 'Bekreft posisjon'}
+            {isGeocoding ? 'Fetching address…' : 'Confirm location'}
           </AppText>
         </Pressable>
       </View>
