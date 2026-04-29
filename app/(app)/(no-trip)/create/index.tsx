@@ -1,6 +1,6 @@
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -16,12 +16,14 @@ import { BackButton } from '@/components/ui/back-button';
 import { Button } from '@/components/ui/button';
 import { Container } from '@/components/ui/container';
 import { Input } from '@/components/ui/input';
+import { PaywallModal } from '@/components/ui/paywall-modal';
 import { Stack } from '@/components/ui/stack';
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import { useProfileStore } from '@/store/profile.store';
+import { useSubscriptionStore } from '@/store/subscription.store';
 import { useTripStore } from '@/store/trip.store';
-import { createTripSchema, TripEventPermission } from '@/types';
+import { createTripSchema, TripEventPermission, TripRole } from '@/types';
 import { uploadTripBanner } from '@/services/trip.service';
 
 type DateTarget = 'start' | 'end' | null;
@@ -37,8 +39,9 @@ function formatDate(date: Date | null): string {
 
 export default function CreateTripScreen() {
   const insets = useSafeAreaInsets();
-  const { createTrip, updateTrip, isLoading } = useTripStore();
+  const { createTrip, updateTrip, isLoading, trips } = useTripStore();
   const { setSelectedTrip } = useProfileStore();
+  const { isActive, fetchSubscription } = useSubscriptionStore();
   const {
     theme: { colors, opacity, radius, spacing, stroke, typography },
   } = useAppTheme();
@@ -51,6 +54,15 @@ export default function CreateTripScreen() {
   const [eventPermission, setEventPermission] = useState<TripEventPermission>(TripEventPermission.All);
   const [pickerTarget, setPickerTarget] = useState<DateTarget>(null);
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
+  const [showPaywall, setShowPaywall] = useState(false);
+
+  const isAlreadyOrganizer = trips.some((t) => t.userRole === TripRole.Organizer);
+
+  useEffect(() => {
+    if (isAlreadyOrganizer) {
+      void fetchSubscription();
+    }
+  }, [isAlreadyOrganizer]);
 
   function openDatePicker(target: DateTarget) {
     setPickerTarget(target);
@@ -76,6 +88,11 @@ export default function CreateTripScreen() {
   }
 
   async function handleSubmit() {
+    if (isAlreadyOrganizer && !isActive) {
+      setShowPaywall(true);
+      return;
+    }
+
     setErrors({});
 
     if (startDate && endDate && endDate < startDate) {
@@ -319,6 +336,15 @@ export default function CreateTripScreen() {
           onChange={handleDateChange}
         />
       ) : null}
+
+      <PaywallModal
+        visible={showPaywall}
+        onDismiss={() => setShowPaywall(false)}
+        onSubscribed={() => {
+          setShowPaywall(false);
+          void handleSubmit();
+        }}
+      />
     </KeyboardAvoidingView>
   );
 }

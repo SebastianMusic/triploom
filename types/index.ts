@@ -115,6 +115,10 @@ export type Profile = Tables<'profile'>;
 export type ProfileInsert = TablesInsert<'profile'>;
 export type ProfileUpdate = TablesUpdate<'profile'>;
 
+// Subscription
+export { SubscriptionStatus, isSubscriptionActive } from './subscription.types';
+export type { Subscription, SubscriptionInsert, SubscriptionUpdate } from './subscription.types';
+
 // Group membership
 export type GroupMembership = Tables<'group_membership'>;
 export type GroupMembershipInsert = TablesInsert<'group_membership'>;

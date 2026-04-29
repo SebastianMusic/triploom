@@ -4,19 +4,19 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, Easing, ImageBackground, Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { TripSummaryPreviewCard } from '@/components/trip/trip-summary-preview-card';
+import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Container } from '@/components/ui/container';
 import { FloatingActionButton } from '@/components/ui/floating-action-button';
-import { Stack } from '@/components/ui/stack';
-import { Avatar } from '@/components/ui/avatar';
 import { ProfileBadgeFrame } from '@/components/ui/profile-badge-frame';
-import { TripSummaryPreviewCard } from '@/components/trip/trip-summary-preview-card';
+import { Stack } from '@/components/ui/stack';
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import { getProfileBadge } from '@/constants/profile-badges';
+import { useTripBannerUrl } from '@/hooks/use-trip-banner-url';
 import { useProfileStore } from '@/store/profile.store';
 import { useTripStore } from '@/store/trip.store';
-import { useTripBannerUrl } from '@/hooks/use-trip-banner-url';
 import type { TripNextAction } from '@/types';
 import { TripRole, type TripWithRole } from '@/types/trip.types';
 
@@ -171,7 +171,7 @@ function TripSummaryCard({
   );
 }
 
-function CompactPastTripCard({ trip, disabled, selecting, onSelect, onOptions }: TripActionProps) {
+function CompactPastTripCard({ trip, disabled, selecting, onSelect }: TripActionProps) {
   const {
     theme: { colors, radius, spacing, typography },
   } = useAppTheme();

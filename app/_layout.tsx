@@ -68,6 +68,8 @@ function RootNavigator() {
 				<Stack.Protected guard={!session}>
 					<Stack.Screen name="(auth)" options={{ headerShown: false }} />
 				</Stack.Protected>
+				<Stack.Screen name="subscription-success" options={{ headerShown: false }} />
+				<Stack.Screen name="subscription-cancel" options={{ headerShown: false }} />
 			</Stack>
 			<StatusBar style={mode === 'dark' ? 'light' : 'dark'} backgroundColor={theme.colors.background} />
 		</>

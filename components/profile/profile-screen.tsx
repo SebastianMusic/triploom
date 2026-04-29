@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Animated,
   Easing,
   Modal,
@@ -26,8 +27,10 @@ import {
 import { themeColorPresets, type ThemeColorPreset } from '@/constants/theme';
 import { useAuthStore } from '@/store/auth.store';
 import { useProfileStore } from '@/store/profile.store';
+import { useSubscriptionStore } from '@/store/subscription.store';
 import { useTripChromeStore } from '@/store/trip-chrome.store';
 import { type ThemePreference, useThemeStore } from '@/store/theme.store';
+import { SubscriptionStatus } from '@/types';
 
 type ProfileActionRowProps = {
   icon: keyof typeof Ionicons.glyphMap;
@@ -83,6 +86,9 @@ export default function ProfileScreen({
   const { headerContentOffset, safeAreaInsets } = useTripChromeInsets();
   const passportPreview = usePassportPreviewMotion();
 
+  const { subscription, fetchSubscription, cancelSubscription } = useSubscriptionStore();
+  const [isCancelingSubscription, setIsCancelingSubscription] = useState(false);
+
   const [showEditScreen, setShowEditScreen] = useState(false);
   const [pendingLocalUri, setPendingLocalUri] = useState<string | null>(null);
   const [editableFullName, setEditableFullName] = useState('');
@@ -107,6 +113,12 @@ export default function ProfileScreen({
       fetchParticipatedTripCount().catch(() => undefined);
     }
   }, [fetchParticipatedTripCount, session?.user]);
+
+  useEffect(() => {
+    if (session?.user) {
+      fetchSubscription().catch(() => undefined);
+    }
+  }, [fetchSubscription, session?.user]);
 
   const resolvedFullName =
     profile?.user_name ??
@@ -214,6 +226,30 @@ export default function ProfileScreen({
     } finally {
       setIsSaving(false);
     }
+  }
+
+  function handleCancelSubscription() {
+    Alert.alert(
+      'Avslutt abonnement',
+      'Er du sikker på at du vil avslutte abonnementet? Du beholder tilgangen ut inneværende betalingsperiode.',
+      [
+        { text: 'Avbryt', style: 'cancel' },
+        {
+          text: 'Avslutt abonnement',
+          style: 'destructive',
+          onPress: () => {
+            setIsCancelingSubscription(true);
+            cancelSubscription()
+              .catch((err) => {
+                setSaveError(err instanceof Error ? err.message : 'Kunne ikke avslutte abonnementet.');
+              })
+              .finally(() => {
+                setIsCancelingSubscription(false);
+              });
+          },
+        },
+      ],
+    );
   }
 
   async function handleSignOut() {
@@ -712,6 +748,50 @@ export default function ProfileScreen({
               })}
             </View>
           </View>
+        </View>
+
+        <View
+          style={{
+            borderRadius: radius.lg,
+            backgroundColor: colors.surface,
+            borderWidth: 1,
+            borderColor: colors.border,
+            paddingHorizontal: spacing.md,
+            paddingVertical: spacing.xs,
+          }}>
+          <View style={{ paddingHorizontal: spacing.xs, paddingTop: spacing.xs, paddingBottom: spacing.sm }}>
+            <AppText style={typography.label}>Abonnement</AppText>
+          </View>
+          <View style={{ height: 1, backgroundColor: colors.border }} />
+          {subscription?.status === SubscriptionStatus.Active ? (
+            <>
+              <ProfileActionRow
+                icon="checkmark-circle-outline"
+                label="Triploom Premium"
+                value={subscription.current_period_end ? `Aktiv til ${new Date(subscription.current_period_end).toLocaleDateString('nb-NO')}` : 'Aktivt abonnement'}
+              />
+              <View style={{ height: 1, backgroundColor: colors.border }} />
+              <ProfileActionRow
+                icon="close-circle-outline"
+                label="Avslutt abonnement"
+                destructive
+                loading={isCancelingSubscription}
+                onPress={handleCancelSubscription}
+              />
+            </>
+          ) : subscription?.status === SubscriptionStatus.Canceling ? (
+            <ProfileActionRow
+              icon="time-outline"
+              label="Triploom Premium"
+              value={subscription.current_period_end ? `Avsluttes ${new Date(subscription.current_period_end).toLocaleDateString('nb-NO')}` : 'Abonnement avsluttes'}
+            />
+          ) : (
+            <ProfileActionRow
+              icon="lock-closed-outline"
+              label="Ingen aktiv abonnement"
+              value="Oppgrader for å opprette flere turer"
+            />
+          )}
         </View>
 
         <View
