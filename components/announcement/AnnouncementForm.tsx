@@ -1,14 +1,34 @@
 import { useState } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
+
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Stack } from '@/components/ui/stack';
+import { AppText } from '@/components/ui/text';
+import { useAppTheme } from '@/components/ui/theme-provider';
 import { useAnnouncementStore } from '@/store/announcement.store';
 import { useProfileStore } from '@/store/profile.store';
-import type { CreateAnnouncementDTO } from '@/types/announcement.types';
 
-export function AnnouncementForm() {
+type AnnouncementFormProps = {
+  announcementId?: string;
+  initialTitle?: string | null;
+  initialDescription?: string | null;
+  onPosted?: () => void;
+};
+
+export function AnnouncementForm({
+  announcementId,
+  initialTitle = '',
+  initialDescription = '',
+  onPosted,
+}: AnnouncementFormProps) {
   const { selectedTrip } = useProfileStore();
-  const { createAnnouncement } = useAnnouncementStore();
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
+  const { createAnnouncement, updateAnnouncement } = useAnnouncementStore();
+  const {
+    theme: { typography },
+  } = useAppTheme();
+  const [title, setTitle] = useState(initialTitle ?? '');
+  const [description, setDescription] = useState(initialDescription ?? '');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,9 +47,19 @@ export function AnnouncementForm() {
     setError(null);
 
     try {
-      await createAnnouncement(selectedTrip, { title: title.trim(), description: description.trim() || null });
-      setTitle('');
-      setDescription('');
+      const dto = {
+        title: title.trim(),
+        description: description.trim() || null,
+      };
+
+      if (announcementId) {
+        await updateAnnouncement(selectedTrip, announcementId, dto);
+      } else {
+        await createAnnouncement(selectedTrip, dto);
+        setTitle('');
+        setDescription('');
+      }
+      onPosted?.();
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -38,82 +68,41 @@ export function AnnouncementForm() {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.heading}>New Announcement</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Title"
-        value={title}
-        onChangeText={setTitle}
-        maxLength={100}
-      />
-      <TextInput
-        style={[styles.input, styles.textArea]}
-        placeholder="Description (optional)"
-        value={description}
-        onChangeText={setDescription}
-        multiline
-        numberOfLines={3}
-      />
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      <Pressable
-        style={[styles.button, isSubmitting && styles.buttonDisabled]}
-        onPress={handleSubmit}
-        disabled={isSubmitting}
-      >
-        {isSubmitting
-          ? <ActivityIndicator color="#fff" />
-          : <Text style={styles.buttonText}>Post</Text>}
-      </Pressable>
-    </View>
+    <Card variant="elevated">
+      <Stack space="sm">
+        <AppText style={typography.label}>
+          {announcementId ? 'Edit announcement' : 'New announcement'}
+        </AppText>
+        <Input
+          label="Title"
+          placeholder="What should everyone know?"
+          value={title}
+          onChangeText={(value) => {
+            setTitle(value);
+            setError(null);
+          }}
+          maxLength={100}
+        />
+        <Input
+          label="Message"
+          placeholder="Optional details"
+          value={description}
+          onChangeText={setDescription}
+          multiline
+          numberOfLines={4}
+        />
+        {error ? (
+          <AppText variant="caption" tone="error">
+            {error}
+          </AppText>
+        ) : null}
+        <Button
+          label={isSubmitting ? 'Saving...' : announcementId ? 'Save announcement' : 'Post announcement'}
+          loading={isSubmitting}
+          onPress={handleSubmit}
+          fullWidth
+        />
+      </Stack>
+    </Card>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 14,
-    gap: 10,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-  heading: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    fontSize: 14,
-    backgroundColor: '#fafafa',
-  },
-  textArea: {
-    minHeight: 72,
-    textAlignVertical: 'top',
-  },
-  error: {
-    fontSize: 13,
-    color: '#c0392b',
-  },
-  button: {
-    backgroundColor: '#0a7ea4',
-    borderRadius: 8,
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-});

@@ -20,17 +20,17 @@ export function TaskCard({
   onPress: () => void;
   onExportPress?: () => void;
 }) {
-  const { theme: { colors, sizes, spacing, stroke } } = useAppTheme();
+  const { theme: { colors, sizes, spacing } } = useAppTheme();
   const isMandatory = task.is_mandatory ?? false;
   const isCompleted = assignment?.is_completed ?? false;
 
   return (
     <Card
+      variant="interactive"
       onPress={onPress}
       style={{
         paddingVertical: spacing.sm,
-        borderWidth: stroke.thin,
-        borderColor: isMandatory && !isCompleted ? colors.warning : colors.border,
+        backgroundColor: isMandatory && !isCompleted ? colors.warningSoft : colors.surface,
       }}>
       <Row align="center" gap="sm">
         <View style={{

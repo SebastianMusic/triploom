@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, type PressableProps, type ViewStyle } fro
 
 import { useAppTheme } from '@/components/ui/theme-provider';
 
-type IconButtonVariant = 'surface' | 'ghost';
+type IconButtonVariant = 'surface' | 'ghost' | 'accent';
 type IconButtonSize = 'md' | 'lg';
 
 export type IconButtonProps = Omit<PressableProps, 'style'> & {
@@ -31,7 +31,12 @@ export function IconButton({
   const dimension = size === 'lg' ? sizes.iconButton.lg : sizes.iconButton.md;
 
   const variantStyle =
-    variant === 'ghost'
+    variant === 'accent'
+      ? {
+          backgroundColor: colors.accent,
+          shadow: shadows.md,
+        }
+      : variant === 'ghost'
       ? {
           backgroundColor: colors.transparent,
           shadow: shadows.none,

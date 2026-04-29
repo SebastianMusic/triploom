@@ -68,3 +68,18 @@ export async function updateAnnouncement(
   if (error) throw error;
   return data;
 }
+
+export async function deleteAnnouncement(
+  tripId: string,
+  announcementId: string,
+): Promise<void> {
+  const participant = await getParticipant(tripId);
+  assertCanManageAnnouncements(participant.role);
+
+  const { error } = await supabase
+    .from('announcement')
+    .delete()
+    .eq('id', announcementId)
+    .eq('trip_id', tripId);
+  if (error) throw error;
+}
