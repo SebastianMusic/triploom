@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
-import { updateProfile } from '@/services/profile.service';
+import { savePushToken } from '@/services/profile.service';
 
 export function usePushNotifications(userId: string | undefined) {
   useEffect(() => {
@@ -49,5 +49,5 @@ async function registerAndSaveToken(userId: string) {
 
   const { data: token } = await Notifications.getExpoPushTokenAsync({ projectId });
 
-  await updateProfile(userId, { expo_push_token: token });
+  await savePushToken(userId, token);
 }
