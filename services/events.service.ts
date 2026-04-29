@@ -88,6 +88,14 @@ export async function createEvent(data: EventInsert): Promise<Event> {
     .single();
 
   if (error) throw error;
+
+  if (data.is_optional === false && data.trip_id) {
+    const { data: { user } } = await supabase.auth.getUser();
+    void supabase.functions.invoke('send-notification', {
+      body: { title: 'New mandatory event', body: event.title ?? '', trip_id: data.trip_id, exclude_user_id: user?.id ?? null },
+    });
+  }
+
   return event;
 }
 

@@ -53,6 +53,14 @@ export async function createTask(tripId: string, dto: CreateTaskDTO): Promise<Ta
     .select()
     .single();
   if (error) throw error;
+
+  if (dto.is_mandatory) {
+    const { data: { user } } = await supabase.auth.getUser();
+    void supabase.functions.invoke('send-notification', {
+      body: { title: 'New mandatory task', body: data.title ?? '', trip_id: tripId, exclude_user_id: user?.id ?? null },
+    });
+  }
+
   return data;
 }
 
@@ -222,8 +230,12 @@ export async function deleteMyFieldResponses(participantId: string, fieldIds: st
 export async function sendTaskReminder(taskTitle: string, userIds: string[]): Promise<void> {
   if (!userIds.length) return;
 
+  const { data: { user } } = await supabase.auth.getUser();
+  const recipients = user?.id ? userIds.filter((id) => id !== user.id) : userIds;
+  if (!recipients.length) return;
+
   const { error } = await supabase.functions.invoke('send-notification', {
-    body: { title: 'Task reminder', body: taskTitle, user_ids: userIds },
+    body: { title: 'Task reminder', body: taskTitle, user_ids: recipients },
   });
   if (error) throw error;
 }
