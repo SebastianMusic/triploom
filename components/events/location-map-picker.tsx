@@ -7,7 +7,7 @@ import WebView, { type WebViewMessageEvent } from 'react-native-webview';
 
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
-import { ANDROID_MAP_HTML, getLastKnownLocation, requestLocationForMap, reverseGeocode } from '@/hooks/use-location';
+import { buildAndroidMapHtml, getLastKnownLocation, requestLocationForMap, reverseGeocode } from '@/hooks/use-location';
 
 type Props = {
   visible: boolean;
@@ -19,7 +19,8 @@ const OSLO = { latitude: 59.9139, longitude: 10.7522 };
 
 function IOSPicker({ onClose, onSelectLocation }: Omit<Props, 'visible'>) {
   const insets = useSafeAreaInsets();
-  const { theme: { colors, spacing, radius } } = useAppTheme();
+  const { theme: { colors, spacing, radius }, mode } = useAppTheme();
+  const isDark = mode === 'dark';
   const mapRef = useRef<MapView>(null);
   const [isGeocoding, setIsGeocoding] = useState(false);
   const regionRef = useRef<Region>({
@@ -76,6 +77,7 @@ function IOSPicker({ onClose, onSelectLocation }: Omit<Props, 'visible'>) {
         <MapView
           ref={mapRef}
           style={{ flex: 1 }}
+          userInterfaceStyle={isDark ? 'dark' : 'light'}
           initialRegion={regionRef.current}
           onRegionChangeComplete={(r) => { regionRef.current = r; }}
           pitchEnabled={false}
@@ -125,7 +127,8 @@ function IOSPicker({ onClose, onSelectLocation }: Omit<Props, 'visible'>) {
 
 function AndroidPicker({ onClose, onSelectLocation }: Omit<Props, 'visible'>) {
   const insets = useSafeAreaInsets();
-  const { theme: { colors, spacing, radius } } = useAppTheme();
+  const { theme: { colors, spacing, radius }, mode } = useAppTheme();
+  const isDark = mode === 'dark';
   const webViewRef = useRef<WebView>(null);
   const [isGeocoding, setIsGeocoding] = useState(false);
 
@@ -178,7 +181,7 @@ function AndroidPicker({ onClose, onSelectLocation }: Omit<Props, 'visible'>) {
 
       <WebView
         ref={webViewRef}
-        source={{ html: ANDROID_MAP_HTML }}
+        source={{ html: buildAndroidMapHtml(isDark) }}
         style={{ flex: 1 }}
         originWhitelist={['*']}
         javaScriptEnabled

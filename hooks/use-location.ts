@@ -42,14 +42,22 @@ export async function reverseGeocode(lat: number, lng: number): Promise<string> 
   }
 }
 
-export const ANDROID_MAP_HTML = `<!DOCTYPE html>
+export function buildAndroidMapHtml(isDark: boolean): string {
+  const bg = isDark ? '#1a1a2e' : '#e5e0d8';
+  const tileUrl = isDark
+    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+    : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+  const attribution = isDark
+    ? '&copy; OpenStreetMap &copy; CARTO'
+    : '&copy; OpenStreetMap';
+  return `<!DOCTYPE html>
 <html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; background: #e5e0d8; }
+    html, body { width: 100%; height: 100%; background: ${bg}; }
     #map { width: 100%; height: 100%; }
     #crosshair {
       position: fixed; top: 50%; left: 50%;
@@ -66,8 +74,8 @@ export const ANDROID_MAP_HTML = `<!DOCTYPE html>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
     var map = L.map('map', { zoomControl: true }).setView([59.9139, 10.7522], 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19, attribution: '&copy; OpenStreetMap'
+    L.tileLayer('${tileUrl}', {
+      maxZoom: 19, attribution: '${attribution}'
     }).addTo(map);
     window.setCenter = function(lat, lng) { map.setView([lat, lng], 15); };
     window.getMapCenter = function() {
@@ -77,6 +85,7 @@ export const ANDROID_MAP_HTML = `<!DOCTYPE html>
   </script>
 </body>
 </html>`;
+}
 
 export type DeviceLocation = {
   latitude: number;
