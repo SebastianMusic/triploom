@@ -32,10 +32,24 @@ export async function getPushTokensForUsers(userIds: string[]): Promise<string[]
 
 /** Returns all expo push tokens for participants of a given trip. */
 export async function getPushTokensForTrip(tripId: string): Promise<string[]> {
-	const { data, error } = await supabase
+	return getPushTokensForTripExcluding(tripId, null);
+}
+
+/** Returns expo push tokens for all trip participants except the given user. */
+export async function getPushTokensForTripExcluding(
+	tripId: string,
+	excludeUserId: string | null,
+): Promise<string[]> {
+	let query = supabase
 		.from("trip_participant")
-		.select("profile:user_id(expo_push_token)")
+		.select("profile:user_id(expo_push_token, id)")
 		.eq("trip_id", tripId);
+
+	if (excludeUserId) {
+		query = query.neq("user_id", excludeUserId);
+	}
+
+	const { data, error } = await query;
 
 	if (error) {
 		throw new Error(`Failed to fetch trip participants: ${error.message}`);

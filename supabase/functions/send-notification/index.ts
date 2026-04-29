@@ -1,8 +1,8 @@
 import "@supabase/functions-js/edge-runtime.d.ts";
-import { getPushTokensForTrip, getPushTokensForUsers, sendNotification } from "../_shared/notifications.ts";
+import { getPushTokensForTripExcluding, getPushTokensForUsers, sendNotification } from "../_shared/notifications.ts";
 
 Deno.serve(async (req) => {
-  const { title, body, tokens, trip_id, user_ids } = await req.json();
+  const { title, body, tokens, trip_id, user_ids, exclude_user_id } = await req.json();
 
   if (!title || !body) {
     return new Response(
@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
   try {
     let resolvedTokens: string[];
     if (tokens) resolvedTokens = tokens;
-    else if (trip_id) resolvedTokens = await getPushTokensForTrip(trip_id);
+    else if (trip_id) resolvedTokens = await getPushTokensForTripExcluding(trip_id, exclude_user_id ?? null);
     else resolvedTokens = await getPushTokensForUsers(user_ids);
     const res = await sendNotification(resolvedTokens, title, body);
     return new Response(JSON.stringify(res), {
