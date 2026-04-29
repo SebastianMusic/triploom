@@ -6,6 +6,7 @@ import {
   getParticipatedTripCountForCurrentEmail,
   getProfile,
   getProfileImageUrl,
+  savePushToken,
   updateProfile,
   updateSelectedTrip,
   uploadProfileImage,
@@ -178,6 +179,26 @@ describe('uploadProfileImage', () => {
 
     const secondId = await uploadProfileImage('file:///tmp/photo2.jpg');
     expect(secondId).not.toBe(firstId);
+  });
+});
+
+// ── savePushToken ─────────────────────────────────────────────────────────────
+
+describe('savePushToken', () => {
+  it('writes the expo push token to the profile row', async () => {
+    const token = 'ExponentPushToken[test-token-12345]';
+    await savePushToken(user.id, token);
+
+    const profile = await getProfile(user.id);
+    expect(profile?.expo_push_token).toBe(token);
+  });
+
+  it('overwrites an existing token with a new one', async () => {
+    await savePushToken(user.id, 'ExponentPushToken[first-token]');
+    await savePushToken(user.id, 'ExponentPushToken[second-token]');
+
+    const profile = await getProfile(user.id);
+    expect(profile?.expo_push_token).toBe('ExponentPushToken[second-token]');
   });
 });
 

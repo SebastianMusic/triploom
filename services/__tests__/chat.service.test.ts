@@ -40,4 +40,40 @@ describe('sendMessageSchema', () => {
     });
     expect(result.success).toBe(false);
   });
+
+  it('accepts image-only message with no content', () => {
+    const result = sendMessageSchema.safeParse({
+      group_chat_id: VALID_UUID,
+      imageStoragePaths: ['roomid/imageid'],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts message with both content and images', () => {
+    const result = sendMessageSchema.safeParse({
+      content: 'Check this out',
+      group_chat_id: VALID_UUID,
+      imageStoragePaths: ['roomid/imageid'],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects more than 10 images', () => {
+    const result = sendMessageSchema.safeParse({
+      group_chat_id: VALID_UUID,
+      imageStoragePaths: Array.from({ length: 11 }, (_, i) => `roomid/image${i}`),
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects empty imageStoragePaths with no content', () => {
+    const result = sendMessageSchema.safeParse({
+      group_chat_id: VALID_UUID,
+      imageStoragePaths: [],
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0].message).toBe('Message must have text or at least one image');
+    }
+  });
 });
