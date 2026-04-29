@@ -21,7 +21,7 @@ export function Card({ variant = 'default', disabled, style, children, ...props 
   };
 
   const shadowStyle =
-    variant === 'elevated' ? shadows.md : variant === 'interactive' ? shadows.sm : shadows.none;
+    variant === 'elevated' ? shadows.md : variant === 'interactive' ? shadows.sm : shadows.sm;
 
   const interactiveStyle = variant === 'interactive';
 

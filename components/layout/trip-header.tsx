@@ -1,4 +1,6 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useState } from 'react';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -11,6 +13,8 @@ import { useAppTheme } from '@/components/ui/theme-provider';
 import { getTripScreenTitle, isPrimaryTripTab } from '@/components/layout/trip-navigation';
 import { getProfileBadge } from '@/constants/profile-badges';
 import { useProfileStore } from '@/store/profile.store';
+import { useTripStore } from '@/store/trip.store';
+import { TripRole } from '@/types';
 
 type TripHeaderProps = {
   routeName: string;
@@ -19,19 +23,40 @@ type TripHeaderProps = {
 export function TripHeader({ routeName }: TripHeaderProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { displayAvatarUrl, profile, participatedTripCount } = useProfileStore();
+  const { displayAvatarUrl, profile, participatedTripCount, setSelectedTrip } = useProfileStore();
+  const currentParticipant = useTripStore((state) => state.currentParticipant);
   const {
     theme: { colors, layout, spacing, typography },
   } = useAppTheme();
   const isProfileRoute = routeName === 'account/index';
+  const isHomeRoute = routeName === 'home/index';
   const isPrimaryRoute = isPrimaryTripTab(routeName);
+  const [isSwitchingTrip, setIsSwitchingTrip] = useState(false);
   const badgeLevel = getProfileBadge(participatedTripCount ?? 0).level;
   const title = getTripScreenTitle(routeName);
   const actionVariant = isPrimaryRoute ? 'ghost' : 'surface';
+  const canCreateAnnouncement =
+    routeName === 'home/index' &&
+    (currentParticipant?.role === TripRole.Organizer ||
+      currentParticipant?.role === TripRole.CoOrganizer);
 
   function handleOpenProfile() {
     if (isProfileRoute) return;
     router.push('/(app)/(trip)/account');
+  }
+
+  function handleCreateAnnouncement() {
+    router.push({ pathname: '/(app)/(trip)/home', params: { compose: 'announcement' } });
+  }
+
+  async function handleSwitchTrip() {
+    setIsSwitchingTrip(true);
+    try {
+      await setSelectedTrip(null);
+      router.replace('/(app)/(no-trip)');
+    } finally {
+      setIsSwitchingTrip(false);
+    }
   }
 
   return (
@@ -54,7 +79,16 @@ export function TripHeader({ routeName }: TripHeaderProps) {
           justifyContent: isPrimaryRoute ? 'space-between' : 'space-between',
           gap: spacing.sm,
         }}>
-        {isPrimaryRoute ? (
+        {isHomeRoute ? (
+          <IconButton
+            accessibilityLabel="Switch trip"
+            variant="accent"
+            size="md"
+            loading={isSwitchingTrip}
+            icon={<Ionicons name="chevron-back" size={24} color={colors.text} />}
+            onPress={handleSwitchTrip}
+          />
+        ) : isPrimaryRoute ? (
           <View style={{ flex: 1, paddingRight: spacing.sm }}>
             <AppText
               numberOfLines={1}
@@ -71,22 +105,33 @@ export function TripHeader({ routeName }: TripHeaderProps) {
         {isProfileRoute && !isPrimaryRoute ? (
           <View style={{ width: 44, height: 44 }} />
         ) : (
-          <IconButton
-            accessibilityLabel="Open profile"
-            active={isProfileRoute}
-            variant={actionVariant}
-            size="md"
-            icon={
-              <ProfileBadgeFrame level={badgeLevel} size={36}>
-                <Avatar
-                  name={profile?.user_name ?? 'Profile'}
-                  size="sm"
-                  source={displayAvatarUrl ? { uri: displayAvatarUrl } : undefined}
-                />
-              </ProfileBadgeFrame>
-            }
-            onPress={handleOpenProfile}
-          />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+            {canCreateAnnouncement ? (
+              <IconButton
+                accessibilityLabel="Create announcement"
+                variant="accent"
+                size="md"
+                icon={<Ionicons name="add" size={24} color={colors.text} />}
+                onPress={handleCreateAnnouncement}
+              />
+            ) : null}
+            <IconButton
+              accessibilityLabel="Open profile"
+              active={isProfileRoute}
+              variant={actionVariant}
+              size="md"
+              icon={
+                <ProfileBadgeFrame level={badgeLevel} size={36}>
+                  <Avatar
+                    name={profile?.user_name ?? 'Profile'}
+                    size="sm"
+                    source={displayAvatarUrl ? { uri: displayAvatarUrl } : undefined}
+                  />
+                </ProfileBadgeFrame>
+              }
+              onPress={handleOpenProfile}
+            />
+          </View>
         )}
       </View>
     </View>
