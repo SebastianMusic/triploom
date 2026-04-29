@@ -519,7 +519,7 @@ describe('getAllChatRooms global subscription', () => {
     (chatService.getAllChatRooms as jest.Mock).mockResolvedValue([unreadRoom]);
 
     let capturedCallback: ((groupChatId: string) => void) | null = null;
-    (chatService.subscribeToAllRoomMessages as jest.Mock).mockImplementation((cb) => {
+    (chatService.subscribeToAllRoomMessages as jest.Mock).mockImplementation((_roomIds, cb) => {
       capturedCallback = cb;
       return jest.fn();
     });
@@ -542,7 +542,7 @@ describe('getAllChatRooms global subscription', () => {
     useChatStore.setState({ activeChatRoomId: 'room-1' });
 
     let capturedCallback: ((groupChatId: string) => void) | null = null;
-    (chatService.subscribeToAllRoomMessages as jest.Mock).mockImplementation((cb) => {
+    (chatService.subscribeToAllRoomMessages as jest.Mock).mockImplementation((_roomIds, cb) => {
       capturedCallback = cb;
       return jest.fn();
     });
