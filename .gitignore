@@ -51,4 +51,3 @@ firebase-secret.json
 
 .idea/*
 
-hosting/**/*.env*

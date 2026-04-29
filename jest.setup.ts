@@ -22,6 +22,26 @@ function loadEnvFile(filePath: string): void {
 		// file not present — skip silently
 	}
 }
-// Load .env first, then .env.local (which takes precedence for local overrides)
-loadEnvFile(path.join(__dirname, '.env'));
-loadEnvFile(path.join(__dirname, '.env.local'));
+if (process.env.TEST_TARGET === 'selfhosted') {
+  // Read credentials directly from the self-hosted .env so they never go stale
+  const raw: Record<string, string> = {};
+  loadEnvFile(path.join(__dirname, 'hosting/supabase/.env'));
+  // Re-read into a local map so we can rename keys to what the app expects
+  try {
+    const envFile = fs.readFileSync(path.join(__dirname, 'hosting/supabase/.env'), 'utf8');
+    for (const line of envFile.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const idx = trimmed.indexOf('=');
+      if (idx === -1) continue;
+      raw[trimmed.slice(0, idx).trim()] = trimmed.slice(idx + 1).trim().replace(/^(['"])(.*)\1$/, '$2');
+    }
+  } catch { /* ignore */ }
+  process.env.EXPO_PUBLIC_SUPABASE_URL    = raw.SUPABASE_PUBLIC_URL;
+  process.env.EXPO_PUBLIC_SUPABASE_KEY    = raw.SUPABASE_PUBLISHABLE_KEY;
+  process.env.SUPABASE_SERVICE_ROLE_KEY   = raw.SERVICE_ROLE_KEY;
+  process.env.SUPABASE_SECRET_KEY         = raw.SUPABASE_SECRET_KEY;
+} else {
+  loadEnvFile(path.join(__dirname, '.env'));
+  loadEnvFile(path.join(__dirname, '.env.local'));
+}
