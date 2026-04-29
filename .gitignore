@@ -50,3 +50,5 @@ supabase/.temp/
 firebase-secret.json
 
 .idea/*
+
+hosting/**/*.env*
