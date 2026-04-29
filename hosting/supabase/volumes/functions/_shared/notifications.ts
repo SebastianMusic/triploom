@@ -1,0 +1,98 @@
+import { createClient } from "jsr:@supabase/supabase-js@2";
+
+const supabase = createClient(
+	Deno.env.get("SUPABASE_URL")!,
+	Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+);
+
+const EXPO_CHUNK_SIZE = 100;
+
+function chunkArray<T>(arr: T[], size: number): T[][] {
+	const chunks: T[][] = [];
+	for (let i = 0; i < arr.length; i += size) {
+		chunks.push(arr.slice(i, i + size));
+	}
+	return chunks;
+}
+
+/** Returns expo push tokens for a list of user IDs. */
+export async function getPushTokensForUsers(userIds: string[]): Promise<string[]> {
+	if (!userIds.length) return [];
+	const { data, error } = await supabase
+		.from("profile")
+		.select("expo_push_token")
+		.in("id", userIds);
+
+	if (error) throw new Error(`Failed to fetch user profiles: ${error.message}`);
+
+	return (data as any[])
+		.map((row) => row.expo_push_token)
+		.filter((token): token is string => typeof token === "string");
+}
+
+/** Returns all expo push tokens for participants of a given trip. */
+export async function getPushTokensForTrip(tripId: string): Promise<string[]> {
+	return getPushTokensForTripExcluding(tripId, null);
+}
+
+/** Returns expo push tokens for all trip participants except the given user. */
+export async function getPushTokensForTripExcluding(
+	tripId: string,
+	excludeUserId: string | null,
+): Promise<string[]> {
+	let query = supabase
+		.from("trip_participant")
+		.select("profile:user_id(expo_push_token, id)")
+		.eq("trip_id", tripId);
+
+	if (excludeUserId) {
+		query = query.neq("user_id", excludeUserId);
+	}
+
+	const { data, error } = await query;
+
+	if (error) {
+		throw new Error(`Failed to fetch trip participants: ${error.message}`);
+	}
+
+	return (data as any[])
+		.map((row) => row.profile?.expo_push_token)
+		.filter((token): token is string => typeof token === "string");
+}
+
+/** Sends a push notification to the given list of expo push tokens. */
+export async function sendNotification(
+	tokens: string[],
+	title: string,
+	body: string,
+) {
+	if (tokens.length === 0) {
+		console.log("No tokens to send to, skipping.");
+		return [];
+	}
+
+	console.log(`Sending to ${tokens.length} device(s)`);
+
+	const messages = tokens.map((token) => ({
+		to: token,
+		sound: "default",
+		title,
+		body,
+	}));
+
+	const chunks = chunkArray(messages, EXPO_CHUNK_SIZE);
+	console.log(`Sending in ${chunks.length} chunk(s) of up to ${EXPO_CHUNK_SIZE}`);
+
+	const results = await Promise.all(
+		chunks.map((chunk) =>
+			fetch("https://exp.host/--/api/v2/push/send", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(chunk),
+			}).then((res) => res.json())
+		),
+	);
+
+	console.log(`Expo response: ${JSON.stringify(results, null, 2)}`);
+	return results.flat();
+}
