@@ -175,6 +175,11 @@ export default function CreateEventScreen() {
       return;
     }
 
+    if (endDate <= new Date()) {
+      setErrors({ end_time: 'End time must be in the future' });
+      return;
+    }
+
     if (!selectedTrip) {
       Alert.alert('Error', 'No active trip found.');
       return;
