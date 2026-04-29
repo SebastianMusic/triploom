@@ -20,7 +20,12 @@ type Props = {
 
 type Coords = { lat: number; lng: number };
 
-function buildMapHtml(lat: number, lng: number): string {
+function buildMapHtml(lat: number, lng: number, isDark: boolean): string {
+  const bg = isDark ? '#1a1a2e' : '#e5e0d8';
+  const tileUrl = isDark
+    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+    : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+  const attribution = isDark ? '&copy; OpenStreetMap &copy; CARTO' : '&copy; OpenStreetMap';
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -28,7 +33,7 @@ function buildMapHtml(lat: number, lng: number): string {
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; }
+    html, body { width: 100%; height: 100%; background: ${bg}; }
     #map { width: 100%; height: 100%; }
   </style>
 </head>
@@ -36,11 +41,9 @@ function buildMapHtml(lat: number, lng: number): string {
   <div id="map"></div>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    var map = L.map('map', { zoomControl: true })
-               .setView([${lat}, ${lng}], 15);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap'
+    var map = L.map('map', { zoomControl: true }).setView([${lat}, ${lng}], 15);
+    L.tileLayer('${tileUrl}', {
+      maxZoom: 19, attribution: '${attribution}'
     }).addTo(map);
     L.marker([${lat}, ${lng}]).addTo(map);
   </script>
@@ -83,7 +86,8 @@ async function geocodeAddress(addr: string): Promise<Coords | null> {
 
 export function LocationViewModal({ visible, onClose, latitude, longitude, label, address }: Props) {
   const insets = useSafeAreaInsets();
-  const { theme: { colors, spacing, radius } } = useAppTheme();
+  const { theme: { colors, spacing, radius }, mode } = useAppTheme();
+  const isDark = mode === 'dark';
 
   const hasCoords = latitude !== undefined && longitude !== undefined;
   const [resolvedCoords, setResolvedCoords] = useState<Coords | null>(
@@ -126,6 +130,7 @@ export function LocationViewModal({ visible, onClose, latitude, longitude, label
       return (
         <MapView
           style={{ flex: 1 }}
+          userInterfaceStyle={isDark ? 'dark' : 'light'}
           initialRegion={{
             latitude: resolvedCoords.lat,
             longitude: resolvedCoords.lng,
@@ -141,7 +146,7 @@ export function LocationViewModal({ visible, onClose, latitude, longitude, label
 
     return (
       <WebView
-        source={{ html: buildMapHtml(resolvedCoords.lat, resolvedCoords.lng) }}
+        source={{ html: buildMapHtml(resolvedCoords.lat, resolvedCoords.lng, isDark) }}
         style={{ flex: 1 }}
         originWhitelist={['*']}
         javaScriptEnabled
