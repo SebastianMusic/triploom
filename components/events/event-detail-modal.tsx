@@ -9,7 +9,6 @@ import { PageSheetModal } from '@/components/ui/page-sheet-modal';
 import { Row } from '@/components/ui/row';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import { ParticipantsList } from '@/components/trip/participants-list';
-import { getEventBannerUrl } from '@/services/events.service';
 import type { EventWithCount } from '@/services/events.service';
 import { useEventsStore } from '@/store/events.store';
 import { useTripStore } from '@/store/trip.store';
@@ -37,7 +36,7 @@ export function EventDetailModal({
 }) {
   const { theme: { colors, spacing, radius, stroke, sizes } } = useAppTheme();
   const { currentParticipant, participantsWithProfiles } = useTripStore();
-  const { registerForEvent, unregisterFromEvent } = useEventsStore();
+  const { registerForEvent, unregisterFromEvent, getEventBannerUrl } = useEventsStore();
 
   const [view, setView] = useState<EventView>('main');
   const [bannerUrl, setBannerUrl] = useState<string | null>(null);

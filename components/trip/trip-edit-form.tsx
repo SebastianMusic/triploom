@@ -21,7 +21,6 @@ import { useAppTheme } from '@/components/ui/theme-provider';
 import { TripSummaryPreviewCard } from '@/components/trip/trip-summary-preview-card';
 import { useTripStore } from '@/store/trip.store';
 import { TripEventPermission, TripRole } from '@/types';
-import { getTripBannerUrl, uploadTripBanner } from '@/services/trip.service';
 
 type Props = {
   onClose?: () => void;
@@ -86,6 +85,8 @@ export function TripEditForm({ onClose }: Props) {
   const currentParticipant = useTripStore((s) => s.currentParticipant);
   const tripNextActions = useTripStore((s) => s.tripNextActions);
   const updateTrip = useTripStore((s) => s.updateTrip);
+  const getTripBannerUrl = useTripStore((s) => s.getTripBannerUrl);
+  const uploadTripBanner = useTripStore((s) => s.uploadTripBanner);
 
   const canEdit =
     currentParticipant?.role === TripRole.Organizer ||
