@@ -8,14 +8,20 @@ import * as Linking from 'expo-linking';
 import { ThemeProvider, useAppTheme } from '@/components/ui/theme-provider';
 import { useAuthStore } from '@/store/auth.store';
 import { useThemeStore } from '@/store/theme.store';
+import { useChatStore } from '@/store/chat.store';
 
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
+  handleNotification: async (notification) => {
+    const incomingRoomId = notification.request.content.data?.group_chat_id as string | undefined;
+    const activeRoomId = useChatStore.getState().activeChatRoomId;
+    const suppress = !!incomingRoomId && incomingRoomId === activeRoomId;
+    return {
+      shouldShowBanner: !suppress,
+      shouldShowList: !suppress,
+      shouldPlaySound: !suppress,
+      shouldSetBadge: false,
+    };
+  },
 });
 
 function RootNavigator() {

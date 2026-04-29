@@ -190,3 +190,8 @@ export async function updateProfile(
   }
   return updated;
 }
+
+export async function savePushToken(userId: string, token: string): Promise<void> {
+  const { error } = await supabase.from('profile').update({ expo_push_token: token }).eq('id', userId);
+  if (error) throw error;
+}
