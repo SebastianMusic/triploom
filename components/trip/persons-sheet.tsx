@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -16,9 +16,9 @@ import { CreateGroupsModal } from '@/components/trip/create-groups-modal';
 import { Avatar } from '@/components/ui/avatar';
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
-import { deleteGroup, getTripGroupsWithMembers, joinGroup, leaveGroup } from '@/services/group.service';
 import type { GroupWithMembers } from '@/services/group.service';
 import type { TripParticipantWithProfile } from '@/services/trip.service';
+import { useGroupStore } from '@/store/group.store';
 import { TripRole } from '@/types';
 
 const ROLE_LABELS: Record<string, string> = {
@@ -57,9 +57,8 @@ export function PersonsSheet({
   const {
     theme: { colors, opacity, radius, shadows, spacing, stroke, typography },
   } = useAppTheme();
+  const { groups, isLoading: loadingGroups, fetchGroups, joinGroup, leaveGroup, deleteGroup } = useGroupStore();
   const [tab, setTab] = useState<Tab>('people');
-  const [groups, setGroups] = useState<GroupWithMembers[]>([]);
-  const [loadingGroups, setLoadingGroups] = useState(false);
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -68,15 +67,6 @@ export function PersonsSheet({
   const backdropAnim = useRef(new Animated.Value(0)).current;
 
   const sheetMaxHeight = Math.max(screenHeight - insets.top - spacing.xl, 420);
-
-  const refreshGroups = useCallback(() => {
-    if (!tripId) return;
-    setLoadingGroups(true);
-    getTripGroupsWithMembers(tripId)
-      .then(setGroups)
-      .catch(() => undefined)
-      .finally(() => setLoadingGroups(false));
-  }, [tripId]);
 
   useEffect(() => {
     if (!visible) {
@@ -99,9 +89,9 @@ export function PersonsSheet({
     ]).start();
 
     if (tripId) {
-      refreshGroups();
+      void fetchGroups(tripId);
     }
-  }, [backdropAnim, refreshGroups, screenHeight, slideAnim, tripId, visible]);
+  }, [backdropAnim, fetchGroups, screenHeight, slideAnim, tripId, visible]);
 
   const sortedParticipants = useMemo(
     () =>
@@ -133,7 +123,6 @@ export function PersonsSheet({
     setActionLoading(group.id);
     try {
       await joinGroup(group.id, currentParticipantId);
-      refreshGroups();
     } catch (error) {
       const message =
         error instanceof Error && error.message === 'Group is full'
@@ -150,7 +139,6 @@ export function PersonsSheet({
     setActionLoading(group.id);
     try {
       await leaveGroup(group.id, currentParticipantId);
-      refreshGroups();
     } catch {
       Alert.alert('Error', 'Could not leave group. Please try again.');
     } finally {
@@ -168,7 +156,6 @@ export function PersonsSheet({
           setActionLoading(group.id);
           try {
             await deleteGroup(group.id);
-            refreshGroups();
           } catch {
             Alert.alert('Error', 'Could not delete group. Please try again.');
           } finally {
@@ -596,7 +583,6 @@ export function PersonsSheet({
           onClose={closeCreateModal}
           onCreated={() => {
             closeCreateModal();
-            refreshGroups();
           }}
         />
       ) : null}

@@ -1,15 +1,8 @@
+import * as Crypto from 'expo-crypto';
 import { supabase } from '@/lib/supabase';
 import type { Profile } from '@/types';
 
 const PROFILE_IMAGE_BUCKET = 'profile_image';
-
-function generateUUID(): string {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
 
 /**
  * Uploads a local image URI to the profile_image bucket.
@@ -22,7 +15,7 @@ export async function uploadProfileImage(localUri: string): Promise<string> {
   if (!session?.user) throw new Error('No authenticated user');
 
   const userId = session.user.id;
-  const imageId = generateUUID();
+  const imageId = Crypto.randomUUID();
   const storagePath = `${userId}/${imageId}`;
 
   const response = await fetch(localUri);

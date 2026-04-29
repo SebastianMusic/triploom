@@ -13,6 +13,8 @@ import {
   leaveTrip as leaveTripService,
   updateParticipantRole as updateParticipantRoleService,
   updateTrip as updateTripService,
+  getTripBannerUrl as getTripBannerUrlService,
+  uploadTripBanner as uploadTripBannerService,
   type TripParticipantWithProfile,
 } from '@/services/trip.service';
 import {
@@ -64,6 +66,8 @@ interface TripState {
   generateInvite: (tripId: string) => Promise<string>;
   redeemInvite: (code: string) => Promise<RedeemInviteResponse>;
   leaveTrip: (tripId: string) => Promise<void>;
+  getTripBannerUrl: (path: string) => Promise<string | null>;
+  uploadTripBanner: (localUri: string, tripId: string) => Promise<string>;
 }
 
 export const useTripStore = create<TripState>()((set) => ({
@@ -264,4 +268,7 @@ export const useTripStore = create<TripState>()((set) => ({
       ),
     }));
   },
+
+  getTripBannerUrl: (path) => getTripBannerUrlService(path),
+  uploadTripBanner: (localUri, tripId) => uploadTripBannerService(localUri, tripId),
 }));

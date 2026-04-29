@@ -8,6 +8,7 @@ import {
   updateProfile,
   uploadProfileImage,
   getProfileImageUrl,
+  getProfileImageUrlByPath as getProfileImageUrlByPathService,
 } from '@/services/profile.service';
 
 interface ProfileState {
@@ -23,6 +24,7 @@ interface ProfileState {
   fetchParticipatedTripCount: () => Promise<void>;
   setSelectedTrip: (tripId: string | null) => Promise<void>;
   saveProfileChanges: (changes: { localImageUri?: string; userName?: string | null; phoneNumber?: string | null }) => Promise<void>;
+  getProfileImageUrlByPath: (userId: string, imageId: string) => Promise<string | null>;
 }
 
 export const useProfileStore = create<ProfileState>()((set) => ({
@@ -124,4 +126,6 @@ export const useProfileStore = create<ProfileState>()((set) => ({
       throw error;
     }
   },
+
+  getProfileImageUrlByPath: (userId, imageId) => getProfileImageUrlByPathService(userId, imageId),
 }));

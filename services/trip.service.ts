@@ -1,3 +1,4 @@
+import * as Crypto from 'expo-crypto';
 import { supabase } from '@/lib/supabase';
 import type { Profile, Trip, TripParticipant, TripUpdate } from '@/types';
 
@@ -5,7 +6,7 @@ const DESCRIPTION_FILE_BUCKET = 'trip_description';
 const TRIP_BANNER_BUCKET = 'trip_banner';
 
 export async function uploadTripBanner(localUri: string, tripId: string): Promise<string> {
-  const path = `${tripId}/${generateUUID()}`;
+  const path = `${tripId}/${Crypto.randomUUID()}`;
   const response = await fetch(localUri);
   const arrayBuffer = await response.arrayBuffer();
   const { error } = await supabase.storage
@@ -23,21 +24,13 @@ export async function getTripBannerUrl(path: string): Promise<string | null> {
   return data.signedUrl;
 }
 
-function generateUUID(): string {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
-
 export async function uploadTripDescriptionFile(
   localUri: string,
   tripId: string,
   fileName: string,
 ): Promise<string> {
   const ext = fileName.split('.').pop() ?? 'pdf';
-  const path = `${tripId}/${generateUUID()}.${ext}`;
+  const path = `${tripId}/${Crypto.randomUUID()}.${ext}`;
   const response = await fetch(localUri);
   const arrayBuffer = await response.arrayBuffer();
 

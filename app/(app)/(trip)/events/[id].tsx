@@ -21,12 +21,11 @@ import { EventLocationInput } from '@/components/events/event-location-input';
 import { Input } from '@/components/ui/input';
 import { LocationViewModal } from '@/components/ui/location-view-modal';
 import { useAppTheme } from '@/components/ui/theme-provider';
-import { getEvent, getEventBannerUrl, getEventParticipants, uploadEventBanner } from '@/services/events.service';
 import type { EventParticipant, EventWithCount } from '@/services/events.service';
-import { getProfileImageUrlByPath } from '@/services/profile.service';
 import { EventBannerPicker } from '@/components/events/event-banner-picker';
 import { Container } from '@/components/ui/container';
 import { useEventsStore } from '@/store/events.store';
+import { useProfileStore } from '@/store/profile.store';
 import { useTripStore } from '@/store/trip.store';
 import { Stack } from '@/components/ui/stack';
 import { createEventSchema, TripRole } from '@/types';
@@ -143,7 +142,8 @@ function ViewEvent({ event, onBack, isCreator, isOrganizer, onEdit, onDelete }: 
   const insets = useSafeAreaInsets();
   const { theme: { colors, spacing } } = useAppTheme();
   const { currentParticipant } = useTripStore();
-  const { registerForEvent, unregisterFromEvent } = useEventsStore();
+  const { registerForEvent, unregisterFromEvent, getEventBannerUrl, getEventParticipants } = useEventsStore();
+  const { getProfileImageUrlByPath } = useProfileStore();
   const [locationModalVisible, setLocationModalVisible] = useState(false);
 
   const participantId = currentParticipant?.id;
@@ -378,7 +378,7 @@ function ViewEvent({ event, onBack, isCreator, isOrganizer, onEdit, onDelete }: 
 function EditEvent({ event, onBack, onDeleteSuccess }: { event: EventWithCount; onBack: () => void; onDeleteSuccess: () => void }) {
   const insets = useSafeAreaInsets();
   const { theme: { colors, radius, spacing, stroke } } = useAppTheme();
-  const { updateEvent, deleteEvent } = useEventsStore();
+  const { updateEvent, deleteEvent, getEventBannerUrl, uploadEventBanner } = useEventsStore();
   const { currentParticipant } = useTripStore();
 
   const isOrganizer = currentParticipant?.role === TripRole.Organizer;
@@ -602,7 +602,7 @@ export default function EventScreen() {
   const { id, edit } = useLocalSearchParams<{ id: string; edit?: string }>();
   const router = useRouter();
   const { currentParticipant } = useTripStore();
-  const { events, deleteEvent } = useEventsStore();
+  const { events, deleteEvent, getEvent } = useEventsStore();
 
   const [event, setEvent] = useState<EventWithCount | null>(null);
   const [loading, setLoading] = useState(true);

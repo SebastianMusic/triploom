@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import type { EventInsert, EventUpdate } from '@/types';
-import type { EventWithCount } from '@/services/events.service';
+import type { Event, EventInsert, EventUpdate } from '@/types';
+import type { EventParticipant, EventWithCount } from '@/services/events.service';
 import {
   getEvents as getEventsService,
   createEvent as createEventService,
@@ -8,6 +8,10 @@ import {
   deleteEvent as deleteEventService,
   registerForEvent as registerForEventService,
   unregisterFromEvent as unregisterFromEventService,
+  getEventBannerUrl as getEventBannerUrlService,
+  getEvent as getEventService,
+  getEventParticipants as getEventParticipantsService,
+  uploadEventBanner as uploadEventBannerService,
 } from '@/services/events.service';
 
 interface EventsState {
@@ -19,6 +23,10 @@ interface EventsState {
   deleteEvent: (id: string) => Promise<void>;
   registerForEvent: (eventId: string, participantId: string) => void;
   unregisterFromEvent: (eventId: string, participantId: string) => void;
+  getEvent: (id: string) => Promise<Event | null>;
+  getEventBannerUrl: (path: string) => Promise<string | null>;
+  getEventParticipants: (eventId: string) => Promise<EventParticipant[]>;
+  uploadEventBanner: (localUri: string, participantId: string) => Promise<string>;
   setEvents: (events: EventWithCount[]) => void;
   setLoading: (isLoading: boolean) => void;
 }
@@ -111,6 +119,11 @@ export const useEventsStore = create<EventsState>()((set) => ({
       }));
     });
   },
+
+  getEvent: (id) => getEventService(id),
+  getEventBannerUrl: (path) => getEventBannerUrlService(path),
+  getEventParticipants: (eventId) => getEventParticipantsService(eventId),
+  uploadEventBanner: (localUri, participantId) => uploadEventBannerService(localUri, participantId),
 
   setEvents: (events) => set({ events }),
   setLoading: (isLoading) => set({ isLoading }),

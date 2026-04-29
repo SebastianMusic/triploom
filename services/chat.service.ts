@@ -1,14 +1,7 @@
+import * as Crypto from 'expo-crypto';
 import { supabase } from '@/lib/supabase';
 import { sendMessageSchema, editMessageSchema, sendLocationMessageSchema } from '@/types';
 import type { SendMessageDTO, EditMessageDTO, MessageImage, MessageWithSender, ChatRoomWithMeta, SendLocationMessageDTO, MessageLocationData } from '@/types';
-
-function generateUUID(): string {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
 
 function mapToMessageWithSender(raw: {
   id: string;
@@ -61,7 +54,7 @@ export async function uploadChatImage(
   asset: { uri?: string; blob?: Blob; mimeType?: string }
 ): Promise<string> {
   const ext = asset.mimeType?.split('/')[1] ?? 'jpg';
-  const path = `${groupChatId}/${generateUUID()}.${ext}`;
+  const path = `${groupChatId}/${Crypto.randomUUID()}.${ext}`;
   let body: ArrayBuffer | Blob;
   if (asset.blob) {
     body = await asset.blob.arrayBuffer();

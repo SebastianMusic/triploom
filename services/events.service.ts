@@ -1,21 +1,14 @@
+import * as Crypto from 'expo-crypto';
 import { supabase } from '@/lib/supabase';
 import type { Event, EventInsert, EventParticipationInsert, EventUpdate } from '@/types';
 
 const EVENT_BANNER_BUCKET = 'event_banner';
 
-function generateUUID(): string {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
-
 export async function uploadEventBanner(
   localUri: string,
   participantId: string,
 ): Promise<string> {
-  const path = `${participantId}/${generateUUID()}`;
+  const path = `${participantId}/${Crypto.randomUUID()}`;
   const response = await fetch(localUri);
   const arrayBuffer = await response.arrayBuffer();
 
