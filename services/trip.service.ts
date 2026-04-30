@@ -137,6 +137,14 @@ export async function deleteTrip(id: string): Promise<void> {
     throw new Error('Only the organizer can delete a trip.');
   }
 
+  const { error: clearSelectedTripError } = await supabase
+    .from('profile')
+    .update({ selected_trip: null })
+    .eq('id', userId)
+    .eq('selected_trip', id);
+
+  if (clearSelectedTripError) throw clearSelectedTripError;
+
   const { error } = await supabase.from('trip').delete().eq('id', id);
   if (error) throw error;
 }

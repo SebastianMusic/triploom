@@ -99,6 +99,7 @@ export function AppDateTimePicker({
   const [tempDate, setTempDate] = useState(value);
   const [step, setStep] = useState<NativePickerStep>('date');
   const {
+    mode: themeMode,
     theme: { colors, radius, shadows, spacing },
   } = useAppTheme();
 
@@ -211,6 +212,8 @@ export function AppDateTimePicker({
             display="spinner"
             minimumDate={minimumDate}
             onChange={handleChange}
+            themeVariant={themeMode === 'dark' ? 'dark' : 'light'}
+            textColor={colors.text}
             style={{ height: 200 }}
           />
         </Pressable>

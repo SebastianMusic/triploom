@@ -1,24 +1,25 @@
 import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
 import {
   Image,
   Modal,
   Pressable,
-  StyleSheet,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import GeneralCamera from '@/components/camera/general-camera';
+import { BottomActionSheet } from '@/components/ui/bottom-action-sheet';
 import { Container } from '@/components/ui/container';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { KeyboardScreenView } from '@/components/ui/keyboard-screen-view';
+import { PhotoAdjustModal } from '@/components/ui/photo-adjust-modal';
 import { Stack } from '@/components/ui/stack';
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import { useTripChromeInsets } from '@/components/layout/use-trip-chrome';
+import { pickSingleImageFromLibrary } from '@/lib/media-picker';
 
 type EditProfileScreenProps = {
   avatarUrl: string;
@@ -34,7 +35,7 @@ type EditProfileScreenProps = {
   useTripChromeInsets?: boolean;
 };
 
-type AvatarModal = 'none' | 'menu' | 'camera' | 'view';
+type AvatarModal = 'none' | 'menu' | 'camera' | 'adjust';
 
 export default function EditProfileScreen({
   avatarUrl,
@@ -52,7 +53,6 @@ export default function EditProfileScreen({
   const [activeModal, setActiveModal] = useState<AvatarModal>('none');
   const insets = useSafeAreaInsets();
   const {
-    mode,
     theme: { colors, opacity, radius, shadows, spacing, typography },
   } = useAppTheme();
   const { headerContentOffset } = useTripChromeInsets();
@@ -71,22 +71,10 @@ export default function EditProfileScreen({
   }
 
   async function handlePickFromLibrary() {
-    setActiveModal('none');
-
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-
-    if (!result.canceled && result.assets[0]) {
-      onAvatarUrlChange(result.assets[0].uri);
+    const uri = await pickSingleImageFromLibrary({ aspect: [1, 1] });
+    if (uri) {
+      onAvatarUrlChange(uri);
+      setActiveModal('adjust');
     }
   }
 
@@ -99,38 +87,8 @@ export default function EditProfileScreen({
         <GeneralCamera
           onPhotoTaken={handlePhotoTaken}
           onClose={() => setActiveModal('none')}
+          adjustShape="circle"
         />
-      </Modal>
-
-      <Modal
-        visible={activeModal === 'view'}
-        animationType="fade"
-        onRequestClose={() => setActiveModal('none')}>
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: mode === 'dark' ? colors.background : colors.text,
-            justifyContent: 'center',
-          }}>
-          <Image source={{ uri: avatarUrl }} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
-          <Pressable
-            style={({ pressed }) => ({
-              position: 'absolute',
-              top: insets.top + spacing.sm,
-              right: spacing.md,
-              width: 44,
-              height: 44,
-              borderRadius: radius.full,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: colors.overlay,
-              opacity: pressed ? opacity.pressed : 1,
-            })}
-            onPress={() => setActiveModal('none')}
-            hitSlop={12}>
-            <Ionicons name="close" size={22} color={colors.textOnPrimary} />
-          </Pressable>
-        </View>
       </Modal>
 
       <KeyboardScreenView
@@ -263,82 +221,47 @@ export default function EditProfileScreen({
         </Container>
       </KeyboardScreenView>
 
-      {activeModal === 'menu' && (
-        <>
-          <Pressable
-            style={[StyleSheet.absoluteFill, { backgroundColor: colors.overlay }]}
-            onPress={() => setActiveModal('none')}
-          />
-          <View
-            style={[
-              {
-                position: 'absolute',
-                bottom: 0,
-                left: 0,
-                right: 0,
-                borderTopLeftRadius: radius.lg,
-                borderTopRightRadius: radius.lg,
-                backgroundColor: colors.surface,
-                paddingTop: spacing.sm,
-                paddingBottom: insets.bottom + spacing.xs,
-              },
-              shadows.lg,
-            ]}>
-            <View
-              style={{
-                alignSelf: 'center',
-                width: 38,
-                height: 4,
-                borderRadius: radius.full,
-                backgroundColor: colors.borderStrong,
-                marginBottom: spacing.sm,
-              }}
-            />
-
-            <AppText style={[typography.label, { textAlign: 'center', paddingBottom: spacing.xs }]}>
-              Profile photo
-            </AppText>
-
-            {avatarUrl ? (
-              <SheetOption icon="eye-outline" label="View profile picture" onPress={() => setActiveModal('view')} />
-            ) : null}
-            <SheetOption icon="camera-outline" label="Take photo" onPress={() => setActiveModal('camera')} />
-            <SheetOption icon="images-outline" label="Choose from library" onPress={handlePickFromLibrary} />
-            <SheetOption icon="close-outline" label="Cancel" muted onPress={() => setActiveModal('none')} />
-          </View>
-        </>
-      )}
+      <BottomActionSheet
+        visible={activeModal === 'menu'}
+        title="Profile photo"
+        onClose={() => setActiveModal('none')}
+        items={[
+          {
+            key: 'camera',
+            label: 'Take photo',
+            icon: 'camera-outline',
+            onPress: () => setActiveModal('camera'),
+          },
+          {
+            key: 'library',
+            label: 'Choose from library',
+            icon: 'images-outline',
+            skipIosCloseDelay: true,
+            onPress: handlePickFromLibrary,
+          },
+          ...(avatarUrl ? [{
+            key: 'adjust',
+            label: 'Adjust photo',
+            icon: 'scan-outline' as const,
+            onPress: () => setActiveModal('adjust'),
+          }] : []),
+          ...(avatarUrl ? [{
+            key: 'delete',
+            label: 'Delete photo',
+            icon: 'trash-outline' as const,
+            destructive: true,
+            onPress: () => onAvatarUrlChange(''),
+          }] : []),
+        ]}
+      />
+      <PhotoAdjustModal
+        visible={activeModal === 'adjust'}
+        uri={avatarUrl}
+        title="Adjust profile photo"
+        shape="circle"
+        onSave={onAvatarUrlChange}
+        onClose={() => setActiveModal('none')}
+      />
     </View>
   );
-
-  function SheetOption({
-    icon,
-    label,
-    muted = false,
-    onPress,
-  }: {
-    icon: keyof typeof Ionicons.glyphMap;
-    label: string;
-    muted?: boolean;
-    onPress: () => void;
-  }) {
-    return (
-      <Pressable
-        accessibilityRole="button"
-        onPress={onPress}
-        style={({ pressed }) => ({
-          minHeight: 56,
-          paddingHorizontal: spacing.md,
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: spacing.sm,
-          opacity: pressed ? opacity.pressed : 1,
-        })}>
-        <Ionicons name={icon} size={20} color={muted ? colors.textMuted : colors.icon} />
-        <AppText style={[typography.label, { color: muted ? colors.textMuted : colors.text }]}>
-          {label}
-        </AppText>
-      </Pressable>
-    );
-  }
 }

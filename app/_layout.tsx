@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { Text, View } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import * as Linking from 'expo-linking';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import {
   Roboto_400Regular,
   Roboto_500Medium,
@@ -102,8 +103,10 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider modeOverride={modeOverride}>
-      <RootNavigator />
-    </ThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider modeOverride={modeOverride}>
+        <RootNavigator />
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }

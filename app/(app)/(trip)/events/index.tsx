@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { EventCard } from '@/components/events/event-card';
 import { EventDetailModal } from '@/components/events/event-detail-modal';
+import { AppRefreshControl } from '@/components/ui/app-refresh-control';
 import { Container } from '@/components/ui/container';
 import { Stack } from '@/components/ui/stack';
 import { AppText } from '@/components/ui/text';
@@ -56,11 +57,9 @@ export default function EventsScreen() {
     <View style={{ flex: 1 }}>
       <ScrollView
         refreshControl={
-          <RefreshControl
+          <AppRefreshControl
             refreshing={refreshing}
             onRefresh={() => { void handleRefresh(); }}
-            tintColor={colors.primary}
-            colors={[colors.primary]}
             progressViewOffset={headerHeight}
           />
         }

@@ -1,10 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
-  Animated,
   Image,
   Pressable,
   ScrollView,
@@ -17,8 +15,10 @@ import { EventDetailModal } from '@/components/events/event-detail-modal';
 import { useTripChromeInsets } from '@/components/layout/use-trip-chrome';
 import { TaskDetailModal } from '@/components/tasks/task-detail-modal';
 import { Card } from '@/components/ui/card';
+import { confirmDestructiveAction } from '@/components/ui/confirm-destructive-action';
 import { Container } from '@/components/ui/container';
 import { PageSheetModal } from '@/components/ui/page-sheet-modal';
+import { AppRefreshControl } from '@/components/ui/app-refresh-control';
 import { Row } from '@/components/ui/row';
 import { Stack } from '@/components/ui/stack';
 import { AppText } from '@/components/ui/text';
@@ -81,7 +81,6 @@ function sortTasks(tasks: Task[], assignments: Record<string, { is_completed: bo
 export default function HomeScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ compose?: string; editAnnouncement?: string }>();
-  const scrollY = useRef(new Animated.Value(0)).current;
   const { height: viewportHeight } = useWindowDimensions();
   const { session } = useAuthStore();
   const { selectedTrip } = useProfileStore();
@@ -123,6 +122,7 @@ export default function HomeScreen() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
   const [eventPreviewUrls, setEventPreviewUrls] = useState<Record<string, string>>({});
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const isOrganizer =
     currentParticipant?.role === TripRole.Organizer ||
@@ -157,12 +157,11 @@ export default function HomeScreen() {
   const loading = eventsLoading || tasksLoading || announcementsLoading;
   const announcementEditorVisible = params.compose === 'announcement' || !!editingAnnouncement;
   const visibleTaskIds = useMemo(() => visibleTasks.map((task) => task.id), [visibleTasks]);
-
-  const imageTranslateY = scrollY.interpolate({
-    inputRange: [0, HERO_HEIGHT],
-    outputRange: [0, HERO_HEIGHT * 0.2],
-    extrapolate: 'clamp',
-  });
+  const isInitialLoading =
+    loading &&
+    announcements.length === 0 &&
+    visibleEvents.length === 0 &&
+    visibleTasks.length === 0;
 
   useFocusEffect(
     useCallback(() => {
@@ -236,16 +235,29 @@ export default function HomeScreen() {
 
   function handleDeleteAnnouncement(announcement: Announcement) {
     if (!selectedTrip) return;
-    Alert.alert('Delete announcement', 'This cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () => {
-          void deleteAnnouncement(selectedTrip, announcement.id);
-        },
+    confirmDestructiveAction({
+      title: 'Delete announcement',
+      message: 'This cannot be undone.',
+      onConfirm: async () => {
+        await deleteAnnouncement(selectedTrip, announcement.id);
       },
-    ]);
+    });
+  }
+
+  async function handleRefresh() {
+    if (!selectedTrip) return;
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        fetchEvents(selectedTrip),
+        getAllTasks(selectedTrip),
+        fetchAnnouncements(selectedTrip),
+        fetchParticipants(selectedTrip),
+        session?.user.id ? fetchCurrentParticipant(selectedTrip, session.user.id) : Promise.resolve(),
+      ]);
+    } finally {
+      setIsRefreshing(false);
+    }
   }
 
   if (!currentTrip) {
@@ -258,7 +270,7 @@ export default function HomeScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <Animated.View
+      <View
         pointerEvents="none"
         style={{
           position: 'absolute',
@@ -266,7 +278,6 @@ export default function HomeScreen() {
           right: 0,
           left: 0,
           height: HERO_HEIGHT,
-          transform: [{ translateY: imageTranslateY }],
         }}>
         {bannerUrl ? (
           <Image source={{ uri: bannerUrl }} resizeMode="cover" style={{ width: '100%', height: '100%' }} />
@@ -280,18 +291,14 @@ export default function HomeScreen() {
             backgroundColor: bannerUrl ? colors.overlayStrong : colors.transparent,
           }}
         />
-      </Animated.View>
+      </View>
 
-      <Animated.ScrollView
-        bounces={false}
-        alwaysBounceVertical={false}
-        overScrollMode="never"
+      <ScrollView
+        bounces
+        alwaysBounceVertical
+        overScrollMode="always"
         showsVerticalScrollIndicator={false}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: true },
-        )}
-        scrollEventThrottle={16}
+        refreshControl={<AppRefreshControl refreshing={isRefreshing} onRefresh={() => { void handleRefresh(); }} />}
         contentContainerStyle={{ paddingTop: HERO_HEIGHT - SHEET_OVERLAP }}>
         <View
           style={{
@@ -363,7 +370,7 @@ export default function HomeScreen() {
             </Stack>
           </Container>
         </View>
-      </Animated.ScrollView>
+      </ScrollView>
 
       <EventDetailModal event={selectedEvent} onClose={() => setSelectedEventId(null)} />
       <TaskDetailModal
@@ -537,6 +544,17 @@ export default function HomeScreen() {
   }
 
   function AnnouncementPreview() {
+    if (isInitialLoading) {
+      return (
+        <Card style={{ padding: spacing.md }}>
+          <Row gap="sm" align="center">
+            <ActivityIndicator color={colors.primary} />
+            <AppText tone="muted">Loading announcements...</AppText>
+          </Row>
+        </Card>
+      );
+    }
+
     if (!latestAnnouncement) {
       return (
         <Card style={{ padding: spacing.md }}>

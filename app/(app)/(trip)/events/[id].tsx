@@ -15,6 +15,7 @@ import { AppText } from '@/components/ui/text';
 import { Avatar } from '@/components/ui/avatar';
 import { AppDateTimePicker, DateTimeField } from '@/components/ui/date-time-picker';
 import { Button } from '@/components/ui/button';
+import { confirmDestructiveAction } from '@/components/ui/confirm-destructive-action';
 import { EventLocationInput } from '@/components/events/event-location-input';
 import { Input } from '@/components/ui/input';
 import { KeyboardScreenView } from '@/components/ui/keyboard-screen-view';
@@ -266,14 +267,11 @@ function ViewEvent({ event, onBack, isCreator, isOrganizer, onEdit, onDelete }: 
           {isOrganizer && !isCreator && onDelete ? (
             <Pressable
               onPress={() => {
-                Alert.alert(
-                  'Delete event',
-                  'Are you sure you want to delete this event? This cannot be undone.',
-                  [
-                    { text: 'Cancel', style: 'cancel' },
-                    { text: 'Delete', style: 'destructive', onPress: onDelete },
-                  ],
-                );
+                confirmDestructiveAction({
+                  title: 'Delete event',
+                  message: 'Are you sure you want to delete this event? This cannot be undone.',
+                  onConfirm: onDelete,
+                });
               }}
               style={({ pressed }) => ({
                 width: '100%',
@@ -468,18 +466,14 @@ function EditEvent({ event, onBack, onDeleteSuccess }: { event: EventWithCount; 
 
             <Pressable
               onPress={() => {
-                Alert.alert(
-                  'Delete event',
-                  'Are you sure you want to delete this event? This cannot be undone.',
-                  [
-                    { text: 'Cancel', style: 'cancel' },
-                    {
-                      text: 'Delete',
-                      style: 'destructive',
-                      onPress: () => { void deleteEvent(event.id).then(() => onDeleteSuccess()); },
-                    },
-                  ],
-                );
+                confirmDestructiveAction({
+                  title: 'Delete event',
+                  message: 'Are you sure you want to delete this event? This cannot be undone.',
+                  onConfirm: async () => {
+                    await deleteEvent(event.id);
+                    onDeleteSuccess();
+                  },
+                });
               }}
               style={({ pressed }) => ({
                 width: '100%',

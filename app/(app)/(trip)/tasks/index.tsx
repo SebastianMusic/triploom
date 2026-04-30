@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Modal, Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { Alert, Modal, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useTripChromeInsets } from '@/components/layout';
+import { AppRefreshControl } from '@/components/ui/app-refresh-control';
 import { AppText } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
 import { Container } from '@/components/ui/container';
 import { AppDateTimePicker, DateTimeField } from '@/components/ui/date-time-picker';
+import { confirmDestructiveAction } from '@/components/ui/confirm-destructive-action';
 import { IconButton } from '@/components/ui/icon-button';
 import { Input } from '@/components/ui/input';
 import { KeyboardScreenView } from '@/components/ui/keyboard-screen-view';
@@ -194,16 +196,17 @@ export default function TasksScreen() {
 	}
 
 	function handleDelete(task: Task) {
-		Alert.alert('Slett oppgave', `Er du sikker på at du vil slette "${task.title}"?`, [
-			{ text: 'Avbryt', style: 'cancel' },
-			{
-				text: 'Slett', style: 'destructive',
-				onPress: async () => {
-					try { await deleteTask(task.id); }
-					catch { Alert.alert('Feil', 'Kunne ikke slette oppgaven.'); }
-				},
-			},
-		]);
+    confirmDestructiveAction({
+      title: 'Delete task',
+      message: `Delete "${task.title}"? This cannot be undone.`,
+      onConfirm: async () => {
+        try {
+          await deleteTask(task.id);
+        } catch {
+          Alert.alert('Feil', 'Kunne ikke slette oppgaven.');
+        }
+      },
+    });
 	}
 
 	async function handleSave() {
@@ -268,11 +271,9 @@ export default function TasksScreen() {
 				}}
 				showsVerticalScrollIndicator={false}
 				refreshControl={
-					<RefreshControl
+					<AppRefreshControl
 						refreshing={refreshing}
 						onRefresh={handleRefresh}
-						tintColor={colors.primary}
-						colors={[colors.primary]}
 						progressViewOffset={headerContentOffset}
 					/>
 				}>
