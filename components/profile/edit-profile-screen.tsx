@@ -2,19 +2,19 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
 import {
-  ActivityIndicator,
   Image,
   Modal,
   Pressable,
-  ScrollView,
   StyleSheet,
-  TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import GeneralCamera from '@/components/camera/general-camera';
 import { Container } from '@/components/ui/container';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { KeyboardScreenView } from '@/components/ui/keyboard-screen-view';
 import { Stack } from '@/components/ui/stack';
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
@@ -90,19 +90,6 @@ export default function EditProfileScreen({
     }
   }
 
-  const inputStyle = {
-    minHeight: 62,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surfaceMuted,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 0,
-    color: colors.text,
-    textAlignVertical: 'center' as const,
-    ...typography.body,
-  };
-
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Modal
@@ -146,169 +133,135 @@ export default function EditProfileScreen({
         </View>
       </Modal>
 
-      <ScrollView
-        style={{ flex: 1 }}
+      <KeyboardScreenView
+        style={{ backgroundColor: colors.background }}
         contentContainerStyle={{
           flexGrow: 1,
           paddingTop: shouldUseTripChromeInsets ? headerContentOffset : insets.top + spacing.md,
           paddingBottom: insets.bottom + spacing.xl,
         }}>
         <Container>
-        <Stack space="sm">
-          <View style={{ alignItems: 'center', gap: spacing.xs }}>
-            <AppText variant="subtitle" style={{ textAlign: 'center' }}>
-              Edit Profile
-            </AppText>
-          </View>
-
-          <View
-            style={[
-              {
-                borderRadius: radius.lg,
-                backgroundColor: colors.surface,
-                borderWidth: 1,
-                borderColor: colors.border,
-                padding: spacing.sm,
-                gap: spacing.sm,
-              },
-              shadows.sm,
-            ]}>
-          <View style={{ alignItems: 'center', gap: spacing.sm }}>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => setActiveModal('menu')}
-              style={({ pressed }) => ({
-                position: 'relative',
-                opacity: pressed ? opacity.pressed : 1,
-              })}>
-              {avatarUrl ? (
-                <Image
-                  source={{ uri: avatarUrl }}
-                  style={{
-                    width: 112,
-                    height: 112,
-                    borderRadius: radius.full,
-                    backgroundColor: colors.surfaceMuted,
-                  }}
-                />
-              ) : (
-                <View
-                  style={{
-                    width: 112,
-                    height: 112,
-                    borderRadius: radius.full,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: colors.primarySoft,
-                  }}>
-                  <AppText style={[typography.subtitle, { color: colors.primary }]}>
-                    {initials}
-                  </AppText>
-                </View>
-              )}
-              <View
-                style={{
-                  position: 'absolute',
-                  right: 4,
-                  bottom: 4,
-                  width: 34,
-                  height: 34,
-                  borderRadius: radius.full,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: colors.primary,
-                  borderWidth: 2,
-                  borderColor: colors.surface,
-                }}>
-                <Ionicons name="camera" size={17} color={colors.textOnPrimary} />
-              </View>
-            </Pressable>
-
-          </View>
-
-          <View style={{ gap: spacing.xs }}>
-            <AppText style={typography.label}>Full name</AppText>
-            <TextInput
-              style={inputStyle}
-              placeholder="Enter your full name"
-              placeholderTextColor={colors.textMuted}
-              value={fullName}
-              onChangeText={onFullNameChange}
-              returnKeyType="next"
-            />
-          </View>
-
-          <View style={{ gap: spacing.xs }}>
-            <AppText style={typography.label}>Mobile number</AppText>
-            <TextInput
-              style={inputStyle}
-              placeholder="Enter your mobile number"
-              placeholderTextColor={colors.textMuted}
-              value={mobileNumber}
-              onChangeText={onMobileNumberChange}
-              keyboardType="phone-pad"
-            />
-          </View>
-
-          {errorMessage ? (
-            <View
-              style={{
-                borderRadius: radius.md,
-                backgroundColor: colors.surfaceMuted,
-                padding: spacing.sm,
-              }}>
-              <AppText variant="caption" tone="error">
-                {errorMessage}
+          <Stack space="sm">
+            <View style={{ alignItems: 'center', gap: spacing.xs }}>
+              <AppText variant="subtitle" style={{ textAlign: 'center' }}>
+                Edit Profile
               </AppText>
             </View>
-          ) : null}
-          </View>
 
-          <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-          <Pressable
-            accessibilityRole="button"
-            onPress={onBack}
-            disabled={isSaving}
-            style={({ pressed }) => ({
-              flex: 1,
-              minHeight: 54,
-              borderRadius: radius.full,
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderWidth: 1,
-              borderColor: colors.border,
-              backgroundColor: colors.surface,
-              opacity: isSaving ? opacity.disabled : pressed ? opacity.pressed : 1,
-            })}>
-            <AppText style={typography.label}>Back</AppText>
-          </Pressable>
+            <View
+              style={[
+                {
+                  borderRadius: radius.lg,
+                  backgroundColor: colors.surface,
+                  padding: spacing.sm,
+                  gap: spacing.sm,
+                },
+                shadows.sm,
+              ]}>
+              <View style={{ alignItems: 'center', gap: spacing.sm }}>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => setActiveModal('menu')}
+                  style={({ pressed }) => ({
+                    position: 'relative',
+                    opacity: pressed ? opacity.pressed : 1,
+                  })}>
+                  {avatarUrl ? (
+                    <Image
+                      source={{ uri: avatarUrl }}
+                      style={{
+                        width: 112,
+                        height: 112,
+                        borderRadius: radius.full,
+                        backgroundColor: colors.surfaceMuted,
+                      }}
+                    />
+                  ) : (
+                    <View
+                      style={{
+                        width: 112,
+                        height: 112,
+                        borderRadius: radius.full,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: colors.primarySoft,
+                      }}>
+                      <AppText style={[typography.subtitle, { color: colors.primary }]}>
+                        {initials}
+                      </AppText>
+                    </View>
+                  )}
+                  <View
+                    style={{
+                      position: 'absolute',
+                      right: 4,
+                      bottom: 4,
+                      width: 34,
+                      height: 34,
+                      borderRadius: radius.full,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: colors.primary,
+                      borderWidth: 2,
+                      borderColor: colors.surface,
+                    }}>
+                    <Ionicons name="camera" size={17} color={colors.textOnPrimary} />
+                  </View>
+                </Pressable>
+              </View>
 
-          <Pressable
-            accessibilityRole="button"
-            onPress={onSave}
-            disabled={isSaving}
-            style={({ pressed }) => ({
-              flex: 1,
-              minHeight: 54,
-              borderRadius: radius.full,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: colors.primary,
-              opacity: isSaving ? opacity.disabled : pressed ? opacity.pressed : 1,
-              ...shadows.sm,
-            })}>
-            {isSaving ? (
-              <ActivityIndicator color={colors.textOnPrimary} />
-            ) : (
-              <AppText style={[typography.label, { color: colors.textOnPrimary }]}>
-                Save Changes
-              </AppText>
-            )}
-          </Pressable>
-          </View>
-        </Stack>
+              <Input
+                label="Full name"
+                placeholder="Enter your full name"
+                value={fullName}
+                onChangeText={onFullNameChange}
+                returnKeyType="next"
+              />
+
+              <Input
+                label="Mobile number"
+                placeholder="Enter your mobile number"
+                value={mobileNumber}
+                onChangeText={onMobileNumberChange}
+                keyboardType="phone-pad"
+              />
+
+              {errorMessage ? (
+                <View
+                  style={{
+                    borderRadius: radius.md,
+                    backgroundColor: colors.surfaceMuted,
+                    padding: spacing.sm,
+                  }}>
+                  <AppText variant="caption" tone="error">
+                    {errorMessage}
+                  </AppText>
+                </View>
+              ) : null}
+            </View>
+
+            <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+              <View style={{ flex: 1 }}>
+                <Button
+                  label="Back"
+                  variant="secondary"
+                  fullWidth
+                  disabled={isSaving}
+                  onPress={onBack}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Button
+                  label="Save Changes"
+                  fullWidth
+                  loading={isSaving}
+                  onPress={onSave}
+                />
+              </View>
+            </View>
+          </Stack>
         </Container>
-      </ScrollView>
+      </KeyboardScreenView>
 
       {activeModal === 'menu' && (
         <>

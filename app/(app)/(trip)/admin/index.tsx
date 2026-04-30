@@ -25,7 +25,7 @@ export default function AdminScreen() {
 	const [copied, setCopied] = useState(false);
 	const router = useRouter();
 	const { headerContentOffset, bottomOverlayOffset } = useTripChromeInsets();
-	const { theme: { colors, opacity, radius, shadows, spacing, stroke, typography } } = useAppTheme();
+	const { theme: { colors, opacity, radius, shadows, spacing, typography } } = useAppTheme();
 
 	const selectedTrip = useProfileStore((state) => state.selectedTrip);
 	const {
@@ -89,8 +89,6 @@ export default function AdminScreen() {
 										gap: spacing.xs,
 										borderRadius: radius.xl,
 										backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
-										borderWidth: stroke.thin,
-										borderColor: colors.border,
 										padding: spacing.sm,
 									},
 									shadows.sm,
@@ -132,8 +130,6 @@ export default function AdminScreen() {
 										gap: spacing.sm,
 										borderRadius: radius.xl,
 										backgroundColor: colors.surface,
-										borderWidth: 1,
-										borderColor: colors.border,
 										padding: spacing.sm,
 									},
 									shadows.sm,

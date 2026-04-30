@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Modal, Platform, Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { Alert, Modal, Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useTripChromeInsets } from '@/components/layout';
 import { AppText } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
 import { Container } from '@/components/ui/container';
+import { AppDateTimePicker, DateTimeField } from '@/components/ui/date-time-picker';
 import { IconButton } from '@/components/ui/icon-button';
 import { Input } from '@/components/ui/input';
+import { KeyboardScreenView } from '@/components/ui/keyboard-screen-view';
 import { Row } from '@/components/ui/row';
 import { Stack } from '@/components/ui/stack';
 import { useAppTheme } from '@/components/ui/theme-provider';
@@ -26,7 +27,7 @@ import type { Task } from '@/types';
 import type { CreateTaskDTO, FieldDraft } from '@/types/tasks.types';
 
 export default function TasksScreen() {
-	const { theme: { colors, spacing, radius, sizes, stroke } } = useAppTheme();
+			const { theme: { colors, spacing, radius, sizes, stroke } } = useAppTheme();
 	const insets = useSafeAreaInsets();
 	const { headerContentOffset, bottomOverlayOffset } = useTripChromeInsets();
 	const {
@@ -410,10 +411,10 @@ export default function TasksScreen() {
 				animationType="slide"
 				presentationStyle="pageSheet"
 				onRequestClose={() => { setAdminVisible(false); resetForm(); }}>
-				<View style={{ flex: 1, backgroundColor: colors.background }}>
-					<View style={{
-						flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-						paddingHorizontal: spacing.sm, paddingVertical: spacing.sm,
+					<KeyboardScreenView style={{ backgroundColor: colors.background }} scrollEnabled={false}>
+						<View style={{
+							flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+							paddingHorizontal: spacing.sm, paddingVertical: spacing.sm,
 						backgroundColor: colors.surface,
 						borderBottomWidth: stroke.thin, borderBottomColor: colors.border,
 					}}>
@@ -477,32 +478,18 @@ export default function TasksScreen() {
 									</Stack>
 								)}
 
-								<Stack space="xs">
-									<AppText variant="caption">Frist</AppText>
-									<Pressable
-										onPress={() => { setTempDate(dueDate ?? new Date()); setShowDatePicker(true); }}
-										style={{
-											minHeight: 52, borderRadius: radius.md,
-											borderWidth: stroke.thin, borderColor: colors.border,
-											backgroundColor: colors.surface,
-											paddingHorizontal: spacing.sm, paddingVertical: spacing.sm,
-											flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-										}}>
-										<AppText style={{ color: dueDate ? colors.text : colors.textMuted }}>
-											{dueDate
-												? `${dueDate.toLocaleDateString('nb-NO', { day: 'numeric', month: 'long', year: 'numeric' })} kl. ${dueDate.toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' })}`
-												: 'Velg dato og tid'}
-										</AppText>
-										<Row gap="xs">
-											{dueDate && (
-												<Pressable onPress={(e) => { e.stopPropagation(); setDueDate(null); }} hitSlop={8}>
-													<Ionicons name="close-circle" size={18} color={colors.textMuted} />
-												</Pressable>
-											)}
-											<Ionicons name="calendar-outline" size={18} color={colors.textMuted} />
-										</Row>
-									</Pressable>
-								</Stack>
+								<DateTimeField
+                  label="Frist"
+                  value={
+                    dueDate
+                      ? `${dueDate.toLocaleDateString('nb-NO', { day: 'numeric', month: 'long', year: 'numeric' })} kl. ${dueDate.toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' })}`
+                      : ''
+                  }
+                  placeholder="Velg dato og tid"
+                  active={!!dueDate}
+                  onPress={() => { setTempDate(dueDate ?? new Date()); setShowDatePicker(true); }}
+                  onClear={dueDate ? () => setDueDate(null) : undefined}
+                />
 
 								{draftFields.length > 0 && (
 									<Stack space="sm">
@@ -598,46 +585,18 @@ export default function TasksScreen() {
 						</View>
 					</Modal>
 
-					{Platform.OS === 'android' && showDatePicker && (
-						<DateTimePicker
-							value={tempDate} mode="datetime" display="default" minimumDate={new Date()}
-							onChange={(_: DateTimePickerEvent, date?: Date) => {
-								setShowDatePicker(false);
-								if (date) setDueDate(date);
-							}}
-						/>
-					)}
-
-					<Modal
-						visible={Platform.OS === 'ios' && showDatePicker}
-						transparent animationType="slide"
-						onRequestClose={() => setShowDatePicker(false)}>
-						<View style={{ flex: 1 }} />
-						<View style={{
-							backgroundColor: colors.surface,
-							borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg,
-							paddingBottom: insets.bottom,
-						}}>
-							<View style={{
-								flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-								paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.xs,
-							}}>
-								<Pressable onPress={() => setShowDatePicker(false)}>
-									<AppText tone="primary">Avbryt</AppText>
-								</Pressable>
-								<AppText variant="subtitle">Velg dato og tid</AppText>
-								<Pressable onPress={() => { setDueDate(tempDate); setShowDatePicker(false); }}>
-									<AppText tone="primary">Ferdig</AppText>
-								</Pressable>
-							</View>
-							<DateTimePicker
-								value={tempDate} mode="datetime" display="spinner" minimumDate={new Date()}
-								onChange={(_: DateTimePickerEvent, date?: Date) => { if (date) setTempDate(date); }}
-								style={{ height: 200 }}
-							/>
-						</View>
-					</Modal>
-				</View>
+            <AppDateTimePicker
+              visible={showDatePicker}
+              value={tempDate}
+              mode="datetime"
+              minimumDate={new Date()}
+              onConfirm={(date) => {
+                setDueDate(date);
+                setShowDatePicker(false);
+              }}
+              onClose={() => setShowDatePicker(false)}
+            />
+					</KeyboardScreenView>
 			</Modal>
 		</View>
 	);

@@ -1,17 +1,15 @@
 import { useState } from 'react';
-import {
-	View,
-	Text,
-	TextInput,
-	Pressable,
-	ActivityIndicator,
-	StyleSheet,
-	KeyboardAvoidingView,
-	Platform,
-} from 'react-native';
+import { View } from 'react-native';
 import { Link } from 'expo-router';
 import { signInSchema } from '@/types/auth.types';
 import { useAuthStore } from '@/store/auth.store';
+import { Button } from '@/components/ui/button';
+import { Container } from '@/components/ui/container';
+import { Input } from '@/components/ui/input';
+import { KeyboardScreenView } from '@/components/ui/keyboard-screen-view';
+import { Stack } from '@/components/ui/stack';
+import { AppText } from '@/components/ui/text';
+import { useAppTheme } from '@/components/ui/theme-provider';
 
 export default function LoginScreen() {
 	const [email, setEmail] = useState('');
@@ -19,6 +17,9 @@ export default function LoginScreen() {
 	const [error, setError] = useState<string | null>(null);
 
 	const { signIn, isLoading } = useAuthStore();
+  const {
+    theme: { colors, spacing, typography },
+  } = useAppTheme();
 
 	async function handleSignIn() {
 		setError(null);
@@ -37,103 +38,43 @@ export default function LoginScreen() {
 	}
 
 	return (
-		<KeyboardAvoidingView
-			style={styles.container}
-			behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-		>
-			<Text style={styles.title}>Welcome back</Text>
-			<Text style={styles.subtitle}>Sign in to Triploom</Text>
+		<KeyboardScreenView
+      style={{ backgroundColor: colors.background }}
+      contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingVertical: spacing.xl }}>
+      <Container>
+        <Stack space="sm">
+          <View style={{ gap: spacing.xs }}>
+            <AppText variant="title">Welcome back</AppText>
+            <AppText tone="muted">Sign in to Triploom</AppText>
+          </View>
 
-			<TextInput
-				style={styles.input}
-				placeholder="Email"
-				value={email}
-				onChangeText={setEmail}
-				autoCapitalize="none"
-				keyboardType="email-address"
-				textContentType="emailAddress"
-				placeholderTextColor="#999"
-			/>
-			<TextInput
-				style={styles.input}
-				placeholder="Password"
-				value={password}
-				onChangeText={setPassword}
-				secureTextEntry
-				textContentType="password"
-				placeholderTextColor="#999"
-			/>
+          <Input
+            label="Email"
+            placeholder="Email"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            textContentType="emailAddress"
+          />
+          <Input
+            label="Password"
+            placeholder="Password"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            textContentType="password"
+          />
 
-			{error && <Text style={styles.error}>{error}</Text>}
+          {error ? <AppText tone="error">{error}</AppText> : null}
 
-			<Pressable
-				style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
-				onPress={handleSignIn}
-				disabled={isLoading}
-			>
-				{isLoading
-					? <ActivityIndicator color="#fff" />
-					: <Text style={styles.buttonText}>Sign in</Text>
-				}
-			</Pressable>
+          <Button label="Sign in" fullWidth loading={isLoading} onPress={handleSignIn} />
 
-			<Link href="/(auth)/signup" style={styles.link}>
-				Don't have an account? Sign up
-			</Link>
-		</KeyboardAvoidingView>
+          <Link href="/(auth)/signup" style={{ color: colors.primary, textAlign: 'center', ...typography.body }}>
+            Don&apos;t have an account? Sign up
+          </Link>
+        </Stack>
+      </Container>
+		</KeyboardScreenView>
 	);
 }
-
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		justifyContent: 'center',
-		padding: 24,
-	},
-	title: {
-		fontSize: 28,
-		fontWeight: 'bold',
-		marginBottom: 4,
-	},
-	subtitle: {
-		fontSize: 14,
-		color: '#666',
-		marginBottom: 32,
-	},
-	input: {
-		borderWidth: 1,
-		borderColor: '#ddd',
-		borderRadius: 8,
-		padding: 12,
-		fontSize: 16,
-		marginBottom: 12,
-		backgroundColor: '#fff',
-		color: '#000',
-	},
-	error: {
-		color: '#e53e3e',
-		fontSize: 14,
-		marginBottom: 12,
-	},
-	button: {
-		backgroundColor: '#3b82f6',
-		borderRadius: 8,
-		padding: 14,
-		alignItems: 'center',
-		marginTop: 4,
-	},
-	buttonPressed: {
-		opacity: 0.8,
-	},
-	buttonText: {
-		color: '#fff',
-		fontSize: 16,
-		fontWeight: '600',
-	},
-	link: {
-		textAlign: 'center',
-		marginTop: 20,
-		color: '#3b82f6',
-		fontSize: 14,
-	},
-});

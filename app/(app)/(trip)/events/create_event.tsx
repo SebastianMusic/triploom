@@ -1,13 +1,9 @@
-import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import {
   Alert,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
-  ScrollView,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -15,7 +11,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
 import { Container } from '@/components/ui/container';
+import { AppDateTimePicker, DateTimeField } from '@/components/ui/date-time-picker';
 import { Input } from '@/components/ui/input';
+import { KeyboardScreenView } from '@/components/ui/keyboard-screen-view';
 import { Stack } from '@/components/ui/stack';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import { useTripChromeInsets } from '@/components/layout/use-trip-chrome';
@@ -39,7 +37,6 @@ function formatDisplay(date: Date | null): string {
 }
 
 type PickerTarget = 'start' | 'end' | null;
-type PickerMode = 'date' | 'time';
 
 export default function CreateEventScreen() {
   const router = useRouter();
@@ -49,7 +46,7 @@ export default function CreateEventScreen() {
   const { currentParticipant, currentTrip } = useTripStore();
   const { createEvent } = useEventsStore();
   const {
-    theme: { colors, radius, spacing, stroke },
+    theme: { colors, spacing },
   } = useAppTheme();
 
   const [title, setTitle] = useState('');
@@ -73,9 +70,6 @@ export default function CreateEventScreen() {
 
   // Picker state
   const [pickerTarget, setPickerTarget] = useState<PickerTarget>(null);
-  const [pickerMode, setPickerMode] = useState<PickerMode>('date');
-  // Temp date while picking on iOS (committed on "Done")
-  const [tempDate, setTempDate] = useState<Date>(new Date());
 
   function clearForm() {
     setTitle('');
@@ -90,35 +84,7 @@ export default function CreateEventScreen() {
   }
 
   function openPicker(target: PickerTarget) {
-    const current = target === 'start' ? startDate : endDate;
-    setTempDate(current ?? new Date());
-    setPickerMode('date');
     setPickerTarget(target);
-  }
-
-  function handlePickerChange(_event: DateTimePickerEvent, selected?: Date) {
-    if (!selected) {
-      // Android: dismissed
-      setPickerTarget(null);
-      return;
-    }
-
-    if (Platform.OS === 'android') {
-      if (pickerMode === 'date') {
-        // Keep the selected date, now open time picker
-        setTempDate(selected);
-        setPickerMode('time');
-      } else {
-        // Combine date from tempDate with time from selected
-        const combined = new Date(tempDate);
-        combined.setHours(selected.getHours(), selected.getMinutes(), 0, 0);
-        commitDate(combined);
-        setPickerTarget(null);
-      }
-    } else {
-      // iOS: just update tempDate, commit on "Done"
-      setTempDate(selected);
-    }
   }
 
   function commitDate(date: Date) {
@@ -129,15 +95,8 @@ export default function CreateEventScreen() {
       setEndDate(date);
       setErrors((e) => ({ ...e, end_time: undefined }));
     }
-  }
 
-  function handleIOSDone() {
-    if (pickerMode === 'date') {
-      setPickerMode('time');
-    } else {
-      commitDate(tempDate);
-      setPickerTarget(null);
-    }
+    setPickerTarget(null);
   }
 
   async function handleSubmit() {
@@ -219,30 +178,12 @@ export default function CreateEventScreen() {
     }
   }
 
-  const dateFieldStyle = {
-    minHeight: 52,
-    borderRadius: radius.md,
-    borderWidth: stroke.thin,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm - spacing.xs / 2,
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    justifyContent: 'space-between' as const,
-  };
-
-  const showPicker = pickerTarget !== null;
-
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView
-        contentContainerStyle={{
-          paddingTop: headerContentOffset,
-          paddingBottom: insets.bottom + spacing.xl,
-        }}>
+    <KeyboardScreenView
+      contentContainerStyle={{
+        paddingTop: headerContentOffset,
+        paddingBottom: insets.bottom + spacing.xl,
+      }}>
         <Container>
         <Stack space="sm">
         <View style={{ alignItems: 'center', gap: spacing.xs }}>
@@ -275,32 +216,26 @@ export default function CreateEventScreen() {
         />
 
         {/* Start time */}
-        <View style={{ gap: spacing.xs }}>
-          <AppText variant="caption">Start time *</AppText>
-          <Pressable style={dateFieldStyle} onPress={() => openPicker('start')}>
-            <AppText style={{ color: startDate ? colors.text : colors.textMuted }}>
-              {formatDisplay(startDate)}
-            </AppText>
-            <Ionicons name="calendar-outline" size={18} color={colors.textMuted} />
-          </Pressable>
-          {errors.start_time ? (
-            <AppText variant="caption" tone="error">{errors.start_time}</AppText>
-          ) : null}
-        </View>
+        <DateTimeField
+          label="Start time *"
+          value={formatDisplay(startDate)}
+          placeholder="Select date and time"
+          active={!!startDate}
+          error={errors.start_time}
+          onPress={() => openPicker('start')}
+          onClear={startDate ? () => setStartDate(null) : undefined}
+        />
 
         {/* End time */}
-        <View style={{ gap: spacing.xs }}>
-          <AppText variant="caption">End time *</AppText>
-          <Pressable style={dateFieldStyle} onPress={() => openPicker('end')}>
-            <AppText style={{ color: endDate ? colors.text : colors.textMuted }}>
-              {formatDisplay(endDate)}
-            </AppText>
-            <Ionicons name="calendar-outline" size={18} color={colors.textMuted} />
-          </Pressable>
-          {errors.end_time ? (
-            <AppText variant="caption" tone="error">{errors.end_time}</AppText>
-          ) : null}
-        </View>
+        <DateTimeField
+          label="End time *"
+          value={formatDisplay(endDate)}
+          placeholder="Select date and time"
+          active={!!endDate}
+          error={errors.end_time}
+          onPress={() => openPicker('end')}
+          onClear={endDate ? () => setEndDate(null) : undefined}
+        />
 
         <Input
           label="Price range"
@@ -335,67 +270,14 @@ export default function CreateEventScreen() {
         />
         </Stack>
         </Container>
-      </ScrollView>
-
-      {/* Android: native dialog */}
-      {Platform.OS === 'android' && showPicker && (
-        <DateTimePicker
-          value={tempDate}
-          mode={pickerMode}
-          display="default"
-          onChange={handlePickerChange}
-        />
-      )}
-
-      {/* iOS: absolute bottom sheet — no transparent Modal (avoids black screen bug) */}
-      {Platform.OS === 'ios' && showPicker && (
-        <>
-          <Pressable
-            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.35)' }}
-            onPress={() => setPickerTarget(null)}
-          />
-          <View
-            style={{
-              position: 'absolute',
-              bottom: 0,
-              left: 0,
-              right: 0,
-              backgroundColor: colors.surface,
-              borderTopLeftRadius: radius.lg,
-              borderTopRightRadius: radius.lg,
-              paddingBottom: insets.bottom,
-            }}>
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                paddingHorizontal: spacing.md,
-                paddingTop: spacing.sm,
-                paddingBottom: spacing.xs,
-              }}>
-              <Pressable onPress={() => setPickerTarget(null)}>
-                <AppText tone="primary">Cancel</AppText>
-              </Pressable>
-              <AppText variant="subtitle">
-                {pickerMode === 'date' ? 'Select date' : 'Select time'}
-              </AppText>
-              <Pressable onPress={handleIOSDone}>
-                <AppText tone="primary">
-                  {pickerMode === 'date' ? 'Next' : 'Done'}
-                </AppText>
-              </Pressable>
-            </View>
-            <DateTimePicker
-              value={tempDate}
-              mode={pickerMode}
-              display="spinner"
-              onChange={handlePickerChange}
-              style={{ height: 200 }}
-            />
-          </View>
-        </>
-      )}
-    </KeyboardAvoidingView>
+      <AppDateTimePicker
+        visible={pickerTarget !== null}
+        value={(pickerTarget === 'start' ? startDate : endDate) ?? new Date()}
+        mode="datetime"
+        minimumDate={new Date()}
+        onConfirm={commitDate}
+        onClose={() => setPickerTarget(null)}
+      />
+    </KeyboardScreenView>
   );
 }

@@ -1,17 +1,15 @@
 import { useState } from 'react';
-import {
-	View,
-	Text,
-	TextInput,
-	Pressable,
-	ActivityIndicator,
-	StyleSheet,
-	KeyboardAvoidingView,
-	Platform,
-} from 'react-native';
+import { View } from 'react-native';
 import { Link } from 'expo-router';
 import { signUpSchema } from '@/types/auth.types';
 import { useAuthStore } from '@/store/auth.store';
+import { Button } from '@/components/ui/button';
+import { Container } from '@/components/ui/container';
+import { Input } from '@/components/ui/input';
+import { KeyboardScreenView } from '@/components/ui/keyboard-screen-view';
+import { Stack } from '@/components/ui/stack';
+import { AppText } from '@/components/ui/text';
+import { useAppTheme } from '@/components/ui/theme-provider';
 
 export default function SignupScreen() {
 	const [username, setUsername] = useState('');
@@ -21,6 +19,9 @@ export default function SignupScreen() {
 	const [pendingConfirmation, setPendingConfirmation] = useState(false);
 
 	const { signUp, isLoading } = useAuthStore();
+  const {
+    theme: { colors, spacing, typography },
+  } = useAppTheme();
 
 	async function handleSignUp() {
 		setError(null);
@@ -42,13 +43,13 @@ export default function SignupScreen() {
 
 	if (pendingConfirmation) {
 		return (
-			<View style={styles.container}>
-				<Text style={styles.title}>Check your email</Text>
-				<Text style={styles.subtitle}>
+			<View style={{ flex: 1, justifyContent: 'center', padding: spacing.md, backgroundColor: colors.background }}>
+				<AppText variant="title">Check your email</AppText>
+				<AppText tone="muted">
 					We sent a confirmation link to {email}.{'\n'}
 					Click it to activate your account.
-				</Text>
-				<Link href="/(auth)/login" style={styles.link}>
+				</AppText>
+				<Link href="/(auth)/login" style={{ color: colors.primary, textAlign: 'center', marginTop: spacing.md, ...typography.body }}>
 					Back to sign in
 				</Link>
 			</View>
@@ -56,112 +57,51 @@ export default function SignupScreen() {
 	}
 
 	return (
-		<KeyboardAvoidingView
-			style={styles.container}
-			behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-		>
-			<Text style={styles.title}>Create account</Text>
-			<Text style={styles.subtitle}>Join Triploom</Text>
+		<KeyboardScreenView
+      style={{ backgroundColor: colors.background }}
+      contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingVertical: spacing.xl }}>
+      <Container>
+        <Stack space="sm">
+          <View style={{ gap: spacing.xs }}>
+            <AppText variant="title">Create account</AppText>
+            <AppText tone="muted">Join Triploom</AppText>
+          </View>
 
-			<TextInput
-				style={styles.input}
-				placeholder="Username"
-				value={username}
-				onChangeText={setUsername}
-				autoCapitalize="none"
-				textContentType="username"
-				placeholderTextColor="#999"
-			/>
-			<TextInput
-				style={styles.input}
-				placeholder="Email"
-				value={email}
-				onChangeText={setEmail}
-				autoCapitalize="none"
-				keyboardType="email-address"
-				textContentType="emailAddress"
-				placeholderTextColor="#999"
-			/>
-			<TextInput
-				style={styles.input}
-				placeholder="Password"
-				value={password}
-				onChangeText={setPassword}
-				secureTextEntry
-				textContentType="newPassword"
-				placeholderTextColor="#999"
-			/>
+          <Input
+            label="Username"
+            placeholder="Username"
+            value={username}
+            onChangeText={setUsername}
+            autoCapitalize="none"
+            textContentType="username"
+          />
+          <Input
+            label="Email"
+            placeholder="Email"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            textContentType="emailAddress"
+          />
+          <Input
+            label="Password"
+            placeholder="Password"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            textContentType="newPassword"
+          />
 
-			{error && <Text style={styles.error}>{error}</Text>}
+          {error ? <AppText tone="error">{error}</AppText> : null}
 
-			<Pressable
-				style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
-				onPress={handleSignUp}
-				disabled={isLoading}
-			>
-				{isLoading
-					? <ActivityIndicator color="#fff" />
-					: <Text style={styles.buttonText}>Create account</Text>
-				}
-			</Pressable>
+          <Button label="Create account" fullWidth loading={isLoading} onPress={handleSignUp} />
 
-			<Link href="/(auth)/login" style={styles.link}>
-				Already have an account? Sign in
-			</Link>
-		</KeyboardAvoidingView>
+          <Link href="/(auth)/login" style={{ color: colors.primary, textAlign: 'center', ...typography.body }}>
+            Already have an account? Sign in
+          </Link>
+        </Stack>
+      </Container>
+		</KeyboardScreenView>
 	);
 }
-
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		justifyContent: 'center',
-		padding: 24,
-	},
-	title: {
-		fontSize: 28,
-		fontWeight: 'bold',
-		marginBottom: 4,
-	},
-	subtitle: {
-		fontSize: 14,
-		color: '#666',
-		marginBottom: 32,
-	},
-	input: {
-		borderWidth: 1,
-		borderColor: '#ddd',
-		borderRadius: 8,
-		padding: 12,
-		fontSize: 16,
-		marginBottom: 12,
-		backgroundColor: '#fff',
-		color: '#000',
-	},
-	error: {
-		color: '#e53e3e',
-		fontSize: 14,
-		marginBottom: 12,
-	},
-	button: {
-		backgroundColor: '#3b82f6',
-		borderRadius: 8,
-		padding: 14,
-		alignItems: 'center',
-		marginTop: 4,
-	},
-	buttonPressed: {
-		opacity: 0.8,
-	},
-	buttonText: {
-		color: '#fff',
-		fontSize: 16,
-		fontWeight: '600',
-	},
-	link: {
-		textAlign: 'center',
-		marginTop: 20,
-		color: '#3b82f6',
-		fontSize: 14,
-	},
-});

@@ -1,4 +1,4 @@
-import { Platform, type TextStyle, type ViewStyle } from 'react-native';
+import type { TextStyle, ViewStyle } from 'react-native';
 
 export type ThemeMode = 'light' | 'dark';
 export type ThemeColorPreset = 'ocean' | 'citrus' | 'forest' | 'rose';
@@ -84,64 +84,40 @@ export const layout = {
   floatingBarMaxWidth: 460,
 } as const;
 
-const fontFamilies = Platform.select({
-  ios: {
-    sans: 'System',
-    serif: 'ui-serif',
-    rounded: 'ui-rounded',
-    mono: 'ui-monospace',
-  },
-  default: {
-    sans: 'sans-serif',
-    serif: 'serif',
-    rounded: 'sans-serif',
-    mono: 'monospace',
-  },
-  web: {
-    sans: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-    serif: "Georgia, 'Times New Roman', serif",
-    rounded: "'SF Pro Rounded', 'Hiragino Maru Gothic ProN', sans-serif",
-    mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Courier New', monospace",
-  },
-}) ?? {
-  sans: 'sans-serif',
-  serif: 'serif',
-  rounded: 'sans-serif',
-  mono: 'monospace',
-};
+const fontFamilies = {
+  sansRegular: 'Roboto_400Regular',
+  sansMedium: 'Roboto_500Medium',
+  sansBold: 'Roboto_700Bold',
+  sansBlack: 'Roboto_900Black',
+} as const;
 
 export const typography = {
   title: {
-    fontFamily: fontFamilies.sans,
+    fontFamily: fontFamilies.sansBold,
     fontSize: 38,
     lineHeight: 40,
-    fontWeight: '900' as const,
     letterSpacing: 0,
   },
   subtitle: {
-    fontFamily: fontFamilies.sans,
+    fontFamily: fontFamilies.sansBold,
     fontSize: 24,
     lineHeight: 30,
-    fontWeight: '700' as const,
     letterSpacing: 0,
   },
   body: {
-    fontFamily: fontFamilies.sans,
+    fontFamily: fontFamilies.sansRegular,
     fontSize: 16,
     lineHeight: 26,
-    fontWeight: '500' as const,
   },
   caption: {
-    fontFamily: fontFamilies.sans,
+    fontFamily: fontFamilies.sansRegular,
     fontSize: 13,
     lineHeight: 20,
-    fontWeight: '600' as const,
   },
   label: {
-    fontFamily: fontFamilies.sans,
+    fontFamily: fontFamilies.sansMedium,
     fontSize: 15,
     lineHeight: 22,
-    fontWeight: '700' as const,
   },
 } as const satisfies Record<string, TextStyle>;
 

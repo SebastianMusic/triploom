@@ -1,4 +1,3 @@
-import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useEffect, useState } from 'react';
@@ -6,7 +5,6 @@ import {
   Alert,
   Image,
   Modal,
-  Platform,
   Pressable,
   StyleSheet,
   View,
@@ -15,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import GeneralCamera from '@/components/camera/general-camera';
 import { Button } from '@/components/ui/button';
+import { AppDateTimePicker, DateTimeField } from '@/components/ui/date-time-picker';
 import { Input } from '@/components/ui/input';
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
@@ -78,7 +77,7 @@ export function TripEditForm({ onClose }: Props) {
   const insets = useSafeAreaInsets();
   const {
     mode,
-    theme: { colors, opacity, radius, shadows, spacing, stroke, typography },
+    theme: { colors, opacity, radius, shadows, spacing, typography },
   } = useAppTheme();
 
   const currentTrip = useTripStore((s) => s.currentTrip);
@@ -181,12 +180,7 @@ export function TripEditForm({ onClose }: Props) {
     ]);
   }
 
-  function handleDateChange(_event: DateTimePickerEvent, selected?: Date) {
-    if (!selected) {
-      setPickerTarget(null);
-      return;
-    }
-
+  function handleDateChange(selected: Date) {
     if (pickerTarget === 'start') {
       setStartDate(selected);
     }
@@ -310,8 +304,6 @@ export function TripEditForm({ onClose }: Props) {
             {
               borderRadius: radius.xl,
               backgroundColor: colors.surface,
-              borderWidth: stroke.thin,
-              borderColor: colors.border,
               padding: spacing.md,
               gap: spacing.lg,
             },
@@ -377,24 +369,32 @@ export function TripEditForm({ onClose }: Props) {
             />
           </View>
 
-          <View style={{ gap: spacing.md }}>
-            <AppText style={typography.label}>Dates</AppText>
+            <View style={{ gap: spacing.md }}>
+              <AppText style={typography.label}>Dates</AppText>
 
-            <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-              <DateField
-                label="Start date"
-                value={formatDate(startDate)}
-                active={!!startDate}
-                onPress={() => setPickerTarget('start')}
-              />
-              <DateField
-                label="End date"
-                value={formatDate(endDate)}
-                active={!!endDate}
-                onPress={() => setPickerTarget('end')}
-              />
+              <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+                <View style={{ flex: 1 }}>
+                  <DateTimeField
+                    label="Start date"
+                    value={formatDate(startDate)}
+                    placeholder="Select date"
+                    active={!!startDate}
+                    onPress={() => setPickerTarget('start')}
+                    onClear={startDate ? () => setStartDate(null) : undefined}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <DateTimeField
+                    label="End date"
+                    value={formatDate(endDate)}
+                    placeholder="Select date"
+                    active={!!endDate}
+                    onPress={() => setPickerTarget('end')}
+                    onClear={endDate ? () => setEndDate(null) : undefined}
+                  />
+                </View>
+              </View>
             </View>
-          </View>
 
           <View style={{ gap: spacing.md }}>
             <View style={{ gap: 4 }}>
@@ -502,18 +502,17 @@ export function TripEditForm({ onClose }: Props) {
         </View>
       </View>
 
-      {pickerTarget ? (
-        <DateTimePicker
-          value={
-            pickerTarget === 'start'
-              ? startDate ?? new Date()
-              : endDate ?? startDate ?? new Date()
-          }
-          mode="date"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          onChange={handleDateChange}
-        />
-      ) : null}
+      <AppDateTimePicker
+        visible={pickerTarget !== null}
+        value={
+          pickerTarget === 'start'
+            ? startDate ?? new Date()
+            : endDate ?? startDate ?? new Date()
+        }
+        mode="date"
+        onConfirm={handleDateChange}
+        onClose={() => setPickerTarget(null)}
+      />
 
       <Modal
         transparent
@@ -576,46 +575,6 @@ export function TripEditForm({ onClose }: Props) {
       </Modal>
     </>
   );
-
-  function DateField({
-    label,
-    value,
-    active,
-    onPress,
-  }: {
-    label: string;
-    value: string;
-    active: boolean;
-    onPress: () => void;
-  }) {
-    return (
-      <View style={{ flex: 1, gap: spacing.xs }}>
-        <AppText variant="caption">{label}</AppText>
-        <Pressable
-          accessibilityRole="button"
-          onPress={onPress}
-          style={({ pressed }) => ({
-            minHeight: 56,
-            borderRadius: radius.md,
-            backgroundColor: colors.surfaceMuted,
-            paddingHorizontal: spacing.sm,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            borderWidth: stroke.thin,
-            borderColor: colors.transparent,
-            opacity: pressed ? opacity.pressed : 1,
-          })}>
-          <AppText
-            numberOfLines={1}
-            style={{ flex: 1, color: active ? colors.text : colors.textMuted }}>
-            {value}
-          </AppText>
-          <Ionicons name="calendar-outline" size={18} color={colors.icon} />
-        </Pressable>
-      </View>
-    );
-  }
 
   function PreviewCard({
     name: previewName,
