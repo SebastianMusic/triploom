@@ -1,4 +1,5 @@
 import * as ImagePicker from 'expo-image-picker';
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 
 type PickSingleImageOptions = {
   aspect?: [number, number];
@@ -23,5 +24,16 @@ export async function pickSingleImageFromLibrary(
     return null;
   }
 
-  return result.assets[0].uri;
+  const selectedUri = result.assets[0].uri;
+
+  if (selectedUri.startsWith('content://')) {
+    const normalized = await manipulateAsync(
+      selectedUri,
+      [],
+      { compress: 0.8, format: SaveFormat.JPEG },
+    );
+    return normalized.uri;
+  }
+
+  return selectedUri;
 }

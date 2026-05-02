@@ -1,15 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ActivityIndicator, ScrollView, View } from 'react-native';
 
 import { EventCard } from '@/components/events/event-card';
 import { EventDetailModal } from '@/components/events/event-detail-modal';
+import { useTripChromeInsets } from '@/components/layout';
 import { AppRefreshControl } from '@/components/ui/app-refresh-control';
 import { Container } from '@/components/ui/container';
+import { EmptyState } from '@/components/ui/empty-state';
+import { FloatingActionButton } from '@/components/ui/floating-action-button';
+import { SectionHeader } from '@/components/ui/section-header';
 import { Stack } from '@/components/ui/stack';
-import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import { useEventsStore } from '@/store/events.store';
 import { useProfileStore } from '@/store/profile.store';
@@ -19,16 +21,13 @@ import type { EventWithCount } from '@/services/events.service';
 
 export default function EventsScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { selectedTrip } = useProfileStore();
   const { events, isLoading, fetchEvents, deleteEvent } = useEventsStore();
   const { currentParticipant, fetchParticipants } = useTripStore();
+  const { headerContentOffset, bottomOverlayOffset } = useTripChromeInsets();
   const {
-    theme: { colors, layout, sizes, spacing },
+    theme: { colors, spacing },
   } = useAppTheme();
-
-  const headerHeight = insets.top + spacing.xs + sizes.iconButton.md + layout.headerPaddingBottom;
-  const addButtonRight = layout.headerPaddingHorizontal + sizes.iconButton.md + spacing.xs;
 
   const [refreshing, setRefreshing] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
@@ -60,21 +59,27 @@ export default function EventsScreen() {
           <AppRefreshControl
             refreshing={refreshing}
             onRefresh={() => { void handleRefresh(); }}
-            progressViewOffset={headerHeight}
+            progressViewOffset={headerContentOffset}
           />
         }
         contentContainerStyle={{
-          paddingTop: headerHeight + spacing.sm,
-          paddingBottom: insets.bottom + spacing.xl,
+          paddingTop: headerContentOffset,
+          paddingBottom: Math.max(spacing.xxxl, bottomOverlayOffset),
         }}>
         <Container>
           <Stack space="sm">
+            <SectionHeader
+              title="Upcoming events"
+              subtitle="Plan, browse and open event details in one place."
+              count={events.length}
+            />
             {isLoading ? (
               <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.xl }} />
             ) : events.length === 0 ? (
-              <AppText tone="muted" style={{ textAlign: 'center', marginTop: spacing.xl }}>
-                No upcoming events
-              </AppText>
+              <EmptyState
+                title="No events yet"
+                description="Add the first event to give the trip a clearer plan."
+              />
             ) : (
               events.map((event) => (
                 <EventCard
@@ -88,29 +93,14 @@ export default function EventsScreen() {
         </Container>
       </ScrollView>
 
-      <Pressable
+      <FloatingActionButton
         accessibilityLabel="Create event"
         onPress={() => router.push('/(app)/(trip)/events/create_event')}
-        hitSlop={8}
-        style={({ pressed }) => ({
-          position: 'absolute',
-          top: insets.top + spacing.xs,
-          right: addButtonRight,
-          width: sizes.iconButton.md,
-          height: sizes.iconButton.md,
-          borderRadius: sizes.iconButton.md / 2,
-          backgroundColor: colors.accent,
-          alignItems: 'center',
-          justifyContent: 'center',
-          opacity: pressed ? 0.8 : 1,
-          shadowColor: colors.shadow,
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.22,
-          shadowRadius: 12,
-          elevation: 3,
-        })}>
-        <Ionicons name="add" size={22} color={colors.text} />
-      </Pressable>
+        style={{
+          bottom: bottomOverlayOffset - spacing.xl,
+        }}
+        icon={<Ionicons name="add" size={28} color={colors.textOnPrimary} />}
+      />
 
       <EventDetailModal
         event={selectedEvent}

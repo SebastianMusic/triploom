@@ -11,6 +11,7 @@ export type BottomActionSheetItem = {
   destructive?: boolean;
   muted?: boolean;
   skipIosCloseDelay?: boolean;
+  closeDelayMs?: number;
   onPress: () => void;
 };
 
@@ -77,10 +78,11 @@ export function BottomActionSheet({
                 accessibilityRole="button"
                 onPress={() => {
                   onClose();
-                  if (Platform.OS === 'ios' && !item.skipIosCloseDelay) {
+                  const delay = item.closeDelayMs ?? (Platform.OS === 'ios' && !item.skipIosCloseDelay ? 220 : 0);
+                  if (delay > 0) {
                     setTimeout(() => {
                       item.onPress();
-                    }, 220);
+                    }, delay);
                     return;
                   }
                   item.onPress();

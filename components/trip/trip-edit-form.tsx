@@ -485,7 +485,7 @@ export function TripEditForm({ onClose, middleContent }: Props) {
             key: 'library',
             label: 'Choose from library',
             icon: 'images-outline',
-            skipIosCloseDelay: true,
+            closeDelayMs: 120,
             onPress: () => {
               void handlePickFromLibrary();
             },

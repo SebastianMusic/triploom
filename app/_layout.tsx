@@ -1,4 +1,4 @@
-import { Stack, router } from 'expo-router';
+import { Stack, router, useSegments } from 'expo-router';
 import { useFonts } from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
@@ -14,6 +14,7 @@ import {
 } from '@expo-google-fonts/roboto';
 
 import { ThemeProvider, useAppTheme } from '@/components/ui/theme-provider';
+import { TripFadeOverlays } from '@/components/layout';
 import { useAuthStore } from '@/store/auth.store';
 import { useThemeStore } from '@/store/theme.store';
 import { useChatStore } from '@/store/chat.store';
@@ -34,7 +35,9 @@ Notifications.setNotificationHandler({
 
 function RootNavigator() {
 	const { session, isLoading, initialize } = useAuthStore();
+  const segments = useSegments();
   const { mode, theme } = useAppTheme();
+  const isTripRoute = segments[0] === '(app)' && segments[1] === '(trip)';
 
 	useEffect(() => {
 		initialize();
@@ -83,7 +86,12 @@ function RootNavigator() {
 					<Stack.Screen name="(auth)" options={{ headerShown: false }} />
 				</Stack.Protected>
 			</Stack>
-			<StatusBar style={mode === 'dark' ? 'light' : 'dark'} backgroundColor={theme.colors.background} />
+      {!isTripRoute ? <TripFadeOverlays top bottom={false} /> : null}
+			<StatusBar
+        style={mode === 'dark' ? 'light' : 'dark'}
+        backgroundColor="transparent"
+        translucent
+      />
 		</>
 	);
 }

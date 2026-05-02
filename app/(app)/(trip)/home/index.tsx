@@ -9,14 +9,17 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { AnnouncementForm } from '@/components/announcement/AnnouncementForm';
 import { EventDetailModal } from '@/components/events/event-detail-modal';
 import { useTripChromeInsets } from '@/components/layout/use-trip-chrome';
 import { TaskDetailModal } from '@/components/tasks/task-detail-modal';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { confirmDestructiveAction } from '@/components/ui/confirm-destructive-action';
 import { Container } from '@/components/ui/container';
+import { Input } from '@/components/ui/input';
 import { PageSheetModal } from '@/components/ui/page-sheet-modal';
 import { AppRefreshControl } from '@/components/ui/app-refresh-control';
 import { Row } from '@/components/ui/row';
@@ -24,7 +27,7 @@ import { Stack } from '@/components/ui/stack';
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import { useTripBannerUrl } from '@/hooks/use-trip-banner-url';
-import { getEventBannerUrl } from '@/services/events.service';
+import { getEventBannerUrl, type EventWithCount } from '@/services/events.service';
 import { useAnnouncementStore } from '@/store/announcement.store';
 import { useAuthStore } from '@/store/auth.store';
 import { useEventsStore } from '@/store/events.store';
@@ -33,9 +36,15 @@ import { useTasksStore } from '@/store/tasks.store';
 import { useTripStore } from '@/store/trip.store';
 import type { Announcement, Task } from '@/types';
 import { TripRole } from '@/types';
+import { TaskFieldType } from '@/types/tasks.types';
 
 const HERO_HEIGHT = 320;
-const SHEET_OVERLAP = 72;
+const SHEET_OVERLAP = 48;
+
+type PendingResponseMap = Record<
+  string,
+  { option_id?: string | null; is_checked?: boolean | null; value?: string | null }[]
+>;
 
 function formatFullDay(iso: string | null | undefined): string {
   if (!iso) return '';
@@ -64,7 +73,36 @@ function formatEventTime(start: string | null | undefined, end: string | null | 
   return `${startText} - ${formatTime(end)}`;
 }
 
-function sortTasks(tasks: Task[], assignments: Record<string, { is_completed: boolean | null }>): Task[] {
+function withAlpha(hexColor: string, alpha: number) {
+  const normalized = hexColor.replace('#', '');
+  if (normalized.length !== 6) return hexColor;
+
+  const r = parseInt(normalized.slice(0, 2), 16);
+  const g = parseInt(normalized.slice(2, 4), 16);
+  const b = parseInt(normalized.slice(4, 6), 16);
+
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function getTimeValue(iso: string | null | undefined) {
+  if (!iso) return Number.MAX_SAFE_INTEGER;
+  const value = new Date(iso).getTime();
+  return Number.isNaN(value) ? Number.MAX_SAFE_INTEGER : value;
+}
+
+function sortEventsByPriority(events: EventWithCount[]) {
+  return [...events].sort((a, b) => {
+    const aMandatory = a.is_optional === false;
+    const bMandatory = b.is_optional === false;
+    if (aMandatory !== bMandatory) return aMandatory ? -1 : 1;
+    return getTimeValue(a.start_time) - getTimeValue(b.start_time);
+  });
+}
+
+function sortTasksByPriority(
+  tasks: Task[],
+  assignments: Record<string, { is_completed: boolean | null }>,
+) {
   return [...tasks].sort((a, b) => {
     const aDone = assignments[a.id]?.is_completed ?? false;
     const bDone = assignments[b.id]?.is_completed ?? false;
@@ -72,9 +110,7 @@ function sortTasks(tasks: Task[], assignments: Record<string, { is_completed: bo
     const aMandatory = a.is_mandatory ?? false;
     const bMandatory = b.is_mandatory ?? false;
     if (aMandatory !== bMandatory) return aMandatory ? -1 : 1;
-    const aDue = a.due_time ? new Date(a.due_time).getTime() : Number.MAX_SAFE_INTEGER;
-    const bDue = b.due_time ? new Date(b.due_time).getTime() : Number.MAX_SAFE_INTEGER;
-    return aDue - bDue;
+    return getTimeValue(a.due_time) - getTimeValue(b.due_time);
   });
 }
 
@@ -117,12 +153,16 @@ export default function HomeScreen() {
   const {
     theme: { colors, radius, shadows, spacing, typography },
   } = useAppTheme();
+  const transparentBackground = withAlpha(colors.background, 0);
   const bannerUrl = useTripBannerUrl(currentTrip?.banner_image_url);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
-  const [eventPreviewUrls, setEventPreviewUrls] = useState<Record<string, string>>({});
+  const [topEventPreviewUrl, setTopEventPreviewUrl] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [earlierAnnouncementsVisible, setEarlierAnnouncementsVisible] = useState(false);
+  const [announcementDescriptionHasOverflow, setAnnouncementDescriptionHasOverflow] = useState(false);
+  const [taskPendingResponses, setTaskPendingResponses] = useState<PendingResponseMap>({});
 
   const isOrganizer =
     currentParticipant?.role === TripRole.Organizer ||
@@ -135,33 +175,36 @@ export default function HomeScreen() {
     ? (announcements.find((announcement) => announcement.id === params.editAnnouncement) ?? null)
     : null;
 
-  const sortedTasks = useMemo(() => sortTasks(tasks, assignments), [assignments, tasks]);
-  const visibleTasks = sortedTasks;
-  const sortedEvents = useMemo(
+  const sortedTasks = useMemo(() => sortTasksByPriority(tasks, assignments), [assignments, tasks]);
+  const topTaskCandidates = useMemo(
     () =>
-      [...events].sort((a, b) => {
-        const aMandatory = a.is_optional === false;
-        const bMandatory = b.is_optional === false;
-        if (aMandatory !== bMandatory) return aMandatory ? -1 : 1;
-        const aTime = a.start_time ? new Date(a.start_time).getTime() : Number.MAX_SAFE_INTEGER;
-        const bTime = b.start_time ? new Date(b.start_time).getTime() : Number.MAX_SAFE_INTEGER;
-        return aTime - bTime;
+      sortedTasks.filter((task) => {
+        if (assignments[task.id]?.is_completed ?? false) return false;
+        if (!task.due_time) return true;
+        return new Date(task.due_time).getTime() >= Date.now();
       }),
-    [events],
+    [assignments, sortedTasks],
   );
-  const visibleEvents = useMemo(() => {
-    const mandatoryEvents = sortedEvents.filter((event) => event.is_optional === false);
-    return mandatoryEvents.length > 0 ? mandatoryEvents : sortedEvents;
-  }, [sortedEvents]);
+  const topTask = useMemo(
+    () => topTaskCandidates[0] ?? null,
+    [topTaskCandidates],
+  );
+  const topTaskFields = topTask ? (fields[topTask.id] ?? []) : [];
+  const topTaskAssignment = topTask ? (assignments[topTask.id] ?? null) : null;
+  const sortedEvents = useMemo(() => sortEventsByPriority(events), [events]);
+  const topEvent = sortedEvents[0] ?? null;
   const latestAnnouncement = announcements[0] ?? null;
   const loading = eventsLoading || tasksLoading || announcementsLoading;
   const announcementEditorVisible = params.compose === 'announcement' || !!editingAnnouncement;
-  const visibleTaskIds = useMemo(() => visibleTasks.map((task) => task.id), [visibleTasks]);
+  const visibleTaskIds = useMemo(
+    () => Array.from(new Set([topTask?.id, selectedTask?.id].filter(Boolean) as string[])),
+    [selectedTask?.id, topTask?.id],
+  );
   const isInitialLoading =
     loading &&
     announcements.length === 0 &&
-    visibleEvents.length === 0 &&
-    visibleTasks.length === 0;
+    !topEvent &&
+    !topTask;
 
   useFocusEffect(
     useCallback(() => {
@@ -186,6 +229,14 @@ export default function HomeScreen() {
   }, [currentParticipant, fetchAssignments, tasks]);
 
   useEffect(() => {
+    setAnnouncementDescriptionHasOverflow(false);
+  }, [latestAnnouncement?.id]);
+
+  useEffect(() => {
+    setTaskPendingResponses({});
+  }, [topTask?.id]);
+
+  useEffect(() => {
     if (visibleTaskIds.length === 0) return;
     void fetchTaskFields(visibleTaskIds);
     void fetchAllAssignments(visibleTaskIds).catch(() => undefined);
@@ -199,30 +250,24 @@ export default function HomeScreen() {
   }, [currentParticipant, fetchMyFieldResponses, fields]);
 
   useEffect(() => {
-    const eventsWithBanner = visibleEvents.filter((event) => event.banner_image_url);
-    if (eventsWithBanner.length === 0) {
-      setEventPreviewUrls({});
+    if (!topEvent?.banner_image_url) {
+      setTopEventPreviewUrl(null);
       return;
     }
 
     let cancelled = false;
-    Promise.all(
-      eventsWithBanner.map(async (event) => {
-        const url = await getEventBannerUrl(event.banner_image_url);
-        return [event.id, url] as const;
-      }),
-    )
-      .then((entries) => {
-        if (!cancelled) setEventPreviewUrls(Object.fromEntries(entries));
+    getEventBannerUrl(topEvent.banner_image_url)
+      .then((url) => {
+        if (!cancelled) setTopEventPreviewUrl(url);
       })
       .catch(() => {
-        if (!cancelled) setEventPreviewUrls({});
+        if (!cancelled) setTopEventPreviewUrl(null);
       });
 
     return () => {
       cancelled = true;
     };
-  }, [visibleEvents]);
+  }, [topEvent?.banner_image_url]);
 
   function closeAnnouncementEditor() {
     router.setParams({ compose: undefined, editAnnouncement: undefined });
@@ -260,6 +305,42 @@ export default function HomeScreen() {
     }
   }
 
+  async function handleCompleteTopTask() {
+    if (!currentParticipant || !topTask) return;
+    const fieldIds = topTaskFields.map((field) => field.id);
+    if (fieldIds.length > 0) {
+      await deleteMyFieldResponses(currentParticipant.id, fieldIds);
+    }
+    for (const field of topTaskFields) {
+      const pending = taskPendingResponses[field.id];
+      if (!pending) continue;
+      for (const response of pending) {
+        await upsertFieldResponse(field.id, currentParticipant.id, response);
+      }
+    }
+    await upsertAssignment(topTask.id, currentParticipant.id, { is_completed: true });
+    setTaskPendingResponses({});
+    void fetchAllAssignments([topTask.id]).catch(() => undefined);
+  }
+
+  function handleUndoTopTaskComplete() {
+    if (!currentParticipant || !topTask) return;
+    const prefilled: PendingResponseMap = {};
+    for (const field of topTaskFields) {
+      const responses = myFieldResponses[field.id] ?? [];
+      if (responses.length > 0) {
+        prefilled[field.id] = responses.map((response) => ({
+          option_id: response.option_id,
+          is_checked: response.is_checked,
+          value: response.value,
+        }));
+      }
+    }
+    setTaskPendingResponses(prefilled);
+    void upsertAssignment(topTask.id, currentParticipant.id, { is_completed: false });
+    void fetchAllAssignments([topTask.id]).catch(() => undefined);
+  }
+
   if (!currentTrip) {
     return (
       <View style={{ flex: 1, justifyContent: 'center' }}>
@@ -278,9 +359,17 @@ export default function HomeScreen() {
           right: 0,
           left: 0,
           height: HERO_HEIGHT,
+          overflow: 'hidden',
         }}>
         {bannerUrl ? (
-          <Image source={{ uri: bannerUrl }} resizeMode="cover" style={{ width: '100%', height: '100%' }} />
+          <Image
+            source={{ uri: bannerUrl }}
+            resizeMode="cover"
+            style={{
+              width: '100%',
+              height: '100%',
+            }}
+          />
         ) : (
           <View style={{ flex: 1, backgroundColor: colors.primarySoft }} />
         )}
@@ -288,9 +377,25 @@ export default function HomeScreen() {
           style={{
             position: 'absolute',
             inset: 0,
-            backgroundColor: bannerUrl ? colors.overlayStrong : colors.transparent,
+            backgroundColor: bannerUrl ? colors.overlay : colors.transparent,
           }}
         />
+        {bannerUrl ? (
+          <LinearGradient
+            pointerEvents="none"
+            colors={[transparentBackground, colors.background]}
+            locations={[0, 1]}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
+            style={{
+              position: 'absolute',
+              right: 0,
+              bottom: 0,
+              left: 0,
+              height: spacing.xxl,
+            }}
+          />
+        ) : null}
       </View>
 
       <ScrollView
@@ -322,49 +427,54 @@ export default function HomeScreen() {
                 </Row>
               </View>
 
+              <View
+                style={{
+                  height: 1,
+                  marginTop: spacing.xs / 2,
+                  marginBottom: 0,
+                  backgroundColor: colors.border,
+                }}
+              />
+
               <Stack space="sm">
-                <SectionHeader title="Announcements" count={announcements.length} />
                 <AnnouncementPreview />
+                <InlineViewMoreButton
+                  label="View all announcements"
+                  onPress={() => setEarlierAnnouncementsVisible(true)}
+                />
               </Stack>
 
-              {visibleEvents.length > 0 ? (
-                <Stack space="sm">
-                  <SectionHeader title="Events" count={visibleEvents.length} />
-                  <Stack space="xs">
-                    {visibleEvents.map((event) => (
-                      <CompactOverviewRow
-                        key={event.id}
-                        imageUri={eventPreviewUrls[event.id] ?? bannerUrl}
-                        icon="calendar-outline"
-                        title={event.title ?? 'Untitled event'}
-                        date={formatEventTime(event.start_time, event.end_time)}
-                        place={event.location}
-                        description={event.description}
-                        onPress={() => setSelectedEventId(event.id)}
+              <Stack space="sm" style={{ marginTop: spacing.xs }}>
+                <SectionEyebrow label="Next event" />
+                {topEvent ? (
+                  <>
+                    <EventPreviewCard />
+                    {sortedEvents.length > 1 ? (
+                      <InlineViewMoreButton
+                        label="View more events"
+                        onPress={() => router.push('/(app)/(trip)/events')}
                       />
-                    ))}
-                  </Stack>
-                </Stack>
-              ) : null}
+                    ) : null}
+                  </>
+                ) : (
+                  <EmptyPreview label="No active events" />
+                )}
+              </Stack>
 
-              {visibleTasks.length > 0 ? (
-                <Stack space="sm">
-                  <SectionHeader title="Tasks" count={visibleTasks.length} />
-                  <Stack space="xs">
-                    {visibleTasks.map((task) => (
-                      <CompactOverviewRow
-                        key={task.id}
-                        imageUri={bannerUrl}
-                        icon="checkbox-outline"
-                        title={task.title ?? 'Untitled task'}
-                        date={formatDue(task.due_time)}
-                        description={task.description}
-                        onPress={() => setSelectedTask(task)}
-                      />
-                    ))}
-                  </Stack>
-                </Stack>
-              ) : null}
+              <Stack space="sm" style={{ marginTop: spacing.xs }}>
+                <SectionEyebrow label="Next task" />
+                {topTask ? (
+                  <>
+                    <TaskPreviewCard />
+                    <InlineViewMoreButton
+                      label="View more tasks"
+                      onPress={() => router.push('/(app)/(trip)/tasks')}
+                    />
+                  </>
+                ) : (
+                  <EmptyPreview label="No active tasks" />
+                )}
+              </Stack>
 
               {loading ? <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.xs }} /> : null}
             </Stack>
@@ -430,6 +540,51 @@ export default function HomeScreen() {
         </ScrollView>
       </PageSheetModal>
       <PageSheetModal
+        visible={earlierAnnouncementsVisible}
+        title="Announcements"
+        onClose={() => setEarlierAnnouncementsVisible(false)}>
+        <ScrollView contentContainerStyle={{ padding: spacing.md, gap: spacing.sm }}>
+          {announcements.length === 0 ? (
+            <Card style={{ padding: spacing.md }}>
+              <AppText tone="muted">No announcements.</AppText>
+            </Card>
+          ) : (
+            announcements.map((announcement) => (
+              <Pressable
+                key={announcement.id}
+                onPress={() => {
+                  setEarlierAnnouncementsVisible(false);
+                  setSelectedAnnouncement(announcement);
+                }}
+                style={({ pressed }) => ({
+                  borderRadius: radius.lg,
+                  backgroundColor: colors.surface,
+                  padding: spacing.md,
+                  opacity: pressed ? 0.82 : 1,
+                  ...shadows.sm,
+                })}>
+                <Row justify="space-between" align="flex-start" gap="sm">
+                  <View style={{ flex: 1, gap: 4 }}>
+                    <AppText style={typography.label} numberOfLines={2}>
+                      {announcement.title}
+                    </AppText>
+                    <AppText variant="caption" tone="muted">
+                      {formatFullDay(announcement.created_at)}
+                    </AppText>
+                    {announcement.description ? (
+                      <AppText variant="caption" tone="muted" numberOfLines={3}>
+                        {announcement.description}
+                      </AppText>
+                    ) : null}
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+                </Row>
+              </Pressable>
+            ))
+          )}
+        </ScrollView>
+      </PageSheetModal>
+      <PageSheetModal
         visible={announcementEditorVisible}
         title="Announcement"
         onClose={closeAnnouncementEditor}>
@@ -448,101 +603,6 @@ export default function HomeScreen() {
     </View>
   );
 
-  function CompactOverviewRow({
-    imageUri,
-    icon,
-    title,
-    date,
-    place,
-    description,
-    onPress,
-  }: {
-    imageUri?: string | null;
-    icon: keyof typeof Ionicons.glyphMap;
-    title: string;
-    date?: string | null;
-    place?: string | null;
-    description?: string | null;
-    onPress?: () => void;
-  }) {
-    return (
-      <Pressable
-        disabled={!onPress}
-        onPress={onPress}
-        style={({ pressed }) => ({
-          borderRadius: radius.lg,
-          backgroundColor: colors.surface,
-          padding: spacing.sm,
-          ...shadows.sm,
-          opacity: pressed ? 0.78 : 1,
-        })}>
-        <Row gap="sm" align="center">
-          {imageUri ? (
-            <Image
-              source={{ uri: imageUri }}
-              resizeMode="cover"
-              style={{
-                width: 64,
-                height: 64,
-                borderRadius: radius.md,
-                backgroundColor: colors.surfaceMuted,
-              }}
-            />
-          ) : (
-            <View
-              style={{
-                width: 64,
-                height: 64,
-                borderRadius: radius.md,
-                backgroundColor: colors.surface,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
-              <Ionicons name={icon} size={20} color={colors.primary} />
-            </View>
-          )}
-          <View style={{ flex: 1, gap: 2 }}>
-            <AppText style={[typography.label, { lineHeight: 18 }]} numberOfLines={1}>
-              {title}
-            </AppText>
-            {date || place ? (
-              <AppText variant="caption" tone="muted" numberOfLines={1}>
-                {[date, place].filter(Boolean).join(' · ')}
-              </AppText>
-            ) : null}
-            {description ? (
-              <AppText variant="caption" tone="muted" numberOfLines={1}>
-                {description}
-              </AppText>
-            ) : null}
-          </View>
-          {onPress ? <Ionicons name="chevron-forward" size={18} color={colors.textMuted} /> : null}
-        </Row>
-      </Pressable>
-    );
-  }
-
-  function SectionHeader({ title, count }: { title: string; count: number }) {
-    return (
-      <Row justify="space-between" align="center">
-        <AppText style={typography.label}>{title}</AppText>
-        <View
-          style={{
-            minWidth: 28,
-            paddingHorizontal: spacing.xs,
-            paddingVertical: 2,
-            borderRadius: radius.full,
-            backgroundColor: colors.surfaceMuted,
-            alignItems: 'center',
-          }}>
-          <AppText variant="caption" tone="muted">
-            {count}
-          </AppText>
-        </View>
-      </Row>
-    );
-  }
-
   function AnnouncementPreview() {
     if (isInitialLoading) {
       return (
@@ -557,12 +617,7 @@ export default function HomeScreen() {
 
     if (!latestAnnouncement) {
       return (
-        <Card style={{ padding: spacing.md }}>
-          <AppText style={typography.label}>No announcements</AppText>
-          <AppText variant="caption" tone="muted" style={{ marginTop: spacing.xs }}>
-            Nothing posted yet
-          </AppText>
-        </Card>
+        <EmptyPreview label="No announcements yet" />
       );
     }
 
@@ -570,11 +625,11 @@ export default function HomeScreen() {
       <Card
         variant="interactive"
         onPress={() => setSelectedAnnouncement(latestAnnouncement)}
-        style={{ padding: spacing.md, backgroundColor: colors.surface }}>
+        style={{ padding: spacing.md }}>
         <Stack space="xs">
           <Row justify="space-between" align="flex-start" gap="sm">
             <View style={{ flex: 1 }}>
-              <AppText variant="subtitle" numberOfLines={2}>
+              <AppText variant="subtitle" numberOfLines={3}>
                 {latestAnnouncement.title}
               </AppText>
               <AppText variant="caption" tone="muted" style={{ marginTop: 2 }}>
@@ -584,21 +639,286 @@ export default function HomeScreen() {
             <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
           </Row>
           {latestAnnouncement.description ? (
-            <AppText tone="muted" numberOfLines={5}>
+            <AppText
+              tone="muted"
+              numberOfLines={5}
+              onTextLayout={(event) => {
+                if (event.nativeEvent.lines.length > 5) {
+                  setAnnouncementDescriptionHasOverflow(true);
+                }
+              }}>
               {latestAnnouncement.description}
             </AppText>
           ) : null}
-          <Pressable
-            onPress={() => setSelectedAnnouncement(latestAnnouncement)}
-            style={({ pressed }) => ({
-              alignSelf: 'flex-start',
-              paddingVertical: spacing.xs / 2,
-              opacity: pressed ? 0.72 : 1,
-            })}>
-            <AppText variant="caption" tone="primary" style={{ fontWeight: '700' }}>
-              View more
+          <Row justify="space-between" align="center">
+            {announcementDescriptionHasOverflow ? (
+              <Pressable
+                onPress={() => setSelectedAnnouncement(latestAnnouncement)}
+                style={({ pressed }) => ({
+                  paddingVertical: spacing.xs / 2,
+                  opacity: pressed ? 0.72 : 1,
+                })}>
+                <AppText variant="caption" tone="primary" style={{ fontWeight: '700' }}>
+                  View more
+                </AppText>
+              </Pressable>
+            ) : (
+              <View />
+            )}
+          </Row>
+        </Stack>
+      </Card>
+    );
+  }
+
+  function EventPreviewCard() {
+    if (!topEvent) return null;
+
+    const isMandatory = topEvent.is_optional === false;
+
+    return (
+      <Pressable
+        onPress={() => setSelectedEventId(topEvent.id)}
+        style={({ pressed }) => ({
+          borderRadius: radius.xl,
+          overflow: 'hidden',
+          backgroundColor: isMandatory ? colors.warningSoft : colors.surface,
+          opacity: pressed ? 0.82 : 1,
+          ...shadows.sm,
+        })}>
+        <View>
+          {topEventPreviewUrl || bannerUrl ? (
+            <Image
+              source={{ uri: topEventPreviewUrl ?? bannerUrl ?? '' }}
+              resizeMode="cover"
+              style={{ width: '100%', height: 186, backgroundColor: colors.surfaceMuted }}
+            />
+          ) : (
+            <View
+              style={{
+                height: 186,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: isMandatory ? colors.warning : colors.primarySoft,
+              }}>
+              <Ionicons name="calendar-outline" size={28} color={isMandatory ? colors.textOnPrimary : colors.primary} />
+            </View>
+          )}
+          {isMandatory ? (
+            <View
+              style={{
+                position: 'absolute',
+                top: spacing.sm,
+                left: spacing.sm,
+                borderRadius: radius.full,
+                backgroundColor: colors.warning,
+                paddingHorizontal: spacing.xs,
+                paddingVertical: 4,
+              }}>
+              <AppText variant="caption" style={{ color: colors.text }}>
+                Mandatory
+              </AppText>
+            </View>
+          ) : null}
+        </View>
+        <Stack space="sm" style={{ padding: spacing.md }}>
+          <Row justify="space-between" align="flex-start" gap="sm">
+            <View style={{ flex: 1, gap: 6 }}>
+              <AppText variant="subtitle" numberOfLines={2}>
+                {topEvent.title ?? 'Untitled event'}
+              </AppText>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+          </Row>
+
+          <InlineMeta icon="time-outline" value={formatEventTime(topEvent.start_time, topEvent.end_time)} />
+          {topEvent.location ? <InlineMeta icon="location-outline" value={topEvent.location} /> : null}
+          {topEvent.price_range ? <InlineMeta icon="cash-outline" value={topEvent.price_range} /> : null}
+
+          {topEvent.description ? (
+            <AppText tone="muted" numberOfLines={3}>
+              {topEvent.description}
             </AppText>
-          </Pressable>
+          ) : null}
+        </Stack>
+      </Pressable>
+    );
+  }
+
+  function TaskPreviewCard() {
+    if (!topTask) return null;
+
+    const isCompleted = topTaskAssignment?.is_completed ?? false;
+    const isMandatory = topTask.is_mandatory ?? false;
+
+    function getResponses(fieldId: string) {
+      if (isCompleted) return myFieldResponses[fieldId] ?? [];
+      return taskPendingResponses[fieldId] ?? [];
+    }
+
+    function handleToggleCheckbox(fieldId: string) {
+      setTaskPendingResponses((prev) => {
+        const current = prev[fieldId]?.[0]?.is_checked ?? false;
+        return { ...prev, [fieldId]: [{ option_id: null, is_checked: !current }] };
+      });
+    }
+
+    function handleSelectDropdown(fieldId: string, optionId: string) {
+      setTaskPendingResponses((prev) => ({
+        ...prev,
+        [fieldId]: [{ option_id: optionId, is_checked: null, value: null }],
+      }));
+    }
+
+    function handleChangeText(fieldId: string, value: string) {
+      setTaskPendingResponses((prev) => ({
+        ...prev,
+        [fieldId]: [{ option_id: null, is_checked: null, value }],
+      }));
+    }
+
+    return (
+      <Card style={{ padding: spacing.md, backgroundColor: isMandatory ? colors.warningSoft : colors.surface }}>
+        <Stack space="sm">
+          <Row justify="space-between" align="flex-start" gap="sm">
+            <View style={{ flex: 1, gap: 6 }}>
+              {isMandatory ? (
+                <View
+                  style={{
+                    alignSelf: 'flex-start',
+                    borderRadius: radius.full,
+                    backgroundColor: colors.warning,
+                    paddingHorizontal: spacing.xs,
+                    paddingVertical: 4,
+                  }}>
+                  <AppText variant="caption" style={{ color: colors.text }}>
+                    Mandatory
+                  </AppText>
+                </View>
+              ) : null}
+              <AppText variant="subtitle" numberOfLines={2}>
+                {topTask.title ?? 'Untitled task'}
+              </AppText>
+            </View>
+            <Pressable
+              onPress={() => setSelectedTask(topTask)}
+              hitSlop={8}
+              style={({ pressed }) => ({ opacity: pressed ? 0.72 : 1 })}>
+              <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+            </Pressable>
+          </Row>
+
+          <InlineMeta icon="calendar-outline" value={formatDue(topTask.due_time)} />
+          {topTask.description ? <AppText tone="muted">{topTask.description}</AppText> : null}
+
+          {topTaskFields.map((field) => {
+            const responses = getResponses(field.id);
+
+            if (field.type === TaskFieldType.Checkbox) {
+              const checked = responses[0]?.is_checked ?? false;
+              return (
+                <Pressable
+                  key={field.id}
+                  disabled={isCompleted}
+                  onPress={() => handleToggleCheckbox(field.id)}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: spacing.sm,
+                    opacity: isCompleted ? 0.6 : 1,
+                  }}>
+                  <View
+                    style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: 6,
+                      borderWidth: 2,
+                      borderColor: checked ? colors.primary : colors.border,
+                      backgroundColor: checked ? colors.primary : 'transparent',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}>
+                    {checked ? <Ionicons name="checkmark" size={14} color={colors.textOnPrimary} /> : null}
+                  </View>
+                  <AppText>{field.label}</AppText>
+                </Pressable>
+              );
+            }
+
+            if (field.type === TaskFieldType.Dropdown) {
+              const selected = responses[0]?.option_id ?? null;
+              return (
+                <Stack key={field.id} space="xs" style={{ opacity: isCompleted ? 0.6 : 1 }}>
+                  <AppText variant="caption" tone="muted">
+                    {field.label}
+                  </AppText>
+                  {field.options.map((option) => {
+                    const active = selected === option.id;
+                    return (
+                      <Pressable
+                        key={option.id}
+                        disabled={isCompleted}
+                        onPress={() => handleSelectDropdown(field.id, option.id)}
+                        style={{
+                          borderRadius: radius.md,
+                          borderWidth: 1.5,
+                          borderColor: active ? colors.primary : colors.border,
+                          backgroundColor: active ? colors.primarySoft : colors.surface,
+                          paddingHorizontal: spacing.sm,
+                          paddingVertical: spacing.sm,
+                        }}>
+                        <AppText tone={active ? 'primary' : 'default'}>{option.label}</AppText>
+                      </Pressable>
+                    );
+                  })}
+                </Stack>
+              );
+            }
+
+            if (field.type === TaskFieldType.TextInput) {
+              const value = (responses[0]?.value ?? '') as string;
+              return (
+                <Stack key={field.id} space="xs">
+                  <AppText variant="caption" tone="muted">
+                    {field.label}
+                  </AppText>
+                  <TaskTextFieldInput
+                    initialValue={value}
+                    editable={!isCompleted}
+                    onSave={(text) => handleChangeText(field.id, text)}
+                  />
+                </Stack>
+              );
+            }
+
+            return null;
+          })}
+
+          {isCompleted ? (
+            <Pressable
+              onPress={handleUndoTopTaskComplete}
+              style={({ pressed }) => ({
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                borderRadius: radius.full,
+                borderWidth: 1.5,
+                borderColor: colors.success,
+                paddingHorizontal: spacing.md,
+                paddingVertical: spacing.sm,
+                opacity: pressed ? 0.72 : 1,
+              })}>
+              <Row gap="xs">
+                <Ionicons name="checkmark-circle" size={18} color={colors.success} />
+                <AppText style={{ color: colors.success, fontWeight: '600' }}>Completed</AppText>
+              </Row>
+              <AppText variant="caption" tone="muted">
+                Tap to undo
+              </AppText>
+            </Pressable>
+          ) : (
+            <Button label="Mark as done" fullWidth onPress={() => { void handleCompleteTopTask(); }} />
+          )}
         </Stack>
       </Card>
     );
@@ -616,4 +936,72 @@ export default function HomeScreen() {
     );
   }
 
+  function InlineViewMoreButton({ label, onPress }: { label: string; onPress: () => void }) {
+    return (
+      <Pressable
+        onPress={onPress}
+        style={({ pressed }) => ({
+          alignSelf: 'flex-start',
+          paddingVertical: spacing.xs / 2,
+          opacity: pressed ? 0.72 : 1,
+        })}>
+        <AppText variant="caption" tone="primary" style={{ fontWeight: '700' }}>
+          {label}
+        </AppText>
+      </Pressable>
+    );
+  }
+
+  function SectionEyebrow({ label }: { label: string }) {
+    return (
+      <AppText
+        variant="subtitle"
+        numberOfLines={2}
+        style={{
+          ...typography.subtitle,
+          letterSpacing: 0,
+        }}>
+        {label}
+      </AppText>
+    );
+  }
+
+  function EmptyPreview({ label }: { label: string }) {
+    return (
+      <Card style={{ padding: spacing.md, backgroundColor: colors.surfaceMuted }}>
+        <AppText tone="muted">{label}</AppText>
+      </Card>
+    );
+  }
+}
+
+function TaskTextFieldInput({
+  initialValue,
+  editable,
+  onSave,
+}: {
+  initialValue: string;
+  editable: boolean;
+  onSave: (value: string) => void;
+}) {
+  const {
+    theme: { colors },
+  } = useAppTheme();
+  const [localValue, setLocalValue] = useState(initialValue);
+
+  useEffect(() => {
+    setLocalValue(initialValue);
+  }, [initialValue]);
+
+  return (
+    <Input
+      value={localValue}
+      onChangeText={setLocalValue}
+      onBlur={() => onSave(localValue)}
+      editable={editable}
+      placeholder="Type here..."
+      multiline
+      style={{ opacity: editable ? 1 : 0.6, color: editable ? colors.text : colors.textMuted }}
+    />
+  );
 }

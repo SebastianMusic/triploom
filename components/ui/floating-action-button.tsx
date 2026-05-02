@@ -1,17 +1,19 @@
 import type { ReactNode } from 'react';
-import { Pressable, type PressableProps, type ViewStyle } from 'react-native';
+import { Pressable, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
 
 import { useAppTheme } from '@/components/ui/theme-provider';
 
 export type FloatingActionButtonProps = Omit<PressableProps, 'style'> & {
   icon: ReactNode;
   position?: 'bottomRight' | 'inline';
+  style?: StyleProp<ViewStyle>;
 };
 
 export function FloatingActionButton({
   icon,
   position = 'bottomRight',
   disabled = false,
+  style,
   ...props
 }: FloatingActionButtonProps) {
   const {
@@ -43,6 +45,7 @@ export function FloatingActionButton({
         },
         shadows.md,
         positionStyle,
+        style,
       ]}
       {...props}>
       {icon}

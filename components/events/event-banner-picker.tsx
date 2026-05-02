@@ -78,7 +78,7 @@ export function EventBannerPicker({ uri, onSelect, onRemove }: EventBannerPicker
             key: 'library',
             label: 'Choose from library',
             icon: 'images-outline',
-            skipIosCloseDelay: true,
+            closeDelayMs: 120,
             onPress: () => { void openGallery(); },
           },
           ...(uri ? [{

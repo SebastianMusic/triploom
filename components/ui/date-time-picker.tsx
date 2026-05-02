@@ -163,6 +163,7 @@ export function AppDateTimePicker({
         value={tempDate}
         mode={mode === 'date' ? 'date' : step}
         display="default"
+        design="material"
         minimumDate={minimumDate}
         onChange={handleChange}
       />

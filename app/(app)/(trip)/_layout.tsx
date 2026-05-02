@@ -33,7 +33,7 @@ export default function TripLayout() {
   const selectedTrip = useProfileStore((s) => s.selectedTrip);
   const setCurrentTrip = useTripStore((s) => s.setCurrentTrip);
   const routeName = getActiveTripRouteName(segments);
-  const isPrimaryRoute = isPrimaryTripTab(routeName);
+  const showBottomFade = isPrimaryTripTab(routeName);
   const { getAllChatRooms, resetChatState } = useChatStore();
 
   useEffect(() => {
@@ -75,8 +75,8 @@ export default function TripLayout() {
           bottom: 0,
           left: 0,
         }}>
+        <TripFadeOverlays top bottom={showBottomFade} />
         <TripHeader routeName={routeName} />
-        {isPrimaryRoute ? <TripFadeOverlays /> : null}
       </View>
     </>
   );

@@ -9,11 +9,14 @@ import { AppText } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
 import { Container } from '@/components/ui/container';
 import { AppDateTimePicker, DateTimeField } from '@/components/ui/date-time-picker';
+import { EmptyState } from '@/components/ui/empty-state';
 import { confirmDestructiveAction } from '@/components/ui/confirm-destructive-action';
+import { FloatingActionButton } from '@/components/ui/floating-action-button';
 import { IconButton } from '@/components/ui/icon-button';
 import { Input } from '@/components/ui/input';
 import { KeyboardScreenView } from '@/components/ui/keyboard-screen-view';
 import { Row } from '@/components/ui/row';
+import { SectionHeader } from '@/components/ui/section-header';
 import { Stack } from '@/components/ui/stack';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import { TaskCard } from '@/components/tasks/task-card';
@@ -278,13 +281,27 @@ export default function TasksScreen() {
 					/>
 				}>
 				<Container>
-					{sortedTasks.length === 0 && !isLoading ? (
-						<View style={{ alignItems: 'center', paddingTop: spacing.xxl, gap: spacing.xs }}>
-							<AppText variant="subtitle">Ingen oppgaver ennå</AppText>
-							{isOrganizer && <AppText tone="muted">Trykk + for å legge til</AppText>}
-						</View>
-					) : (
-						<Stack space="sm">
+					<Stack space="sm">
+						<SectionHeader
+							title="Tasks"
+							subtitle={
+								isOrganizer
+									? 'Track shared work, deadlines and completion across the trip.'
+									: 'See what needs attention and mark your work as completed.'
+							}
+							count={sortedTasks.length}
+						/>
+						{sortedTasks.length === 0 && !isLoading ? (
+							<EmptyState
+								title="No tasks yet"
+								description={
+									isOrganizer
+										? 'Create the first task to make responsibilities clearer for the group.'
+										: 'Tasks will appear here when the organizers add them.'
+								}
+							/>
+						) : (
+							<Stack space="sm">
 							{generalTasks.length > 0 && (
 								<View style={{ gap: spacing.xs }}>
 									{hasGroups && <AppText variant="caption" tone="muted" style={{ paddingHorizontal: 2 }}>General</AppText>}
@@ -315,8 +332,9 @@ export default function TasksScreen() {
 									))}
 								</View>
 							))}
-						</Stack>
-					)}
+							</Stack>
+						)}
+					</Stack>
 				</Container>
 			</ScrollView>
 
@@ -340,21 +358,12 @@ export default function TasksScreen() {
 						<Ionicons name="bar-chart-outline" size={sizes.icon.md} color={colors.text} />
 					</Pressable>
 
-					<Pressable
+					<FloatingActionButton
+						accessibilityLabel="Create task"
 						onPress={() => { resetForm(); setAdminVisible(true); }}
-						style={({ pressed }) => ({
-							position: 'absolute',
-							bottom: bottomOverlayOffset - spacing.xl,
-							right: spacing.md,
-							width: sizes.iconButton.lg,
-							height: sizes.iconButton.lg,
-							borderRadius: radius.full,
-							backgroundColor: colors.accent,
-							alignItems: 'center', justifyContent: 'center',
-							opacity: pressed ? 0.8 : 1,
-						})}>
-						<Ionicons name="add" size={sizes.icon.lg} color={colors.text} />
-					</Pressable>
+						style={{ bottom: bottomOverlayOffset - spacing.xl }}
+						icon={<Ionicons name="add" size={sizes.icon.lg} color={colors.textOnPrimary} />}
+					/>
 				</>
 			)}
 
