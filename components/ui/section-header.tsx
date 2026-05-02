@@ -12,13 +12,13 @@ type SectionHeaderProps = {
 
 export function SectionHeader({ title, subtitle, count }: SectionHeaderProps) {
   const {
-    theme: { colors, radius, spacing, typography },
+    theme: { colors, radius, spacing },
   } = useAppTheme();
 
   return (
     <View style={{ gap: spacing.xs / 2 }}>
       <Row justify="space-between" align="center" gap="sm">
-        <AppText style={typography.label}>{title}</AppText>
+        <AppText variant="subtitle">{title}</AppText>
         {typeof count === 'number' ? (
           <View
             style={{

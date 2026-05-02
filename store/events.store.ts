@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import type { Event, EventInsert, EventUpdate } from '@/types';
 import type { EventParticipant, EventWithCount } from '@/services/events.service';
 import {
-  getEvents as getEventsService,
+  getAllEvents as getAllEventsService,
   createEvent as createEventService,
   updateEvent as updateEventService,
   deleteEvent as deleteEventService,
@@ -48,7 +48,7 @@ export const useEventsStore = create<EventsState>()((set) => ({
   fetchEvents: async (tripId) => {
     set({ isLoading: true });
     try {
-      const events = await getEventsService(tripId);
+      const events = await getAllEventsService(tripId);
       set({ events: sortEvents(events), isLoading: false });
     } catch (error) {
       set({ isLoading: false });

@@ -58,6 +58,17 @@ export async function getEvents(tripId: string): Promise<EventWithCount[]> {
   return data as EventWithCount[];
 }
 
+export async function getAllEvents(tripId: string): Promise<EventWithCount[]> {
+  const { data, error } = await supabase
+    .from('event')
+    .select('*, event_participation(participant_id), creator:trip_participant!event_created_by_id_fkey(profile(user_name))')
+    .eq('trip_id', tripId)
+    .order('start_time', { ascending: true });
+
+  if (error) throw error;
+  return data as EventWithCount[];
+}
+
 export async function getUpcomingEventsForTrips(tripIds: string[]): Promise<Event[]> {
   if (!tripIds.length) return [];
 

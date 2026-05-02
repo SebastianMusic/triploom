@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Modal, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,7 +11,6 @@ import { Container } from '@/components/ui/container';
 import { AppDateTimePicker, DateTimeField } from '@/components/ui/date-time-picker';
 import { EmptyState } from '@/components/ui/empty-state';
 import { confirmDestructiveAction } from '@/components/ui/confirm-destructive-action';
-import { FloatingActionButton } from '@/components/ui/floating-action-button';
 import { IconButton } from '@/components/ui/icon-button';
 import { Input } from '@/components/ui/input';
 import { KeyboardScreenView } from '@/components/ui/keyboard-screen-view';
@@ -26,13 +25,39 @@ import { useTasksStore } from '@/store/tasks.store';
 import { useEventsStore } from '@/store/events.store';
 import { useTripStore } from '@/store/trip.store';
 import { useProfileStore } from '@/store/profile.store';
+import { useTripHeaderActionsStore } from '@/store/trip-header-actions.store';
 import { TaskFieldType, TASK_FIELD_TYPE_LABELS, TASK_FIELD_TYPE_OPTIONS, fieldNeedsOptions, createTaskSchema } from '@/types/tasks.types';
 import { TripRole } from '@/types/trip.types';
 import type { Task } from '@/types';
 import type { CreateTaskDTO, FieldDraft } from '@/types/tasks.types';
 
+function getTaskTimeValue(task: Task) {
+	if (!task.due_time) return Number.MAX_SAFE_INTEGER;
+	const value = new Date(task.due_time).getTime();
+	return Number.isNaN(value) ? Number.MAX_SAFE_INTEGER : value;
+}
+
+function sortTasksByPriority(
+	tasks: Task[],
+	assignments: Record<string, { is_completed: boolean | null }>,
+) {
+	return [...tasks].sort((a, b) => {
+		const aCompleted = assignments[a.id]?.is_completed ?? false;
+		const bCompleted = assignments[b.id]?.is_completed ?? false;
+		if (aCompleted !== bCompleted) return aCompleted ? 1 : -1;
+		const aMandatory = a.is_mandatory ?? false;
+		const bMandatory = b.is_mandatory ?? false;
+		if (aMandatory !== bMandatory) return aMandatory ? -1 : 1;
+		return getTaskTimeValue(a) - getTaskTimeValue(b);
+	});
+}
+
+function sortPreviousTasks(tasks: Task[]) {
+	return [...tasks].sort((a, b) => getTaskTimeValue(b) - getTaskTimeValue(a));
+}
+
 export default function TasksScreen() {
-			const { theme: { colors, spacing, radius, sizes, stroke } } = useAppTheme();
+			const { theme: { colors, spacing, radius, stroke } } = useAppTheme();
 	const insets = useSafeAreaInsets();
 	const { headerContentOffset, bottomOverlayOffset } = useTripChromeInsets();
 	const {
@@ -46,12 +71,14 @@ export default function TasksScreen() {
 	const { currentParticipant, participantsWithProfiles } = useTripStore();
 	const { selectedTrip } = useProfileStore();
 	const { events, fetchEvents } = useEventsStore();
+	const setHeaderActions = useTripHeaderActionsStore((state) => state.setActions);
 
 	const [detailTask, setDetailTask] = useState<Task | null>(null);
 	const [adminVisible, setAdminVisible] = useState(false);
 	const [statsVisible, setStatsVisible] = useState(false);
 	const [editingTask, setEditingTask] = useState<Task | null>(null);
 	const [refreshing, setRefreshing] = useState(false);
+	const [visiblePreviousTaskCount, setVisiblePreviousTaskCount] = useState(0);
 
 	// Admin form state
 	const [title, setTitle] = useState('');
@@ -70,6 +97,33 @@ export default function TasksScreen() {
 	const isOrganizer =
 		currentParticipant?.role === TripRole.Organizer ||
 		currentParticipant?.role === TripRole.CoOrganizer;
+
+	useEffect(() => {
+		if (!isOrganizer) {
+			setHeaderActions([]);
+			return;
+		}
+
+		setHeaderActions([
+			{
+				key: 'task-stats',
+				accessibilityLabel: 'Open task stats',
+				iconName: 'bar-chart-outline',
+				onPress: () => setStatsVisible(true),
+			},
+			{
+				key: 'create-task',
+				accessibilityLabel: 'Create task',
+				iconName: 'add',
+				onPress: () => {
+					resetForm();
+					setAdminVisible(true);
+				},
+			},
+		]);
+
+		return () => setHeaderActions([]);
+	}, [isOrganizer, setHeaderActions]);
 
 	useEffect(() => {
 		if (selectedTrip) {
@@ -94,21 +148,35 @@ export default function TasksScreen() {
 		if (isOrganizer) fetchAllFieldResponses(allFieldIds);
 	}, [currentParticipant, fetchAllFieldResponses, fetchMyFieldResponses, fields, isOrganizer]);
 
-	const sortedTasks = [...tasks].sort((a, b) => {
-		const aCompleted = assignments[a.id]?.is_completed ?? false;
-		const bCompleted = assignments[b.id]?.is_completed ?? false;
-		if (aCompleted !== bCompleted) return aCompleted ? 1 : -1;
-		const aMandatory = a.is_mandatory ?? false;
-		const bMandatory = b.is_mandatory ?? false;
-		if (aMandatory !== bMandatory) return aMandatory ? -1 : 1;
-		return 0;
-	});
+	const now = Date.now();
+	const sortedTasks = useMemo(() => sortTasksByPriority(tasks, assignments), [assignments, tasks]);
+	const activeTasks = useMemo(
+		() =>
+			sortedTasks.filter((task) => {
+				if (assignments[task.id]?.is_completed ?? false) return false;
+				const dueTime = getTaskTimeValue(task);
+				return dueTime === Number.MAX_SAFE_INTEGER || dueTime >= now;
+			}),
+		[assignments, now, sortedTasks],
+	);
+	const previousTasks = useMemo(
+		() =>
+			sortPreviousTasks(
+				sortedTasks.filter((task) => {
+					if (assignments[task.id]?.is_completed ?? false) return true;
+					const dueTime = getTaskTimeValue(task);
+					return dueTime !== Number.MAX_SAFE_INTEGER && dueTime < now;
+				}),
+			),
+		[assignments, now, sortedTasks],
+	);
+	const visiblePreviousTasks = previousTasks.slice(0, visiblePreviousTaskCount);
 
 	// Group tasks: event-linked groups first (in event order), then general
 	const eventGroups = events
-		.map((e) => ({ eventId: e.id, title: e.title ?? 'Untitled event', tasks: sortedTasks.filter((t) => t.event_id === e.id) }))
+		.map((e) => ({ eventId: e.id, title: e.title ?? 'Untitled event', tasks: activeTasks.filter((t) => t.event_id === e.id) }))
 		.filter((g) => g.tasks.length > 0);
-	const generalTasks = sortedTasks.filter((t) => !t.event_id);
+	const generalTasks = activeTasks.filter((t) => !t.event_id);
 	const hasGroups = eventGroups.length > 0;
 
 	async function handleRefresh() {
@@ -283,15 +351,10 @@ export default function TasksScreen() {
 				<Container>
 					<Stack space="sm">
 						<SectionHeader
-							title="Tasks"
-							subtitle={
-								isOrganizer
-									? 'Track shared work, deadlines and completion across the trip.'
-									: 'See what needs attention and mark your work as completed.'
-							}
-							count={sortedTasks.length}
+							title="Upcoming tasks"
+							count={activeTasks.length}
 						/>
-						{sortedTasks.length === 0 && !isLoading ? (
+						{tasks.length === 0 && !isLoading ? (
 							<EmptyState
 								title="No tasks yet"
 								description={
@@ -302,70 +365,88 @@ export default function TasksScreen() {
 							/>
 						) : (
 							<Stack space="sm">
-							{generalTasks.length > 0 && (
-								<View style={{ gap: spacing.xs }}>
-									{hasGroups && <AppText variant="caption" tone="muted" style={{ paddingHorizontal: 2 }}>General</AppText>}
-									{generalTasks.map((task) => (
-										<TaskCard
-											key={task.id}
-											task={task}
-											assignment={assignments[task.id] ?? null}
-											isOrganizer={isOrganizer}
-											onPress={() => setDetailTask(task)}
-											onExportPress={() => handleExport(task)}
+								{activeTasks.length === 0 ? (
+									<EmptyState
+										title="No active tasks"
+										description="Completed and expired tasks are available below."
+									/>
+								) : null}
+								{generalTasks.length > 0 && (
+									<View style={{ gap: spacing.xs }}>
+										{hasGroups && <AppText variant="caption" tone="primary" style={{ paddingHorizontal: 2 }}>General</AppText>}
+										{generalTasks.map((task) => (
+											<TaskCard
+												key={task.id}
+												task={task}
+												assignment={assignments[task.id] ?? null}
+												isOrganizer={isOrganizer}
+												onPress={() => setDetailTask(task)}
+												onExportPress={() => handleExport(task)}
+											/>
+										))}
+									</View>
+								)}
+								{eventGroups.map((group) => (
+									<View key={group.eventId} style={{ gap: spacing.xs }}>
+										<AppText variant="caption" tone="accent" style={{ paddingHorizontal: 2 }}>{group.title}</AppText>
+										{group.tasks.map((task) => (
+											<TaskCard
+												key={task.id}
+												task={task}
+												assignment={assignments[task.id] ?? null}
+												isOrganizer={isOrganizer}
+												onPress={() => setDetailTask(task)}
+												onExportPress={() => handleExport(task)}
+											/>
+										))}
+									</View>
+								))}
+								{previousTasks.length > 0 ? (
+									<Stack space="sm" style={{ marginTop: spacing.sm }}>
+										<SectionHeader title="Previous tasks" count={previousTasks.length} />
+										<Button
+											label={
+												visiblePreviousTaskCount === 0
+													? `Show previous tasks (${previousTasks.length})`
+													: 'Hide previous tasks'
+											}
+											variant="secondary"
+											fullWidth
+											onPress={() => {
+												setVisiblePreviousTaskCount((count) => (count === 0 ? Math.min(6, previousTasks.length) : 0));
+											}}
 										/>
-									))}
-								</View>
-							)}
-							{eventGroups.map((group) => (
-								<View key={group.eventId} style={{ gap: spacing.xs }}>
-									<AppText variant="caption" tone="muted" style={{ paddingHorizontal: 2 }}>{group.title}</AppText>
-									{group.tasks.map((task) => (
-										<TaskCard
-											key={task.id}
-											task={task}
-											assignment={assignments[task.id] ?? null}
-											isOrganizer={isOrganizer}
-											onPress={() => setDetailTask(task)}
-											onExportPress={() => handleExport(task)}
-										/>
-									))}
-								</View>
-							))}
+										{visiblePreviousTasks.length > 0 ? (
+											<Stack space="sm">
+												{visiblePreviousTasks.map((task) => (
+													<TaskCard
+														key={task.id}
+														task={task}
+														assignment={assignments[task.id] ?? null}
+														isOrganizer={isOrganizer}
+														onPress={() => setDetailTask(task)}
+														onExportPress={() => handleExport(task)}
+													/>
+												))}
+												{visiblePreviousTaskCount < previousTasks.length ? (
+													<Button
+														label="Load more previous tasks"
+														variant="secondary"
+														fullWidth
+														onPress={() => {
+															setVisiblePreviousTaskCount((count) => Math.min(count + 6, previousTasks.length));
+														}}
+													/>
+												) : null}
+											</Stack>
+										) : null}
+									</Stack>
+								) : null}
 							</Stack>
 						)}
 					</Stack>
 				</Container>
 			</ScrollView>
-
-			{isOrganizer && (
-				<>
-					<Pressable
-						onPress={() => setStatsVisible(true)}
-						style={({ pressed }) => ({
-							position: 'absolute',
-							bottom: bottomOverlayOffset - spacing.xl,
-							right: spacing.md + sizes.iconButton.lg + spacing.sm,
-							width: sizes.iconButton.lg,
-							height: sizes.iconButton.lg,
-							borderRadius: radius.full,
-							backgroundColor: colors.surface,
-							borderWidth: 1.5,
-							borderColor: colors.border,
-							alignItems: 'center', justifyContent: 'center',
-							opacity: pressed ? 0.8 : 1,
-						})}>
-						<Ionicons name="bar-chart-outline" size={sizes.icon.md} color={colors.text} />
-					</Pressable>
-
-					<FloatingActionButton
-						accessibilityLabel="Create task"
-						onPress={() => { resetForm(); setAdminVisible(true); }}
-						style={{ bottom: bottomOverlayOffset - spacing.xl }}
-						icon={<Ionicons name="add" size={sizes.icon.lg} color={colors.textOnPrimary} />}
-					/>
-				</>
-			)}
 
 			<TaskStatsModal
 				visible={statsVisible}

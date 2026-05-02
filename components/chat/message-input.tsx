@@ -54,7 +54,7 @@ export function MessageInput({
     } else {
       setText('');
     }
-  }, [editingMessage?.id]);
+  }, [editingMessage]);
 
   const isEditing = !!editingMessage;
   const isBusy = isEditing ? !!isUpdating : (isSending || isUploadingImages);
@@ -150,7 +150,7 @@ export function MessageInput({
           },
         ]}>
         {!isEditing && (
-          <>
+          <View style={styles.actionColumn}>
             {onShareLocation && (
               <IconButton
                 icon={<Ionicons name="location-outline" size={20} color={colors.textMuted} />}
@@ -174,7 +174,7 @@ export function MessageInput({
               disabled={isBusy || pendingImages.length >= MAX_IMAGES}
               accessibilityLabel="Add images"
             />
-          </>
+          </View>
         )}
         <View style={styles.inputWrapper}>
           <Input
@@ -221,7 +221,12 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: 4,
+    gap: 8,
+  },
+  actionColumn: {
+    alignItems: 'center',
+    gap: 2,
+    paddingBottom: 2,
   },
   inputWrapper: {
     flex: 1,

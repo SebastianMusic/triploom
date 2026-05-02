@@ -1,15 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 
 import { ChatRoomListItem } from '@/components/chat/chat-room-list-item';
 import { useTripChromeInsets } from '@/components/layout/use-trip-chrome';
 import { AppRefreshControl } from '@/components/ui/app-refresh-control';
-import { Card } from '@/components/ui/card';
 import { Container } from '@/components/ui/container';
 import { Row } from '@/components/ui/row';
+import { SectionHeader } from '@/components/ui/section-header';
+import { Stack } from '@/components/ui/stack';
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import { useChatStore } from '@/store/chat.store';
@@ -27,6 +28,9 @@ export default function ChatListScreen() {
   const { chatRooms, isLoading, getAllChatRooms } = useChatStore();
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const generalRooms = chatRooms.filter((room) => room.event_id === null && room.trip_group_id === null);
+  const eventRooms = chatRooms.filter((room) => room.event_id !== null && room.trip_group_id === null);
+  const groupRooms = chatRooms.filter((room) => room.trip_group_id !== null);
 
   const load = useCallback(async () => {
     if (!currentTrip) return;
@@ -75,45 +79,71 @@ export default function ChatListScreen() {
   }
 
   return (
-    <FlatList
-      data={chatRooms}
-      keyExtractor={(item) => item.id}
+    <ScrollView
       refreshControl={
         <AppRefreshControl
           refreshing={isRefreshing}
           onRefresh={refresh}
+          progressViewOffset={headerContentOffset}
         />
       }
       contentContainerStyle={{
         paddingTop: headerContentOffset,
         paddingBottom: bottomOverlayOffset,
-        gap: spacing.sm,
-      }}
-      ListHeaderComponent={
-        <Container>
-          <Card style={{ padding: spacing.md }}>
-            <View style={{ gap: spacing.xs }}>
-              <AppText variant="subtitle">{currentTrip?.name ?? 'Trip chat'}</AppText>
-              <AppText tone="muted">All trip conversations in one place.</AppText>
-            </View>
-          </Card>
-        </Container>
-      }
-      renderItem={({ item }) => (
-        <Container>
-          <ChatRoomListItem
-            room={item}
-            onPress={() => router.push(`/(app)/(trip)/chat/${item.id}`)}
-          />
-        </Container>
-      )}
-        ListEmptyComponent={
-          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.xxl }}>
-            <AppText tone="muted">No chat rooms yet.</AppText>
-          </View>
-        }
-      ListFooterComponent={
-        <Container>
+      }}>
+      <Container>
+        <Stack space="md">
+          <Stack space="sm">
+            <SectionHeader title="General" count={generalRooms.length} />
+            {generalRooms.length === 0 ? (
+              <View style={{ paddingVertical: spacing.sm }}>
+                <AppText tone="muted">No general chats yet.</AppText>
+              </View>
+            ) : (
+              generalRooms.map((room) => (
+                <ChatRoomListItem
+                  key={room.id}
+                  room={room}
+                  onPress={() => router.push(`/(app)/(trip)/chat/${room.id}`)}
+                />
+              ))
+            )}
+          </Stack>
+
+          <Stack space="sm">
+            <SectionHeader title="Events" count={eventRooms.length} />
+            {eventRooms.length === 0 ? (
+              <View style={{ paddingVertical: spacing.sm }}>
+                <AppText tone="muted">No event chats yet.</AppText>
+              </View>
+            ) : (
+              eventRooms.map((room) => (
+                <ChatRoomListItem
+                  key={room.id}
+                  room={room}
+                  onPress={() => router.push(`/(app)/(trip)/chat/${room.id}`)}
+                />
+              ))
+            )}
+          </Stack>
+
+          <Stack space="sm">
+            <SectionHeader title="Groups" count={groupRooms.length} />
+            {groupRooms.length === 0 ? (
+              <View style={{ paddingVertical: spacing.sm }}>
+                <AppText tone="muted">No groups yet.</AppText>
+              </View>
+            ) : (
+              groupRooms.map((room) => (
+                <ChatRoomListItem
+                  key={room.id}
+                  room={room}
+                  onPress={() => router.push(`/(app)/(trip)/chat/${room.id}`)}
+                />
+              ))
+            )}
+          </Stack>
+
           <Pressable
             accessibilityRole="button"
             onPress={() => router.push('/(app)/(trip)/admin/people')}
@@ -152,8 +182,8 @@ export default function ChatListScreen() {
               </View>
             </Row>
           </Pressable>
-        </Container>
-      }
-      />
+        </Stack>
+      </Container>
+    </ScrollView>
   );
 }

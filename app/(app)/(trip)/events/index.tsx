@@ -1,15 +1,14 @@
-import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 
-import { EventCard } from '@/components/events/event-card';
 import { EventDetailModal } from '@/components/events/event-detail-modal';
+import { CompactEventCard, EventPreviewCard } from '@/components/events/event-preview-card';
 import { useTripChromeInsets } from '@/components/layout';
 import { AppRefreshControl } from '@/components/ui/app-refresh-control';
+import { Button } from '@/components/ui/button';
 import { Container } from '@/components/ui/container';
 import { EmptyState } from '@/components/ui/empty-state';
-import { FloatingActionButton } from '@/components/ui/floating-action-button';
 import { SectionHeader } from '@/components/ui/section-header';
 import { Stack } from '@/components/ui/stack';
 import { useAppTheme } from '@/components/ui/theme-provider';
@@ -18,6 +17,26 @@ import { useProfileStore } from '@/store/profile.store';
 import { useTripStore } from '@/store/trip.store';
 import { TripRole } from '@/types/trip.types';
 import type { EventWithCount } from '@/services/events.service';
+
+function getEventEndTime(event: EventWithCount) {
+  const raw = event.end_time ?? event.start_time;
+  if (!raw) return null;
+  const value = new Date(raw).getTime();
+  return Number.isNaN(value) ? null : value;
+}
+
+function sortUpcomingEvents(events: EventWithCount[]) {
+  return [...events].sort((a, b) => {
+    const aMandatory = a.is_optional === false;
+    const bMandatory = b.is_optional === false;
+    if (aMandatory !== bMandatory) return aMandatory ? -1 : 1;
+    return (getEventEndTime(a) ?? Number.MAX_SAFE_INTEGER) - (getEventEndTime(b) ?? Number.MAX_SAFE_INTEGER);
+  });
+}
+
+function sortPastEvents(events: EventWithCount[]) {
+  return [...events].sort((a, b) => (getEventEndTime(b) ?? 0) - (getEventEndTime(a) ?? 0));
+}
 
 export default function EventsScreen() {
   const router = useRouter();
@@ -31,7 +50,22 @@ export default function EventsScreen() {
 
   const [refreshing, setRefreshing] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [visiblePastEventCount, setVisiblePastEventCount] = useState(0);
   const selectedEvent = selectedEventId ? (events.find((e) => e.id === selectedEventId) ?? null) : null;
+  const now = Date.now();
+  const upcomingEvents = sortUpcomingEvents(
+    events.filter((event) => {
+      const endTime = getEventEndTime(event);
+      return endTime === null || endTime >= now;
+    }),
+  );
+  const pastEvents = sortPastEvents(
+    events.filter((event) => {
+      const endTime = getEventEndTime(event);
+      return endTime !== null && endTime < now;
+    }),
+  );
+  const visiblePastEvents = pastEvents.slice(0, visiblePastEventCount);
 
   useFocusEffect(
     useCallback(() => {
@@ -70,37 +104,65 @@ export default function EventsScreen() {
           <Stack space="sm">
             <SectionHeader
               title="Upcoming events"
-              subtitle="Plan, browse and open event details in one place."
-              count={events.length}
+              count={upcomingEvents.length}
             />
             {isLoading ? (
               <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.xl }} />
-            ) : events.length === 0 ? (
+            ) : upcomingEvents.length === 0 ? (
               <EmptyState
-                title="No events yet"
-                description="Add the first event to give the trip a clearer plan."
+                title="No upcoming events"
+                description="Add an event to give the trip a clearer plan."
               />
             ) : (
-              events.map((event) => (
-                <EventCard
+              upcomingEvents.map((event) => (
+                <EventPreviewCard
                   key={event.id}
                   event={event}
                   onPress={() => setSelectedEventId(event.id)}
                 />
               ))
             )}
+            {!isLoading && pastEvents.length > 0 ? (
+              <Stack space="sm" style={{ marginTop: spacing.sm }}>
+                <SectionHeader title="Previous events" count={pastEvents.length} />
+                <Button
+                  label={
+                    visiblePastEventCount === 0
+                      ? `Show previous events (${pastEvents.length})`
+                      : 'Hide previous events'
+                  }
+                  variant="secondary"
+                  fullWidth
+                  onPress={() => {
+                    setVisiblePastEventCount((count) => (count === 0 ? Math.min(6, pastEvents.length) : 0));
+                  }}
+                />
+                {visiblePastEvents.length > 0 ? (
+                  <Stack space="sm">
+                    {visiblePastEvents.map((event) => (
+                      <CompactEventCard
+                        key={event.id}
+                        event={event}
+                        onPress={() => setSelectedEventId(event.id)}
+                      />
+                    ))}
+                    {visiblePastEventCount < pastEvents.length ? (
+                      <Button
+                        label="Load more previous events"
+                        variant="secondary"
+                        fullWidth
+                        onPress={() => {
+                          setVisiblePastEventCount((count) => Math.min(count + 6, pastEvents.length));
+                        }}
+                      />
+                    ) : null}
+                  </Stack>
+                ) : null}
+              </Stack>
+            ) : null}
           </Stack>
         </Container>
       </ScrollView>
-
-      <FloatingActionButton
-        accessibilityLabel="Create event"
-        onPress={() => router.push('/(app)/(trip)/events/create_event')}
-        style={{
-          bottom: bottomOverlayOffset - spacing.xl,
-        }}
-        icon={<Ionicons name="add" size={28} color={colors.textOnPrimary} />}
-      />
 
       <EventDetailModal
         event={selectedEvent}

@@ -13,6 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { AnnouncementForm } from '@/components/announcement/AnnouncementForm';
 import { EventDetailModal } from '@/components/events/event-detail-modal';
+import { EventPreviewCard } from '@/components/events/event-preview-card';
 import { useTripChromeInsets } from '@/components/layout/use-trip-chrome';
 import { TaskDetailModal } from '@/components/tasks/task-detail-modal';
 import { Button } from '@/components/ui/button';
@@ -27,7 +28,7 @@ import { Stack } from '@/components/ui/stack';
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import { useTripBannerUrl } from '@/hooks/use-trip-banner-url';
-import { getEventBannerUrl, type EventWithCount } from '@/services/events.service';
+import type { EventWithCount } from '@/services/events.service';
 import { useAnnouncementStore } from '@/store/announcement.store';
 import { useAuthStore } from '@/store/auth.store';
 import { useEventsStore } from '@/store/events.store';
@@ -66,13 +67,6 @@ function formatDue(iso: string | null | undefined): string {
   return `${formatFullDay(iso)} ${formatTime(iso)}`;
 }
 
-function formatEventTime(start: string | null | undefined, end: string | null | undefined): string {
-  if (!start) return '';
-  const startText = `${formatFullDay(start)} ${formatTime(start)}`;
-  if (!end) return startText;
-  return `${startText} - ${formatTime(end)}`;
-}
-
 function withAlpha(hexColor: string, alpha: number) {
   const normalized = hexColor.replace('#', '');
   if (normalized.length !== 6) return hexColor;
@@ -97,6 +91,12 @@ function sortEventsByPriority(events: EventWithCount[]) {
     if (aMandatory !== bMandatory) return aMandatory ? -1 : 1;
     return getTimeValue(a.start_time) - getTimeValue(b.start_time);
   });
+}
+
+function getEventEndTimeValue(event: EventWithCount) {
+  const endValue = getTimeValue(event.end_time);
+  if (endValue !== Number.MAX_SAFE_INTEGER) return endValue;
+  return getTimeValue(event.start_time);
 }
 
 function sortTasksByPriority(
@@ -158,7 +158,6 @@ export default function HomeScreen() {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
-  const [topEventPreviewUrl, setTopEventPreviewUrl] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [earlierAnnouncementsVisible, setEarlierAnnouncementsVisible] = useState(false);
   const [announcementDescriptionHasOverflow, setAnnouncementDescriptionHasOverflow] = useState(false);
@@ -192,7 +191,11 @@ export default function HomeScreen() {
   const topTaskFields = topTask ? (fields[topTask.id] ?? []) : [];
   const topTaskAssignment = topTask ? (assignments[topTask.id] ?? null) : null;
   const sortedEvents = useMemo(() => sortEventsByPriority(events), [events]);
-  const topEvent = sortedEvents[0] ?? null;
+  const upcomingEvents = useMemo(
+    () => sortedEvents.filter((event) => getEventEndTimeValue(event) >= Date.now()),
+    [sortedEvents],
+  );
+  const topEvent = upcomingEvents[0] ?? null;
   const latestAnnouncement = announcements[0] ?? null;
   const loading = eventsLoading || tasksLoading || announcementsLoading;
   const announcementEditorVisible = params.compose === 'announcement' || !!editingAnnouncement;
@@ -248,26 +251,6 @@ export default function HomeScreen() {
     if (fieldIds.length === 0) return;
     void fetchMyFieldResponses(currentParticipant.id, fieldIds);
   }, [currentParticipant, fetchMyFieldResponses, fields]);
-
-  useEffect(() => {
-    if (!topEvent?.banner_image_url) {
-      setTopEventPreviewUrl(null);
-      return;
-    }
-
-    let cancelled = false;
-    getEventBannerUrl(topEvent.banner_image_url)
-      .then((url) => {
-        if (!cancelled) setTopEventPreviewUrl(url);
-      })
-      .catch(() => {
-        if (!cancelled) setTopEventPreviewUrl(null);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [topEvent?.banner_image_url]);
 
   function closeAnnouncementEditor() {
     router.setParams({ compose: undefined, editAnnouncement: undefined });
@@ -429,9 +412,10 @@ export default function HomeScreen() {
 
               <View
                 style={{
-                  height: 1,
+                  height: 2,
                   marginTop: spacing.xs / 2,
                   marginBottom: 0,
+                  borderRadius: radius.full,
                   backgroundColor: colors.border,
                 }}
               />
@@ -448,8 +432,12 @@ export default function HomeScreen() {
                 <SectionEyebrow label="Next event" />
                 {topEvent ? (
                   <>
-                    <EventPreviewCard />
-                    {sortedEvents.length > 1 ? (
+                    <EventPreviewCard
+                      event={topEvent}
+                      fallbackBannerUri={bannerUrl}
+                      onPress={() => setSelectedEventId(topEvent.id)}
+                    />
+                    {upcomingEvents.length > 1 ? (
                       <InlineViewMoreButton
                         label="View more events"
                         onPress={() => router.push('/(app)/(trip)/events')}
@@ -625,7 +613,9 @@ export default function HomeScreen() {
       <Card
         variant="interactive"
         onPress={() => setSelectedAnnouncement(latestAnnouncement)}
-        style={{ padding: spacing.md }}>
+        style={{
+          padding: spacing.md,
+        }}>
         <Stack space="xs">
           <Row justify="space-between" align="flex-start" gap="sm">
             <View style={{ flex: 1 }}>
@@ -671,80 +661,6 @@ export default function HomeScreen() {
     );
   }
 
-  function EventPreviewCard() {
-    if (!topEvent) return null;
-
-    const isMandatory = topEvent.is_optional === false;
-
-    return (
-      <Pressable
-        onPress={() => setSelectedEventId(topEvent.id)}
-        style={({ pressed }) => ({
-          borderRadius: radius.xl,
-          overflow: 'hidden',
-          backgroundColor: isMandatory ? colors.warningSoft : colors.surface,
-          opacity: pressed ? 0.82 : 1,
-          ...shadows.sm,
-        })}>
-        <View>
-          {topEventPreviewUrl || bannerUrl ? (
-            <Image
-              source={{ uri: topEventPreviewUrl ?? bannerUrl ?? '' }}
-              resizeMode="cover"
-              style={{ width: '100%', height: 186, backgroundColor: colors.surfaceMuted }}
-            />
-          ) : (
-            <View
-              style={{
-                height: 186,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: isMandatory ? colors.warning : colors.primarySoft,
-              }}>
-              <Ionicons name="calendar-outline" size={28} color={isMandatory ? colors.textOnPrimary : colors.primary} />
-            </View>
-          )}
-          {isMandatory ? (
-            <View
-              style={{
-                position: 'absolute',
-                top: spacing.sm,
-                left: spacing.sm,
-                borderRadius: radius.full,
-                backgroundColor: colors.warning,
-                paddingHorizontal: spacing.xs,
-                paddingVertical: 4,
-              }}>
-              <AppText variant="caption" style={{ color: colors.text }}>
-                Mandatory
-              </AppText>
-            </View>
-          ) : null}
-        </View>
-        <Stack space="sm" style={{ padding: spacing.md }}>
-          <Row justify="space-between" align="flex-start" gap="sm">
-            <View style={{ flex: 1, gap: 6 }}>
-              <AppText variant="subtitle" numberOfLines={2}>
-                {topEvent.title ?? 'Untitled event'}
-              </AppText>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-          </Row>
-
-          <InlineMeta icon="time-outline" value={formatEventTime(topEvent.start_time, topEvent.end_time)} />
-          {topEvent.location ? <InlineMeta icon="location-outline" value={topEvent.location} /> : null}
-          {topEvent.price_range ? <InlineMeta icon="cash-outline" value={topEvent.price_range} /> : null}
-
-          {topEvent.description ? (
-            <AppText tone="muted" numberOfLines={3}>
-              {topEvent.description}
-            </AppText>
-          ) : null}
-        </Stack>
-      </Pressable>
-    );
-  }
-
   function TaskPreviewCard() {
     if (!topTask) return null;
 
@@ -778,7 +694,11 @@ export default function HomeScreen() {
     }
 
     return (
-      <Card style={{ padding: spacing.md, backgroundColor: isMandatory ? colors.warningSoft : colors.surface }}>
+      <Card
+        style={{
+          padding: spacing.md,
+          backgroundColor: isMandatory ? colors.secondarySoft : colors.surface,
+        }}>
         <Stack space="sm">
           <Row justify="space-between" align="flex-start" gap="sm">
             <View style={{ flex: 1, gap: 6 }}>
@@ -791,7 +711,7 @@ export default function HomeScreen() {
                     paddingHorizontal: spacing.xs,
                     paddingVertical: 4,
                   }}>
-                  <AppText variant="caption" style={{ color: colors.text }}>
+                  <AppText variant="caption" style={{ color: colors.textOnPrimary }}>
                     Mandatory
                   </AppText>
                 </View>
