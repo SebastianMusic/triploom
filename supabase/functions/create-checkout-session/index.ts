@@ -1,4 +1,4 @@
-import "@supabase/functions-js/edge-runtime.d.ts";
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY")!;
@@ -76,8 +76,8 @@ Deno.serve(async (req) => {
 			"line_items[0][quantity]": "1",
 			customer: customerId,
 			"metadata[user_id]": user.id,
-			success_url: `${Deno.env.get("SUPABASE_URL")}/functions/v1/subscription-complete`,
-			cancel_url: `${Deno.env.get("SUPABASE_URL")}/functions/v1/subscription-complete`,
+			success_url: "triploom://subscription-success",
+			cancel_url: "triploom://subscription-cancel",
 		};
 
 		if (STRIPE_PRICE_NOK_MONTHLY) {

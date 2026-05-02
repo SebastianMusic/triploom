@@ -1,4 +1,4 @@
-import "@supabase/functions-js/edge-runtime.d.ts";
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY")!;
@@ -34,12 +34,18 @@ Deno.serve(async (req) => {
       },
       body: "cancel_at_period_end=true",
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error((data as { error?: { message?: string } }).error?.message ?? "Stripe error");
+    const data = await res.json() as { error?: { message?: string }; current_period_end?: number };
+    if (!res.ok) throw new Error(data.error?.message ?? "Stripe error");
 
     await supabase
       .from("subscription")
-      .update({ status: "canceling", updated_at: new Date().toISOString() })
+      .update({
+        status: "canceling",
+        current_period_end: data.current_period_end
+          ? new Date(data.current_period_end * 1000).toISOString()
+          : null,
+        updated_at: new Date().toISOString(),
+      })
       .eq("user_id", user.id);
 
     return new Response(JSON.stringify({ canceled: true }), { status: 200, headers: { "Content-Type": "application/json" } });

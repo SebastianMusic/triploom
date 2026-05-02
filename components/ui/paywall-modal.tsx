@@ -47,16 +47,19 @@ export function PaywallModal({ visible, onDismiss, onSubscribed }: PaywallModalP
       const url = await createCheckoutSession();
       setIsOpening(false);
 
-      await WebBrowser.openBrowserAsync(url);
-      setIsVerifying(true);
-      const activated = await pollUntilActive();
-      if (activated) {
-        onSubscribed();
-      } else {
-        Alert.alert(
-          'Betaling behandles',
-          'Betalingen din behandles. Prøv igjen om et øyeblikk.',
-        );
+      const result = await WebBrowser.openAuthSessionAsync(url, 'triploom://subscription-success');
+
+      if (result.type === 'success' && result.url.startsWith('triploom://subscription-success')) {
+        setIsVerifying(true);
+        const activated = await pollUntilActive();
+        if (activated) {
+          onSubscribed();
+        } else {
+          Alert.alert(
+            'Betaling behandles',
+            'Betalingen din behandles. Prøv igjen om et øyeblikk.',
+          );
+        }
       }
     } catch (error) {
       Alert.alert(

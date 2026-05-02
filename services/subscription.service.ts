@@ -1,6 +1,6 @@
-import { FunctionsHttpError } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import type { Subscription } from '@/types';
+import { FunctionsHttpError } from '@supabase/supabase-js';
 
 export async function getSubscription(): Promise<Subscription | null> {
   const { data: { session } } = await supabase.auth.getSession();
@@ -13,6 +13,7 @@ export async function getSubscription(): Promise<Subscription | null> {
     .maybeSingle();
 
   if (error) throw error;
+  console.log('getSubscription returned:', data);
   return data;
 }
 
@@ -20,6 +21,7 @@ export async function cancelSubscription(): Promise<void> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error('No authenticated user');
 
+  console.log('Calling cancel-subscription function...');
   const { data, error } = await supabase.functions.invoke('cancel-subscription', {
     headers: { Authorization: `Bearer ${session.access_token}` },
   });
@@ -31,6 +33,7 @@ export async function cancelSubscription(): Promise<void> {
     }
     throw error;
   }
+  console.log('Cancel-subscription response:', data);
   if (!data?.canceled) throw new Error('Cancellation failed');
 }
 

@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -11,10 +12,10 @@ import {
   View,
 } from 'react-native';
 
+import { useTripChromeInsets } from '@/components/layout/use-trip-chrome';
 import EditProfileScreen from '@/components/profile/edit-profile-screen';
 import { PassportCard, PassportCardBack } from '@/components/profile/passport-card';
 import { usePassportPreviewMotion } from '@/components/profile/use-passport-preview-motion';
-import { useTripChromeInsets } from '@/components/layout/use-trip-chrome';
 import { BackButton } from '@/components/ui/back-button';
 import { Container } from '@/components/ui/container';
 import { Stack } from '@/components/ui/stack';
@@ -28,8 +29,8 @@ import { themeColorPresets, type ThemeColorPreset } from '@/constants/theme';
 import { useAuthStore } from '@/store/auth.store';
 import { useProfileStore } from '@/store/profile.store';
 import { useSubscriptionStore } from '@/store/subscription.store';
+import { useThemeStore, type ThemePreference } from '@/store/theme.store';
 import { useTripChromeStore } from '@/store/trip-chrome.store';
-import { type ThemePreference, useThemeStore } from '@/store/theme.store';
 import { SubscriptionStatus } from '@/types';
 
 type ProfileActionRowProps = {
@@ -116,9 +117,22 @@ export default function ProfileScreen({
 
   useEffect(() => {
     if (session?.user) {
-      fetchSubscription().catch(() => undefined);
+      fetchSubscription().catch((err) => {
+        console.error('Failed to fetch subscription on mount:', err);
+      });
     }
   }, [fetchSubscription, session?.user]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (session?.user) {
+        console.log('Profile screen focused - refetching subscription');
+        fetchSubscription().catch((err) => {
+          console.error('Failed to fetch subscription on focus:', err);
+        });
+      }
+    }, [session?.user, fetchSubscription]),
+  );
 
   const resolvedFullName =
     profile?.user_name ??
@@ -229,19 +243,38 @@ export default function ProfileScreen({
   }
 
   function handleCancelSubscription() {
+    // Prevent multiple cancellations
+    if (isCancelingSubscription || subscription?.status !== SubscriptionStatus.Active) {
+      console.log('Cancel already in progress or subscription not active');
+      return;
+    }
+
     Alert.alert(
-      'Avslutt abonnement',
-      'Er du sikker på at du vil avslutte abonnementet? Du beholder tilgangen ut inneværende betalingsperiode.',
+      'Cancel subscription',
+      'Are you sure you want to cancel your subscription? You will keep access until the end of the current billing period.',
       [
-        { text: 'Avbryt', style: 'cancel' },
+        { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Avslutt abonnement',
+          text: 'Cancel subscription',
           style: 'destructive',
           onPress: () => {
             setIsCancelingSubscription(true);
+            setSaveError(null);
+            setSaveSuccess(null);
             cancelSubscription()
+              .then(() => {
+                console.log('Subscription cancelled successfully, refetching...');
+                setSaveSuccess('Subscription cancelled successfully.');
+                // Force refetch after a short delay to ensure backend is updated
+                setTimeout(() => {
+                  fetchSubscription().catch((err) => {
+                    console.error('Failed to refetch subscription after cancel:', err);
+                  });
+                }, 500);
+              })
               .catch((err) => {
-                setSaveError(err instanceof Error ? err.message : 'Kunne ikke avslutte abonnementet.');
+                console.error('Cancellation error:', err);
+                setSaveError(err instanceof Error ? err.message : 'Failed to cancel subscription.');
               })
               .finally(() => {
                 setIsCancelingSubscription(false);
@@ -760,7 +793,7 @@ export default function ProfileScreen({
             paddingVertical: spacing.xs,
           }}>
           <View style={{ paddingHorizontal: spacing.xs, paddingTop: spacing.xs, paddingBottom: spacing.sm }}>
-            <AppText style={typography.label}>Abonnement</AppText>
+            <AppText style={typography.label}>Subscription</AppText>
           </View>
           <View style={{ height: 1, backgroundColor: colors.border }} />
           {subscription?.status === SubscriptionStatus.Active ? (
@@ -768,28 +801,38 @@ export default function ProfileScreen({
               <ProfileActionRow
                 icon="checkmark-circle-outline"
                 label="Triploom Premium"
-                value={subscription.current_period_end ? `Aktiv til ${new Date(subscription.current_period_end).toLocaleDateString('nb-NO')}` : 'Aktivt abonnement'}
+                value={subscription.current_period_end ? `Active until ${new Date(subscription.current_period_end).toLocaleDateString('en-US')}` : 'Active subscription'}
               />
               <View style={{ height: 1, backgroundColor: colors.border }} />
               <ProfileActionRow
                 icon="close-circle-outline"
-                label="Avslutt abonnement"
+                label="Cancel subscription"
                 destructive
                 loading={isCancelingSubscription}
-                onPress={handleCancelSubscription}
+                onPress={isCancelingSubscription ? undefined : handleCancelSubscription}
               />
             </>
           ) : subscription?.status === SubscriptionStatus.Canceling ? (
-            <ProfileActionRow
-              icon="time-outline"
-              label="Triploom Premium"
-              value={subscription.current_period_end ? `Avsluttes ${new Date(subscription.current_period_end).toLocaleDateString('nb-NO')}` : 'Abonnement avsluttes'}
-            />
+            (() => {
+              const endDate = subscription.current_period_end ? new Date(subscription.current_period_end) : null;
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+              const daysRemaining = endDate ? Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) : 0;
+              const daysText = daysRemaining === 1 ? '1 day' : `${daysRemaining} days`;
+              
+              return (
+                <ProfileActionRow
+                  icon="time-outline"
+                  label="Subscription ending"
+                  value={endDate ? `${daysText} remaining (${endDate.toLocaleDateString('en-US')})` : 'Subscription is ending'}
+                />
+              );
+            })()
           ) : (
             <ProfileActionRow
               icon="lock-closed-outline"
-              label="Ingen aktiv abonnement"
-              value="Oppgrader for å opprette flere turer"
+              label="No active subscription"
+              value="Upgrade to create unlimited trips"
             />
           )}
         </View>
