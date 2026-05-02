@@ -9,18 +9,18 @@ export async function signIn({ email, password }: SignInDTO): Promise<Session> {
 }
 
 /**
- * Creates a new auth user. The username is passed via user metadata so the
+ * Creates a new auth user. The full name is passed via user metadata so the
  * database trigger (on_auth_user_created) can create the profile row automatically.
  *
  * If email confirmation is enabled in Supabase, session will be null and the
  * user must confirm their email before they can sign in.
  */
-export async function signUp({ email, password, username }: SignUpDTO): Promise<Session | null> {
+export async function signUp({ email, password, fullName }: SignUpDTO): Promise<Session | null> {
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      data: { username },
+      data: { username: fullName, full_name: fullName },
     },
   });
   if (error) throw error;

@@ -13,7 +13,7 @@ const signUpCreatedIds: string[] = [];
 // Uses the profile row created by the on_auth_user_created trigger to get the ID.
 async function signUpAndTrack(username: string): Promise<{ email: string }> {
   const email = `${username}@triploom-integration.dev`;
-  await signUp({ username, email, password: TEST_PASSWORD });
+  await signUp({ fullName: username, email, password: TEST_PASSWORD });
   const { data } = await getSupabaseAdmin()
     .from('profile')
     .select('id')
@@ -68,14 +68,14 @@ describe('signInSchema', () => {
 describe('signUpSchema', () => {
   it('accepts valid sign-up data', () => {
     expect(
-      signUpSchema.safeParse({ username: 'alice', email: 'a@b.com', password: 'secret1' }).success
+      signUpSchema.safeParse({ fullName: 'Alice', email: 'a@b.com', password: 'secret1' }).success
     ).toBe(true);
   });
 
-  it('rejects short username', () => {
-    const r = signUpSchema.safeParse({ username: 'a', email: 'a@b.com', password: 'secret1' });
+  it('rejects short full name', () => {
+    const r = signUpSchema.safeParse({ fullName: 'A', email: 'a@b.com', password: 'secret1' });
     expect(r.success).toBe(false);
-    if (!r.success) expect(r.error.issues[0].message).toBe('Username must be at least 2 characters');
+    if (!r.success) expect(r.error.issues[0].message).toBe('Full name must be at least 2 characters');
   });
 });
 
@@ -127,7 +127,7 @@ describe('signUp', () => {
     const { email } = await signUpAndTrack(username);
 
     await expect(
-      signUp({ username: 'duplicate', email, password: TEST_PASSWORD })
+      signUp({ fullName: 'Duplicate', email, password: TEST_PASSWORD })
     ).rejects.toBeDefined();
   });
 });

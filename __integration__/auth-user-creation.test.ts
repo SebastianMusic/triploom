@@ -55,7 +55,7 @@ async function createUserViaSignUp(
   email: string
 ): Promise<{ success: boolean; userId?: string; error?: { message: string; code?: string; details?: string } }> {
   try {
-    const session = await signUp({ email, password: TEST_PASSWORD, username });
+    const session = await signUp({ email, password: TEST_PASSWORD, fullName: username });
     if (session?.user) {
       createdUserIds.push(session.user.id);
       return { success: true, userId: session.user.id };
