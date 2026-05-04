@@ -40,11 +40,21 @@ export default function JoinTripScreen() {
     setInviteCode(extracted);
   }, [code]);
 
+  function extractCode(input: string): string {
+    const trimmed = input.trim();
+    try {
+      const parsed = new URL(trimmed);
+      return parsed.searchParams.get('code') ?? trimmed;
+    } catch {
+      return trimmed;
+    }
+  }
+
   async function handleJoin() {
     setValidationError(null);
     setSuccessResult(null);
 
-    const trimmedCode = inviteCode.trim();
+    const trimmedCode = extractCode(inviteCode);
     if (!trimmedCode) {
       setValidationError('Invite code is required');
       return;

@@ -68,6 +68,7 @@ export default function JoinDeepLinkScreen() {
               <Ionicons name="checkmark" size={34} color={colors.primary} />
             </View>
             <AppText variant="subtitle">Trip joined!</AppText>
+            <Button label="Go to trip" onPress={() => router.replace('/(app)/(trip)/home')} />
           </View>
         )}
 
