@@ -50,4 +50,4 @@ supabase/.temp/
 firebase-secret.json
 
 .idea/*
-
+gitcrypt-key

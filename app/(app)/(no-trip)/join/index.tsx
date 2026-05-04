@@ -21,7 +21,7 @@ export default function JoinTripScreen() {
   const [validationError, setValidationError] = useState<string | null>(null);
   const [successResult, setSuccessResult] = useState<RedeemInviteResponse | null>(null);
 
-  const { redeemInvite, isRedeemingInvite, inviteError } = useTripStore();
+  const { redeemInvite, fetchTrips, isRedeemingInvite, inviteError } = useTripStore();
   const { setSelectedTrip } = useProfileStore();
   const { code } = useLocalSearchParams();
   const {
@@ -29,7 +29,15 @@ export default function JoinTripScreen() {
   } = useAppTheme();
 
   useEffect(() => {
-    if (typeof code === 'string') setInviteCode(code);
+    if (typeof code !== 'string') return;
+    let extracted = code;
+    try {
+      const parsed = new URL(code);
+      extracted = parsed.searchParams.get('code') ?? parsed.pathname.split('/').pop() ?? code;
+    } catch {
+      // not a URL — use as-is
+    }
+    setInviteCode(extracted);
   }, [code]);
 
   async function handleJoin() {
@@ -52,6 +60,7 @@ export default function JoinTripScreen() {
 
   async function handleGoToTrip() {
     if (!successResult?.trip_id) return;
+    await fetchTrips();
     await setSelectedTrip(successResult.trip_id);
   }
 

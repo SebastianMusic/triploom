@@ -25,6 +25,7 @@ export default function AppLayout() {
 					<Stack.Screen name="(no-trip)" />
 				</Stack.Protected>
 				<Stack.Screen name="profile/index" />
+				<Stack.Screen name="invite/index" />
 			</Stack>
 			<GlobalProfileButton />
 		</>

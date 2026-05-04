@@ -1,13 +1,14 @@
 import "@supabase/functions-js/edge-runtime.d.ts";
 
 Deno.serve((req) => {
-	const token = new URL(req.url).pathname.split("/").pop();
+	const parsedUrl = new URL(req.url);
+	const token = parsedUrl.searchParams.get("code") ?? parsedUrl.pathname.split("/").pop();
 
 	if (!token) {
 		return new Response("Not found", { status: 404 });
 	}
 
-	const deepLink = `triploom://join/${token}`;
+	const deepLink = `triploom://invite?code=${token}`;
 
 	const html = `<!DOCTYPE html>
 <html lang="en">

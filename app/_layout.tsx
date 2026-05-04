@@ -1,7 +1,7 @@
 import { Stack, router, useSegments } from 'expo-router';
 import { useFonts } from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import * as Linking from 'expo-linking';
@@ -37,29 +37,36 @@ function RootNavigator() {
 	const { session, isLoading, initialize } = useAuthStore();
   const segments = useSegments();
   const { mode, theme } = useAppTheme();
+<<<<<<< Updated upstream
   const isTripRoute = segments[0] === '(app)' && segments[1] === '(trip)';
+||||||| Stash base
+=======
+  const [pendingCode, setPendingCode] = useState<string | null>(null);
+>>>>>>> Stashed changes
 
 	useEffect(() => {
 		initialize();
 	}, [initialize]);
 
 	useEffect(() => {
-		function navigateToJoinWithCode(url: string) {
-			const { hostname, path } = Linking.parse(url);
-			if (hostname === 'join' && path) {
-				router.push(`/(app)/(no-trip)/join?code=${encodeURIComponent(path)}`);
-			}
+		if (!isLoading && session && pendingCode) {
+			router.push(`/(app)/invite?code=${encodeURIComponent(pendingCode)}`);
+			setPendingCode(null);
 		}
+	}, [isLoading, session, pendingCode]);
 
+	useEffect(() => {
+		// Only needed for cold-start: Expo Router handles live deep links automatically
+		// once the route exists. getInitialURL fires before auth is ready, so we
+		// store the code and navigate once the session loads.
 		Linking.getInitialURL().then((url) => {
-			if (url) navigateToJoinWithCode(url);
+			if (!url) return;
+			const { hostname, queryParams } = Linking.parse(url);
+			if (hostname === 'invite') {
+				const code = queryParams?.code;
+				if (typeof code === 'string') setPendingCode(code);
+			}
 		});
-
-		const subscription = Linking.addEventListener('url', ({ url }) => {
-			navigateToJoinWithCode(url);
-		});
-
-		return () => subscription.remove();
 	}, []);
 
 	if (isLoading) {
