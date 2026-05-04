@@ -37,12 +37,8 @@ function RootNavigator() {
 	const { session, isLoading, initialize } = useAuthStore();
   const segments = useSegments();
   const { mode, theme } = useAppTheme();
-<<<<<<< Updated upstream
   const isTripRoute = segments[0] === '(app)' && segments[1] === '(trip)';
-||||||| Stash base
-=======
   const [pendingCode, setPendingCode] = useState<string | null>(null);
->>>>>>> Stashed changes
 
 	useEffect(() => {
 		initialize();
