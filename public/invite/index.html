@@ -51,7 +51,7 @@
       font-size: 0.95rem;
       color: #666;
       line-height: 1.5;
-      margin-bottom: 32px;
+      margin-bottom: 24px;
     }
 
     .btn {
@@ -64,14 +64,48 @@
       padding: 16px 24px;
       border-radius: 14px;
       transition: opacity 0.15s;
+      cursor: pointer;
+      border: none;
+      width: 100%;
     }
 
     .btn:active { opacity: 0.8; }
+
+    .btn-secondary {
+      background: #E8F0FF;
+      color: #4D78D7;
+      margin-top: 12px;
+    }
+
+    .steps {
+      text-align: left;
+      background: #f8f9ff;
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+    }
+
+    .steps ol {
+      padding-left: 20px;
+    }
+
+    .steps li {
+      font-size: 0.9rem;
+      color: #444;
+      line-height: 1.6;
+      margin-bottom: 4px;
+    }
+
+    .steps li:last-child { margin-bottom: 0; }
 
     .hint {
       margin-top: 16px;
       font-size: 0.8rem;
       color: #aaa;
+    }
+
+    .copied {
+      background: #2ecc71 !important;
     }
 
     .error { color: #c0392b; }
@@ -81,19 +115,72 @@
   <div class="card">
     <div class="logo">✈️</div>
     <h1>You've been invited to join a trip</h1>
-    <p id="subtitle">Tap the button below to open Triploom and join.</p>
-    <a id="open-btn" class="btn" href="#">Open in Triploom</a>
+
+    <div id="android-view" style="display:none">
+      <p>Tap the button below to open Triploom and join.</p>
+      <a id="open-btn" class="btn" href="#">Open in Triploom</a>
+    </div>
+
+    <div id="ios-view" style="display:none">
+      <p>Open Triploom, then copy and paste the invite link to join.</p>
+      <div class="steps">
+        <ol>
+          <li>Open the Triploom app</li>
+          <li>Tap the <strong>+</strong> button on the trips screen</li>
+          <li>Tap <strong>Join with code</strong></li>
+          <li>Paste the invite link and tap <strong>Join trip</strong></li>
+        </ol>
+      </div>
+      <button class="btn" id="copy-btn" onclick="copyLink()">Copy invite link</button>
+    </div>
+
+    <div id="error-view" style="display:none">
+      <p id="error-msg" class="error">This invite link is invalid or has expired.</p>
+    </div>
+
     <p class="hint">Make sure you have Triploom installed.</p>
   </div>
 
   <script>
     var code = new URLSearchParams(window.location.search).get('code');
+    var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    var inviteUrl = window.location.href;
+
     if (!code) {
-      document.getElementById('subtitle').textContent = 'This invite link is invalid or has expired.';
-      document.getElementById('subtitle').className = 'error';
-      document.getElementById('open-btn').style.display = 'none';
+      document.getElementById('error-view').style.display = 'block';
+    } else if (isIOS) {
+      document.getElementById('ios-view').style.display = 'block';
     } else {
+      document.getElementById('android-view').style.display = 'block';
       document.getElementById('open-btn').href = 'triploom://invite?code=' + encodeURIComponent(code);
+    }
+
+    function copyLink() {
+      var btn = document.getElementById('copy-btn');
+      navigator.clipboard.writeText(inviteUrl).then(function() {
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(function() {
+          btn.textContent = 'Copy invite link';
+          btn.classList.remove('copied');
+        }, 2000);
+      }).catch(function() {
+        // fallback for older browsers
+        var el = document.createElement('textarea');
+        el.value = inviteUrl;
+        el.style.position = 'fixed';
+        el.style.opacity = '0';
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(function() {
+          btn.textContent = 'Copy invite link';
+          btn.classList.remove('copied');
+        }, 2000);
+      });
     }
   </script>
 </body>
