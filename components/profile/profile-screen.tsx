@@ -522,8 +522,6 @@ export default function ProfileScreen({
           style={{
             borderRadius: radius.lg,
             backgroundColor: colors.surface,
-            borderWidth: 1,
-            borderColor: colors.border,
             paddingHorizontal: spacing.md,
             paddingVertical: spacing.xs,
           }}>
@@ -548,8 +546,6 @@ export default function ProfileScreen({
           style={{
             borderRadius: radius.lg,
             backgroundColor: colors.surface,
-            borderWidth: 1,
-            borderColor: colors.border,
             padding: spacing.sm,
             gap: spacing.sm,
           }}>
@@ -718,8 +714,6 @@ export default function ProfileScreen({
           style={{
             borderRadius: radius.lg,
             backgroundColor: colors.surface,
-            borderWidth: 1,
-            borderColor: colors.border,
             paddingHorizontal: spacing.md,
           }}>
           <ProfileActionRow

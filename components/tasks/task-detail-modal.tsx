@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { Alert, Pressable, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { AppText } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { PageSheetModal } from '@/components/ui/page-sheet-modal';
 import { Row } from '@/components/ui/row';
 import { Stack } from '@/components/ui/stack';
@@ -236,7 +237,7 @@ function TextResponseInput({
   editable: boolean;
   onSave: (value: string) => void;
 }) {
-  const { theme: { colors, spacing, radius, stroke } } = useAppTheme();
+  const { theme: { colors } } = useAppTheme();
   const [localValue, setLocalValue] = useState(initialValue);
   const isFocused = useRef(false);
 
@@ -245,7 +246,7 @@ function TextResponseInput({
   }, [initialValue]);
 
   return (
-    <TextInput
+    <Input
       value={localValue}
       onChangeText={setLocalValue}
       onFocus={() => { isFocused.current = true; }}
@@ -253,15 +254,7 @@ function TextResponseInput({
       editable={editable}
       placeholder="Type here..."
       multiline
-      placeholderTextColor={colors.textMuted}
-      style={{
-        minHeight: 80, borderRadius: radius.md, borderWidth: stroke.thin,
-        borderColor: colors.border,
-        backgroundColor: editable ? colors.surface : colors.surfaceMuted,
-        paddingHorizontal: spacing.sm, paddingVertical: spacing.sm,
-        color: editable ? colors.text : colors.textMuted,
-        opacity: editable ? 1 : 0.6,
-      }}
+      style={{ opacity: editable ? 1 : 0.6, color: editable ? colors.text : colors.textMuted }}
     />
   );
 }

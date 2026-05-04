@@ -3,10 +3,13 @@ import { Alert, Image, Pressable, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { AppText } from '@/components/ui/text';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { LocationViewModal } from '@/components/ui/location-view-modal';
 import { PageSheetModal } from '@/components/ui/page-sheet-modal';
 import { Row } from '@/components/ui/row';
+import { Stack } from '@/components/ui/stack';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import { ParticipantsList } from '@/components/trip/participants-list';
 import type { EventWithCount } from '@/services/events.service';
@@ -34,7 +37,7 @@ export function EventDetailModal({
   onEdit?: () => void;
   onDelete?: () => void;
 }) {
-  const { theme: { colors, spacing, radius, stroke, sizes } } = useAppTheme();
+  const { theme: { colors, radius, spacing, stroke, sizes } } = useAppTheme();
   const { currentParticipant, participantsWithProfiles } = useTripStore();
   const { registerForEvent, unregisterFromEvent, getEventBannerUrl } = useEventsStore();
 
@@ -54,7 +57,7 @@ export function EventDetailModal({
     } else {
       setBannerUrl(null);
     }
-  }, [event?.banner_image_url]);
+  }, [event?.banner_image_url, getEventBannerUrl]);
 
   if (!event) return null;
 
@@ -68,8 +71,8 @@ export function EventDetailModal({
     if (!participantId || !event) return;
     setRegistering(true);
     try {
-      if (isRegistered) unregisterFromEvent(event.id, participantId);
-      else registerForEvent(event.id, participantId);
+      if (isRegistered) await unregisterFromEvent(event.id, participantId);
+      else await registerForEvent(event.id, participantId);
     } finally {
       setRegistering(false);
     }
@@ -104,62 +107,57 @@ export function EventDetailModal({
       ) : (
         <ScrollView contentContainerStyle={{ padding: spacing.md, gap: spacing.md }}>
           {bannerUrl ? (
-            <View style={{ width: '100%', aspectRatio: 16 / 9, borderRadius: 14, overflow: 'hidden' }}>
+            <View style={{ width: '100%', aspectRatio: 16 / 9, borderRadius: radius.lg, overflow: 'hidden' }}>
               <Image source={{ uri: bannerUrl }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
             </View>
           ) : null}
 
-          {isMandatory && (
-            <View style={{ alignSelf: 'flex-start', backgroundColor: colors.warning, borderRadius: radius.sm, paddingHorizontal: 8, paddingVertical: 3 }}>
-              <AppText variant="caption" style={{ color: '#fff' }}>Mandatory</AppText>
-            </View>
-          )}
+          <Stack space="sm">
+            {isMandatory ? <Badge label="Mandatory" variant="warning" /> : null}
+            {event.description ? (
+              <AppText tone="muted">{event.description}</AppText>
+            ) : (
+              <AppText tone="muted">No description added.</AppText>
+            )}
+          </Stack>
 
-          {event.description ? <AppText tone="muted">{event.description}</AppText> : null}
+          <Card style={{ padding: spacing.md }}>
+            <Stack space="sm">
+              {event.location ? (
+                <Pressable onPress={() => setLocationVisible(true)}>
+                  <InfoRow icon="location-outline" label="Location" value={event.location} tone="primary" />
+                </Pressable>
+              ) : null}
+              <InfoRow icon="time-outline" label="Start" value={formatFull(event.start_time)} />
+              <InfoRow icon="flag-outline" label="End" value={formatFull(event.end_time)} />
+              {event.price_range ? (
+                <InfoRow icon="cash-outline" label="Price range" value={event.price_range} />
+              ) : null}
+            </Stack>
+          </Card>
 
-          <View style={{ gap: spacing.sm }}>
-            {event.location ? (
-              <Pressable onPress={() => setLocationVisible(true)}>
-                <InfoRow icon="location-outline">
-                  <AppText variant="caption" tone="muted">Location</AppText>
-                  <AppText tone="primary">{event.location}</AppText>
-                </InfoRow>
-              </Pressable>
-            ) : null}
-
-            <InfoRow icon="time-outline">
-              <AppText variant="caption" tone="muted">Start</AppText>
-              <AppText>{formatFull(event.start_time)}</AppText>
-            </InfoRow>
-
-            <InfoRow icon="flag-outline">
-              <AppText variant="caption" tone="muted">End</AppText>
-              <AppText>{formatFull(event.end_time)}</AppText>
-            </InfoRow>
-
-            {event.price_range ? (
-              <InfoRow icon="cash-outline">
-                <AppText variant="caption" tone="muted">Price range</AppText>
-                <AppText>{event.price_range}</AppText>
-              </InfoRow>
-            ) : null}
-          </View>
-
-          {/* Participants row — navigates to sub-view */}
           <Pressable
             onPress={() => setView('participants')}
             style={({ pressed }) => ({
-              flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
               backgroundColor: colors.surface,
-              borderRadius: radius.md, borderWidth: stroke.thin, borderColor: colors.border,
-              paddingHorizontal: spacing.sm, paddingVertical: spacing.sm,
+              borderRadius: radius.lg,
+              borderWidth: stroke.thin,
+              borderColor: colors.border,
+              paddingHorizontal: spacing.md,
+              paddingVertical: spacing.sm,
               opacity: pressed ? 0.8 : 1,
             })}>
-            <Row gap="xs">
-              <Ionicons name="people-outline" size={sizes.icon.sm} color={colors.textMuted} />
-              <AppText variant="caption" style={{ fontWeight: '600' }}>
-                {`Participants — ${registeredCount}`}
-              </AppText>
+            <Row gap="xs" align="center">
+              <Ionicons name="people-outline" size={sizes.icon.sm} color={colors.primary} />
+              <View>
+                <AppText style={{ fontWeight: '600' }}>Participants</AppText>
+                <AppText variant="caption" tone="muted">
+                  {registeredCount} registered
+                </AppText>
+              </View>
             </Row>
             <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
           </Pressable>
@@ -185,12 +183,25 @@ export function EventDetailModal({
   );
 }
 
-function InfoRow({ icon, children }: { icon: string; children: React.ReactNode }) {
+function InfoRow({
+  icon,
+  label,
+  value,
+  tone = 'default',
+}: {
+  icon: string;
+  label: string;
+  value: string;
+  tone?: 'default' | 'primary';
+}) {
   const { theme: { colors, spacing } } = useAppTheme();
   return (
     <View style={{ flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-start' }}>
-      <Ionicons name={icon as never} size={20} color={colors.textMuted} style={{ marginTop: 2 }} />
-      <View style={{ flex: 1 }}>{children}</View>
+      <Ionicons name={icon as never} size={20} color={colors.primary} style={{ marginTop: 2 }} />
+      <View style={{ flex: 1 }}>
+        <AppText variant="caption" tone="muted">{label}</AppText>
+        <AppText tone={tone}>{value}</AppText>
+      </View>
     </View>
   );
 }

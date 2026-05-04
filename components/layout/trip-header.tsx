@@ -13,6 +13,7 @@ import { useAppTheme } from '@/components/ui/theme-provider';
 import { getTripScreenTitle, isPrimaryTripTab } from '@/components/layout/trip-navigation';
 import { getProfileBadge } from '@/constants/profile-badges';
 import { useProfileStore } from '@/store/profile.store';
+import { useTripHeaderActionsStore } from '@/store/trip-header-actions.store';
 import { useTripStore } from '@/store/trip.store';
 import { TripRole } from '@/types';
 
@@ -24,6 +25,8 @@ export function TripHeader({ routeName }: TripHeaderProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { displayAvatarUrl, profile, participatedTripCount, setSelectedTrip } = useProfileStore();
+  const screenAction = useTripHeaderActionsStore((state) => state.action);
+  const screenActions = useTripHeaderActionsStore((state) => state.actions);
   const currentParticipant = useTripStore((state) => state.currentParticipant);
   const {
     theme: { colors, layout, spacing, typography },
@@ -39,6 +42,25 @@ export function TripHeader({ routeName }: TripHeaderProps) {
     routeName === 'home/index' &&
     (currentParticipant?.role === TripRole.Organizer ||
       currentParticipant?.role === TripRole.CoOrganizer);
+  const isOrganizer =
+    currentParticipant?.role === TripRole.Organizer ||
+    currentParticipant?.role === TripRole.CoOrganizer;
+  const headerActions =
+    canCreateAnnouncement
+      ? [{
+          accessibilityLabel: 'Create announcement',
+          onPress: handleCreateAnnouncement,
+        }]
+      : routeName === 'events/index' && isOrganizer
+        ? [{
+            accessibilityLabel: 'Create event',
+            onPress: () => router.push('/(app)/(trip)/events/create_event'),
+          }]
+        : screenActions.length > 0
+          ? screenActions
+          : screenAction
+            ? [screenAction]
+            : [];
 
   function handleOpenProfile() {
     if (isProfileRoute) return;
@@ -106,15 +128,22 @@ export function TripHeader({ routeName }: TripHeaderProps) {
           <View style={{ width: 44, height: 44 }} />
         ) : (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
-            {canCreateAnnouncement ? (
+            {headerActions.map((action) => (
               <IconButton
-                accessibilityLabel="Create announcement"
+                key={action.accessibilityLabel}
+                accessibilityLabel={action.accessibilityLabel}
                 variant="accent"
                 size="md"
-                icon={<Ionicons name="add" size={24} color={colors.text} />}
-                onPress={handleCreateAnnouncement}
+                icon={
+                  <Ionicons
+                    name={(action.iconName ?? 'add') as keyof typeof Ionicons.glyphMap}
+                    size={24}
+                    color={colors.text}
+                  />
+                }
+                onPress={action.onPress}
               />
-            ) : null}
+            ))}
             <IconButton
               accessibilityLabel="Open profile"
               active={isProfileRoute}

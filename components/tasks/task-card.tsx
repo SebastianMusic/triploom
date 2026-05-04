@@ -20,7 +20,7 @@ export function TaskCard({
   onPress: () => void;
   onExportPress?: () => void;
 }) {
-  const { theme: { colors, sizes, spacing } } = useAppTheme();
+  const { theme: { colors, radius, sizes, spacing } } = useAppTheme();
   const isMandatory = task.is_mandatory ?? false;
   const isCompleted = assignment?.is_completed ?? false;
 
@@ -30,7 +30,7 @@ export function TaskCard({
       onPress={onPress}
       style={{
         paddingVertical: spacing.sm,
-        backgroundColor: isMandatory && !isCompleted ? colors.warningSoft : colors.surface,
+        backgroundColor: isMandatory && !isCompleted ? colors.secondarySoft : colors.surface,
       }}>
       <Row align="center" gap="sm">
         <View style={{
@@ -45,6 +45,21 @@ export function TaskCard({
         </View>
 
         <View style={{ flex: 1, paddingVertical: 2 }}>
+          {isMandatory && !isCompleted ? (
+            <View
+              style={{
+                alignSelf: 'flex-start',
+                borderRadius: radius.full,
+                backgroundColor: colors.warning,
+                paddingHorizontal: spacing.xs,
+                paddingVertical: 3,
+                marginBottom: 4,
+              }}>
+              <AppText variant="caption" style={{ color: colors.textOnPrimary }}>
+                Mandatory
+              </AppText>
+            </View>
+          ) : null}
           <AppText
             style={{
               color: isCompleted ? colors.textMuted : colors.text,

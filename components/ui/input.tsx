@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { TextInput, View, type StyleProp, type TextInputProps, type ViewStyle } from 'react-native';
+import { Platform, TextInput, View, type StyleProp, type TextInputProps, type ViewStyle } from 'react-native';
 
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
@@ -18,6 +18,7 @@ export function Input({ label, hint, error, multiline = false, containerStyle, s
   const {
     theme: { colors, radius, sizes, spacing, stroke, typography },
   } = useAppTheme();
+  const { lineHeight: bodyLineHeight, ...bodyTextStyle } = typography.body;
 
   const borderColor = error ? colors.error : isFocused ? colors.focusRing : colors.border;
   const borderWidth = isFocused ? stroke.focus : stroke.thin;
@@ -38,23 +39,34 @@ export function Input({ label, hint, error, multiline = false, containerStyle, s
       style={[
         {
           minHeight: multiline ? sizes.input.lg : sizes.input.md,
+          height: multiline ? undefined : sizes.input.md,
           ...(!rightElement && {
             borderRadius: radius.md,
             borderWidth,
             borderColor,
             backgroundColor: colors.surface,
             paddingHorizontal: spacing.sm,
-            paddingVertical: spacing.sm - spacing.xs / 2,
+            paddingTop: multiline ? spacing.sm - spacing.xs / 2 : 0,
+            paddingBottom: multiline ? spacing.sm - spacing.xs / 2 : 0,
           }),
           ...(rightElement && {
             flex: 1,
             paddingHorizontal: spacing.sm,
-            paddingVertical: spacing.sm - spacing.xs / 2,
+            paddingTop: multiline ? spacing.sm - spacing.xs / 2 : 0,
+            paddingBottom: multiline ? spacing.sm - spacing.xs / 2 : 0,
           }),
           color: colors.text,
           includeFontPadding: false,
-          ...typography.body,
-          lineHeight: undefined,
+          ...bodyTextStyle,
+          ...(multiline
+            ? { lineHeight: bodyLineHeight }
+            : Platform.OS === 'android'
+              ? { lineHeight: 22 }
+              : {
+                  paddingTop: 0,
+                  paddingBottom: 2,
+                  transform: [{ translateY: -1 }],
+                }),
         },
         style,
       ]}

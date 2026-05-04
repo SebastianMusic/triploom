@@ -1,9 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Easing, ImageBackground, Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, ImageBackground, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { BottomActionSheet } from '@/components/ui/bottom-action-sheet';
+import { AppRefreshControl } from '@/components/ui/app-refresh-control';
 import { Button } from '@/components/ui/button';
 import { Container } from '@/components/ui/container';
 import { FloatingActionButton } from '@/components/ui/floating-action-button';
@@ -171,7 +173,7 @@ function TripSummaryCard({
   );
 }
 
-function CompactPastTripCard({ trip, disabled, selecting, onSelect, onOptions }: TripActionProps) {
+function CompactPastTripCard({ trip, disabled, selecting, onSelect }: TripActionProps) {
   const {
     theme: { colors, radius, spacing, typography },
   } = useAppTheme();
@@ -227,11 +229,11 @@ function CompactPastTripCard({ trip, disabled, selecting, onSelect, onOptions }:
 export default function TripPickerScreen() {
   const appRouter = useRouter();
   const insets = useSafeAreaInsets();
-  const menuProgress = useRef(new Animated.Value(0)).current;
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectionError, setSelectionError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [selectingTripId, setSelectingTripId] = useState<string | null>(null);
+  const [visiblePastTripCount, setVisiblePastTripCount] = useState(0);
 
   const { fetchTrips, trips, tripNextActions, isLoading } = useTripStore();
   const { profile, displayAvatarUrl, participatedTripCount, setSelectedTrip } = useProfileStore();
@@ -270,31 +272,12 @@ export default function TripPickerScreen() {
         .sort((a, b) => (b.end_date ?? '').localeCompare(a.end_date ?? '')),
     [trips],
   );
+  const visiblePastTrips = useMemo(
+    () => pastTrips.slice(0, visiblePastTripCount),
+    [pastTrips, visiblePastTripCount],
+  );
 
   const isBusy = isLoading || selectingTripId !== null;
-
-  useEffect(() => {
-    Animated.timing(menuProgress, {
-      toValue: menuOpen ? 1 : 0,
-      duration: 220,
-      easing: Easing.bezier(0.22, 1, 0.36, 1),
-      useNativeDriver: true,
-    }).start();
-  }, [menuOpen, menuProgress]);
-
-  const menuOpacity = menuProgress;
-  const menuTranslateY = menuProgress.interpolate({
-    inputRange: [0, 1],
-    outputRange: [12, 0],
-  });
-  const menuScale = menuProgress.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.96, 1],
-  });
-  const iconRotate = menuProgress.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '45deg'],
-  });
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -327,11 +310,18 @@ export default function TripPickerScreen() {
     router.push('./create');
   }
 
+  function handleShowMorePastTrips() {
+    setVisiblePastTripCount((current) => {
+      if (current === 0) return 6;
+      return Math.min(current + 6, pastTrips.length);
+    });
+  }
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+        refreshControl={<AppRefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         contentContainerStyle={{
           paddingTop: insets.top + spacing.xl,
           paddingBottom: insets.bottom + spacing.xxxl + spacing.xl,
@@ -427,82 +417,55 @@ export default function TripPickerScreen() {
           {pastTrips.length > 0 ? (
             <Stack space="sm">
               <SectionHeader title="Past trips" count={pastTrips.length} />
-              <Stack space="sm">
-                {pastTrips.map((trip) => (
-                  <CompactPastTripCard
-                    key={trip.id}
-                    trip={trip}
-                    disabled={isBusy}
-                    selecting={selectingTripId === trip.id}
-                    onSelect={handleSelectTrip}
-                  />
-                ))}
-              </Stack>
+              {visiblePastTrips.length > 0 ? (
+                <Stack space="sm">
+                  {visiblePastTrips.map((trip) => (
+                    <CompactPastTripCard
+                      key={trip.id}
+                      trip={trip}
+                      disabled={isBusy}
+                      selecting={selectingTripId === trip.id}
+                      onSelect={handleSelectTrip}
+                    />
+                  ))}
+                </Stack>
+              ) : null}
+              {visiblePastTripCount < pastTrips.length ? (
+                <Button
+                  label={visiblePastTripCount === 0 ? `Show previous trips (${pastTrips.length})` : 'Load more previous trips'}
+                  variant="secondary"
+                  fullWidth
+                  onPress={handleShowMorePastTrips}
+                />
+              ) : null}
             </Stack>
           ) : null}
         </Stack>
         </Container>
       </ScrollView>
 
-      {menuOpen ? (
-        <Pressable
-          onPress={() => setMenuOpen(false)}
-          style={{
-            position: 'absolute',
-            top: 0,
-            right: 0,
-            bottom: 0,
-            left: 0,
-            backgroundColor: colors.overlay,
-          }}
-        />
-      ) : null}
-
-      {menuOpen ? (
-        <Animated.View
-          style={{
-            position: 'absolute',
-            right: spacing.md,
-            bottom: insets.bottom + spacing.lg + 68,
-            gap: spacing.xs,
-            alignItems: 'flex-end',
-            opacity: menuOpacity,
-            transform: [{ translateY: menuTranslateY }, { scale: menuScale }],
-          }}>
-          <Pressable
-            onPress={() => {
-              setMenuOpen(false);
-              handleJoinWithCode();
-            }}
-            style={({ pressed }) => ({
-              paddingHorizontal: spacing.sm,
-              paddingVertical: spacing.xs,
-              borderRadius: radius.full,
-              backgroundColor: colors.surface,
-              opacity: pressed ? 0.9 : 1,
-            })}>
-            <AppText variant="caption">Join with code</AppText>
-          </Pressable>
-          <Pressable
-            onPress={openCreateForm}
-            style={({ pressed }) => ({
-              paddingHorizontal: spacing.sm,
-              paddingVertical: spacing.xs,
-              borderRadius: radius.full,
-              backgroundColor: colors.surface,
-              opacity: pressed ? 0.9 : 1,
-            })}>
-            <AppText variant="caption">Create trip</AppText>
-          </Pressable>
-        </Animated.View>
-      ) : null}
+      <BottomActionSheet
+        visible={menuOpen}
+        title="Trips"
+        onClose={() => setMenuOpen(false)}
+        items={[
+          {
+            key: 'create',
+            label: 'Create trip',
+            icon: 'add-outline',
+            onPress: openCreateForm,
+          },
+          {
+            key: 'join',
+            label: 'Join with code',
+            icon: 'key-outline',
+            onPress: handleJoinWithCode,
+          },
+        ]}
+      />
 
       <FloatingActionButton
-        icon={
-          <Animated.View style={{ transform: [{ rotate: iconRotate }] }}>
-            <Ionicons name="add" size={28} color={colors.text} />
-          </Animated.View>
-        }
+        icon={<Ionicons name="add" size={28} color={colors.text} />}
         onPress={() => setMenuOpen((open) => !open)}
       />
     </View>

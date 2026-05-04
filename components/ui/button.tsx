@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, View, type PressableProps, type ViewStyle
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
 
-type ButtonVariant = 'primary' | 'secondary' | 'ghost';
+type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'destructive';
 type ButtonSize = 'sm' | 'md' | 'lg';
 
 export type ButtonProps = Omit<PressableProps, 'style'> & {
@@ -46,7 +46,13 @@ export function Button({
           };
 
   const variantStyle =
-    variant === 'secondary'
+    variant === 'destructive'
+      ? {
+          backgroundColor: colors.error,
+          textColor: colors.textOnPrimary,
+          shadow: shadows.sm,
+        }
+      : variant === 'secondary'
       ? {
           backgroundColor: colors.secondarySoft,
           textColor: colors.secondary,

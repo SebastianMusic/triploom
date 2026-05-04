@@ -1,4 +1,3 @@
-import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -6,8 +5,6 @@ import {
   ActivityIndicator,
   Alert,
   Image,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
   View,
@@ -16,9 +13,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText } from '@/components/ui/text';
 import { Avatar } from '@/components/ui/avatar';
+import { AppDateTimePicker, DateTimeField } from '@/components/ui/date-time-picker';
 import { Button } from '@/components/ui/button';
+import { confirmDestructiveAction } from '@/components/ui/confirm-destructive-action';
 import { EventLocationInput } from '@/components/events/event-location-input';
 import { Input } from '@/components/ui/input';
+import { KeyboardScreenView } from '@/components/ui/keyboard-screen-view';
 import { LocationViewModal } from '@/components/ui/location-view-modal';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import type { EventParticipant, EventWithCount } from '@/services/events.service';
@@ -55,87 +55,7 @@ function formatFull(iso: string | null): string {
   });
 }
 
-// ─── Date picker hook ────────────────────────────────────────────────────────
-
 type PickerTarget = 'start' | 'end' | null;
-type PickerMode = 'date' | 'time';
-
-function useDatePicker(initial: { start: Date | null; end: Date | null }) {
-  const [startDate, setStartDate] = useState<Date | null>(initial.start);
-  const [endDate, setEndDate] = useState<Date | null>(initial.end);
-  const [pickerTarget, setPickerTarget] = useState<PickerTarget>(null);
-  const [pickerMode, setPickerMode] = useState<PickerMode>('date');
-  const [tempDate, setTempDate] = useState<Date>(new Date());
-
-  function openPicker(target: PickerTarget) {
-    const current = target === 'start' ? startDate : endDate;
-    setTempDate(current ?? new Date());
-    setPickerMode('date');
-    setPickerTarget(target);
-  }
-
-  function commitDate(date: Date) {
-    if (pickerTarget === 'start') setStartDate(date);
-    else setEndDate(date);
-  }
-
-  function handleChange(_event: DateTimePickerEvent, selected?: Date) {
-    if (!selected) { setPickerTarget(null); return; }
-    if (Platform.OS === 'android') {
-      if (pickerMode === 'date') { setTempDate(selected); setPickerMode('time'); }
-      else {
-        const combined = new Date(tempDate);
-        combined.setHours(selected.getHours(), selected.getMinutes(), 0, 0);
-        commitDate(combined);
-        setPickerTarget(null);
-      }
-    } else {
-      setTempDate(selected);
-    }
-  }
-
-  function handleIOSDone() {
-    if (pickerMode === 'date') { setPickerMode('time'); }
-    else { commitDate(tempDate); setPickerTarget(null); }
-  }
-
-  return { startDate, endDate, pickerTarget, pickerMode, tempDate, openPicker, handleChange, handleIOSDone, setPickerTarget };
-}
-
-// ─── DatePickerOverlay ───────────────────────────────────────────────────────
-
-function DatePickerOverlay({
-  pickerTarget, pickerMode, tempDate, onClose, onChange, onIOSDone, insetBottom, colors, radius, spacing,
-}: {
-  pickerTarget: PickerTarget; pickerMode: PickerMode; tempDate: Date;
-  onClose: () => void; onChange: (_e: DateTimePickerEvent, d?: Date) => void;
-  onIOSDone: () => void; insetBottom: number;
-  colors: ReturnType<typeof useAppTheme>['theme']['colors'];
-  radius: ReturnType<typeof useAppTheme>['theme']['radius'];
-  spacing: ReturnType<typeof useAppTheme>['theme']['spacing'];
-}) {
-  if (pickerTarget === null) return null;
-  if (Platform.OS === 'android') {
-    return <DateTimePicker value={tempDate} mode={pickerMode} display="default" onChange={onChange} />;
-  }
-  return (
-    <>
-      <Pressable
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.35)' }}
-        onPress={onClose}
-      />
-      <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: colors.surface, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, paddingBottom: insetBottom }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.xs }}>
-          <Pressable onPress={onClose}><AppText tone="primary">Cancel</AppText></Pressable>
-          <AppText variant="subtitle">{pickerMode === 'date' ? 'Select date' : 'Select time'}</AppText>
-          <Pressable onPress={onIOSDone}><AppText tone="primary">{pickerMode === 'date' ? 'Next' : 'Done'}</AppText></Pressable>
-        </View>
-        <DateTimePicker value={tempDate} mode={pickerMode} display="spinner" onChange={onChange} style={{ height: 200 }} />
-      </View>
-    </>
-  );
-}
-
 // ─── View screen ─────────────────────────────────────────────────────────────
 
 function ViewEvent({ event, onBack, isCreator, isOrganizer, onEdit, onDelete }: { event: EventWithCount; onBack: () => void; isCreator?: boolean; isOrganizer?: boolean; onEdit?: () => void; onDelete?: () => void }) {
@@ -347,14 +267,11 @@ function ViewEvent({ event, onBack, isCreator, isOrganizer, onEdit, onDelete }: 
           {isOrganizer && !isCreator && onDelete ? (
             <Pressable
               onPress={() => {
-                Alert.alert(
-                  'Delete event',
-                  'Are you sure you want to delete this event? This cannot be undone.',
-                  [
-                    { text: 'Cancel', style: 'cancel' },
-                    { text: 'Delete', style: 'destructive', onPress: onDelete },
-                  ],
-                );
+                confirmDestructiveAction({
+                  title: 'Delete event',
+                  message: 'Are you sure you want to delete this event? This cannot be undone.',
+                  onConfirm: onDelete,
+                });
               }}
               style={({ pressed }) => ({
                 width: '100%',
@@ -377,7 +294,7 @@ function ViewEvent({ event, onBack, isCreator, isOrganizer, onEdit, onDelete }: 
 
 function EditEvent({ event, onBack, onDeleteSuccess }: { event: EventWithCount; onBack: () => void; onDeleteSuccess: () => void }) {
   const insets = useSafeAreaInsets();
-  const { theme: { colors, radius, spacing, stroke } } = useAppTheme();
+  const { theme: { colors, spacing } } = useAppTheme();
   const { updateEvent, deleteEvent, getEventBannerUrl, uploadEventBanner } = useEventsStore();
   const { currentParticipant } = useTripStore();
 
@@ -409,33 +326,18 @@ function EditEvent({ event, onBack, onDeleteSuccess }: { event: EventWithCount; 
 
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const picker = useDatePicker({
-    start: event.start_time ? new Date(event.start_time) : null,
-    end: event.end_time ? new Date(event.end_time) : null,
-  });
-
-  const dateFieldStyle = {
-    minHeight: 52,
-    borderRadius: radius.md,
-    borderWidth: stroke.thin,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm - spacing.xs / 2,
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    justifyContent: 'space-between' as const,
-  };
+  const [startDate, setStartDate] = useState<Date | null>(event.start_time ? new Date(event.start_time) : null);
+  const [endDate, setEndDate] = useState<Date | null>(event.end_time ? new Date(event.end_time) : null);
+  const [pickerTarget, setPickerTarget] = useState<PickerTarget>(null);
 
   async function handleSave() {
     setErrors({});
-    const result = createEventSchema.safeParse({
-      title, description, location,
-      start_time: picker.startDate ? picker.startDate.toISOString() : '',
-      end_time: picker.endDate ? picker.endDate.toISOString() : '',
-      price_range: priceRange || undefined,
-    });
+      const result = createEventSchema.safeParse({
+       title, description, location,
+      start_time: startDate ? startDate.toISOString() : '',
+      end_time: endDate ? endDate.toISOString() : '',
+       price_range: priceRange || undefined,
+     });
 
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
@@ -446,15 +348,15 @@ function EditEvent({ event, onBack, onDeleteSuccess }: { event: EventWithCount; 
       return;
     }
 
-    if (!picker.startDate || !picker.endDate) {
+    if (!startDate || !endDate) {
       setErrors({
-        start_time: !picker.startDate ? 'Start time is required' : undefined,
-        end_time: !picker.endDate ? 'End time is required' : undefined,
+        start_time: !startDate ? 'Start time is required' : undefined,
+        end_time: !endDate ? 'End time is required' : undefined,
       });
       return;
     }
 
-    if (picker.endDate <= picker.startDate) {
+    if (endDate <= startDate) {
       setErrors({ end_time: 'End time must be after start time' });
       return;
     }
@@ -466,15 +368,15 @@ function EditEvent({ event, onBack, onDeleteSuccess }: { event: EventWithCount; 
         bannerPath = await uploadEventBanner(bannerLocalUri, currentParticipant.id);
       }
 
-      await updateEvent(event.id, {
-        title: result.data.title,
-        description: result.data.description,
-        location: result.data.location,
-        start_time: picker.startDate.toISOString(),
-        end_time: picker.endDate.toISOString(),
-        price_range: result.data.price_range ?? null,
-        is_optional: isOrganizer ? !isMandatory : event.is_optional,
-        banner_image_url: bannerPath,
+        await updateEvent(event.id, {
+          title: result.data.title,
+          description: result.data.description,
+          location: result.data.location,
+          start_time: startDate.toISOString(),
+          end_time: endDate.toISOString(),
+          price_range: result.data.price_range ?? null,
+          is_optional: isOrganizer ? !isMandatory : event.is_optional,
+          banner_image_url: bannerPath,
       });
       onBack();
     } catch {
@@ -484,9 +386,19 @@ function EditEvent({ event, onBack, onDeleteSuccess }: { event: EventWithCount; 
     }
   }
 
+  function handleDateConfirm(nextDate: Date) {
+    if (pickerTarget === 'start') {
+      setStartDate(nextDate);
+      setErrors((current) => ({ ...current, start_time: undefined }));
+    } else if (pickerTarget === 'end') {
+      setEndDate(nextDate);
+      setErrors((current) => ({ ...current, end_time: undefined }));
+    }
+    setPickerTarget(null);
+  }
+
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView contentContainerStyle={{ paddingTop: insets.top + spacing.sm, paddingBottom: insets.bottom + spacing.xl }}>
+    <KeyboardScreenView contentContainerStyle={{ paddingTop: insets.top + spacing.sm, paddingBottom: insets.bottom + spacing.xl }}>
         <Container>
           <Stack space="sm">
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -511,23 +423,25 @@ function EditEvent({ event, onBack, onDeleteSuccess }: { event: EventWithCount; 
               error={errors.location}
             />
 
-            <View style={{ gap: spacing.xs }}>
-              <AppText variant="caption">Start time *</AppText>
-              <Pressable style={dateFieldStyle} onPress={() => picker.openPicker('start')}>
-                <AppText style={{ color: picker.startDate ? colors.text : colors.textMuted }}>{formatDisplay(picker.startDate)}</AppText>
-                <Ionicons name="calendar-outline" size={18} color={colors.textMuted} />
-              </Pressable>
-              {errors.start_time ? <AppText variant="caption" tone="error">{errors.start_time}</AppText> : null}
-            </View>
+            <DateTimeField
+              label="Start time *"
+              value={formatDisplay(startDate)}
+              placeholder="Select date and time"
+              active={!!startDate}
+              error={errors.start_time}
+              onPress={() => setPickerTarget('start')}
+              onClear={startDate ? () => setStartDate(null) : undefined}
+            />
 
-            <View style={{ gap: spacing.xs }}>
-              <AppText variant="caption">End time *</AppText>
-              <Pressable style={dateFieldStyle} onPress={() => picker.openPicker('end')}>
-                <AppText style={{ color: picker.endDate ? colors.text : colors.textMuted }}>{formatDisplay(picker.endDate)}</AppText>
-                <Ionicons name="calendar-outline" size={18} color={colors.textMuted} />
-              </Pressable>
-              {errors.end_time ? <AppText variant="caption" tone="error">{errors.end_time}</AppText> : null}
-            </View>
+            <DateTimeField
+              label="End time *"
+              value={formatDisplay(endDate)}
+              placeholder="Select date and time"
+              active={!!endDate}
+              error={errors.end_time}
+              onPress={() => setPickerTarget('end')}
+              onClear={endDate ? () => setEndDate(null) : undefined}
+            />
 
             <Input label="Price range" placeholder="e.g. Free, 50–100 kr" value={priceRange} onChangeText={setPriceRange} error={errors.price_range} />
 
@@ -552,18 +466,14 @@ function EditEvent({ event, onBack, onDeleteSuccess }: { event: EventWithCount; 
 
             <Pressable
               onPress={() => {
-                Alert.alert(
-                  'Delete event',
-                  'Are you sure you want to delete this event? This cannot be undone.',
-                  [
-                    { text: 'Cancel', style: 'cancel' },
-                    {
-                      text: 'Delete',
-                      style: 'destructive',
-                      onPress: () => { void deleteEvent(event.id).then(() => onDeleteSuccess()); },
-                    },
-                  ],
-                );
+                confirmDestructiveAction({
+                  title: 'Delete event',
+                  message: 'Are you sure you want to delete this event? This cannot be undone.',
+                  onConfirm: async () => {
+                    await deleteEvent(event.id);
+                    onDeleteSuccess();
+                  },
+                });
               }}
               style={({ pressed }) => ({
                 width: '100%',
@@ -577,22 +487,15 @@ function EditEvent({ event, onBack, onDeleteSuccess }: { event: EventWithCount; 
             </Pressable>
           </Stack>
         </Container>
-      </ScrollView>
-
-      <DatePickerOverlay
-        pickerTarget={picker.pickerTarget}
-        pickerMode={picker.pickerMode}
-        tempDate={picker.tempDate}
-        onClose={() => picker.setPickerTarget(null)}
-        onChange={picker.handleChange}
-        onIOSDone={picker.handleIOSDone}
-        insetBottom={insets.bottom}
-        colors={colors}
-        radius={radius}
-        spacing={spacing}
+      <AppDateTimePicker
+        visible={pickerTarget !== null}
+        value={(pickerTarget === 'start' ? startDate : endDate) ?? new Date()}
+        mode="datetime"
+        onConfirm={handleDateConfirm}
+        onClose={() => setPickerTarget(null)}
       />
 
-    </KeyboardAvoidingView>
+    </KeyboardScreenView>
   );
 }
 

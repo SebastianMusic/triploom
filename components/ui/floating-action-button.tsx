@@ -1,17 +1,19 @@
 import type { ReactNode } from 'react';
-import { Pressable, type PressableProps, type ViewStyle } from 'react-native';
+import { Pressable, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
 
 import { useAppTheme } from '@/components/ui/theme-provider';
 
 export type FloatingActionButtonProps = Omit<PressableProps, 'style'> & {
   icon: ReactNode;
   position?: 'bottomRight' | 'inline';
+  style?: StyleProp<ViewStyle>;
 };
 
 export function FloatingActionButton({
   icon,
   position = 'bottomRight',
   disabled = false,
+  style,
   ...props
 }: FloatingActionButtonProps) {
   const {
@@ -38,11 +40,12 @@ export function FloatingActionButton({
           borderRadius: radius.full,
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: colors.accent,
+          backgroundColor: colors.primary,
           opacity: disabled ? opacity.disabled : pressed ? opacity.pressed : hovered ? opacity.hover : 1,
         },
         shadows.md,
         positionStyle,
+        style,
       ]}
       {...props}>
       {icon}

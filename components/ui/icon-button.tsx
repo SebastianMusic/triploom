@@ -33,8 +33,8 @@ export function IconButton({
   const variantStyle =
     variant === 'accent'
       ? {
-          backgroundColor: colors.accent,
-          shadow: shadows.md,
+          backgroundColor: colors.primarySoft,
+          shadow: shadows.sm,
         }
       : variant === 'ghost'
       ? {

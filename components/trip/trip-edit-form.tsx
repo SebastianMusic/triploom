@@ -1,33 +1,32 @@
-import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
 import { useEffect, useState } from 'react';
 import {
   Alert,
-  Image,
   Modal,
-  Platform,
   Pressable,
-  StyleSheet,
   View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import GeneralCamera from '@/components/camera/general-camera';
+import { BottomActionSheet } from '@/components/ui/bottom-action-sheet';
 import { Button } from '@/components/ui/button';
+import { AppDateTimePicker, DateTimeField } from '@/components/ui/date-time-picker';
 import { Input } from '@/components/ui/input';
+import { PhotoAdjustModal } from '@/components/ui/photo-adjust-modal';
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import { TripSummaryPreviewCard } from '@/components/trip/trip-summary-preview-card';
+import { pickSingleImageFromLibrary } from '@/lib/media-picker';
 import { useTripStore } from '@/store/trip.store';
 import { TripEventPermission, TripRole } from '@/types';
 
 type Props = {
   onClose?: () => void;
+  middleContent?: React.ReactNode;
 };
 
 type DateTarget = 'start' | 'end' | null;
-type BannerModal = 'none' | 'menu' | 'camera' | 'view';
+type BannerModal = 'none' | 'menu' | 'camera' | 'adjust';
 
 function formatDate(date: Date | null): string {
   if (!date) return 'Select date';
@@ -74,11 +73,9 @@ function getNextActionPreview(action: { type: 'event' | 'task'; title: string; a
   };
 }
 
-export function TripEditForm({ onClose }: Props) {
-  const insets = useSafeAreaInsets();
+export function TripEditForm({ onClose, middleContent }: Props) {
   const {
-    mode,
-    theme: { colors, opacity, radius, shadows, spacing, stroke, typography },
+    theme: { colors, opacity, radius, shadows, spacing, typography },
   } = useAppTheme();
 
   const currentTrip = useTripStore((s) => s.currentTrip);
@@ -143,22 +140,10 @@ export function TripEditForm({ onClose }: Props) {
     : { label: 'Nothing scheduled yet', meta: null };
 
   async function handlePickFromLibrary() {
-    setBannerModal('none');
-
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [16, 10],
-      quality: 0.8,
-    });
-
-    if (!result.canceled && result.assets[0]) {
-      setBannerUri(result.assets[0].uri);
+    const uri = await pickSingleImageFromLibrary({ aspect: [16, 9] });
+    if (uri) {
+      setBannerUri(uri);
+      setBannerModal('adjust');
     }
   }
 
@@ -181,12 +166,7 @@ export function TripEditForm({ onClose }: Props) {
     ]);
   }
 
-  function handleDateChange(_event: DateTimePickerEvent, selected?: Date) {
-    if (!selected) {
-      setPickerTarget(null);
-      return;
-    }
-
+  function handleDateChange(selected: Date) {
     if (pickerTarget === 'start') {
       setStartDate(selected);
     }
@@ -256,40 +236,8 @@ export function TripEditForm({ onClose }: Props) {
             setBannerModal('none');
           }}
           onClose={() => setBannerModal('none')}
+          adjustShape="landscape"
         />
-      </Modal>
-
-      <Modal
-        visible={bannerModal === 'view' && !!bannerUri}
-        animationType="fade"
-        onRequestClose={() => setBannerModal('none')}>
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: mode === 'dark' ? colors.background : colors.text,
-            justifyContent: 'center',
-          }}>
-          {bannerUri ? (
-            <Image source={{ uri: bannerUri }} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
-          ) : null}
-          <Pressable
-            style={({ pressed }) => ({
-              position: 'absolute',
-              top: insets.top + spacing.sm,
-              right: spacing.md,
-              width: 44,
-              height: 44,
-              borderRadius: radius.full,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: colors.overlay,
-              opacity: pressed ? opacity.pressed : 1,
-            })}
-            onPress={() => setBannerModal('none')}
-            hitSlop={12}>
-            <Ionicons name="close" size={22} color={colors.textOnPrimary} />
-          </Pressable>
-        </View>
       </Modal>
 
       <View style={{ gap: spacing.lg }}>
@@ -305,13 +253,13 @@ export function TripEditForm({ onClose }: Props) {
           onPress={() => setBannerModal('menu')}
         />
 
+        {middleContent}
+
         <View
           style={[
             {
               borderRadius: radius.xl,
               backgroundColor: colors.surface,
-              borderWidth: stroke.thin,
-              borderColor: colors.border,
               padding: spacing.md,
               gap: spacing.lg,
             },
@@ -377,24 +325,32 @@ export function TripEditForm({ onClose }: Props) {
             />
           </View>
 
-          <View style={{ gap: spacing.md }}>
-            <AppText style={typography.label}>Dates</AppText>
+            <View style={{ gap: spacing.md }}>
+              <AppText style={typography.label}>Dates</AppText>
 
-            <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-              <DateField
-                label="Start date"
-                value={formatDate(startDate)}
-                active={!!startDate}
-                onPress={() => setPickerTarget('start')}
-              />
-              <DateField
-                label="End date"
-                value={formatDate(endDate)}
-                active={!!endDate}
-                onPress={() => setPickerTarget('end')}
-              />
+              <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+                <View style={{ flex: 1 }}>
+                  <DateTimeField
+                    label="Start date"
+                    value={formatDate(startDate)}
+                    placeholder="Select date"
+                    active={!!startDate}
+                    onPress={() => setPickerTarget('start')}
+                    onClear={startDate ? () => setStartDate(null) : undefined}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <DateTimeField
+                    label="End date"
+                    value={formatDate(endDate)}
+                    placeholder="Select date"
+                    active={!!endDate}
+                    onPress={() => setPickerTarget('end')}
+                    onClear={endDate ? () => setEndDate(null) : undefined}
+                  />
+                </View>
+              </View>
             </View>
-          </View>
 
           <View style={{ gap: spacing.md }}>
             <View style={{ gap: 4 }}>
@@ -502,120 +458,63 @@ export function TripEditForm({ onClose }: Props) {
         </View>
       </View>
 
-      {pickerTarget ? (
-        <DateTimePicker
-          value={
-            pickerTarget === 'start'
-              ? startDate ?? new Date()
-              : endDate ?? startDate ?? new Date()
-          }
-          mode="date"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          onChange={handleDateChange}
-        />
-      ) : null}
+      <AppDateTimePicker
+        visible={pickerTarget !== null}
+        value={
+          pickerTarget === 'start'
+            ? startDate ?? new Date()
+            : endDate ?? startDate ?? new Date()
+        }
+        mode="date"
+        onConfirm={handleDateChange}
+        onClose={() => setPickerTarget(null)}
+      />
 
-      <Modal
-        transparent
+      <BottomActionSheet
         visible={bannerModal === 'menu'}
-        animationType="fade"
-        onRequestClose={() => setBannerModal('none')}>
-        <View style={{ flex: 1, justifyContent: 'flex-end' }}>
-          <Pressable
-            style={[StyleSheet.absoluteFill, { backgroundColor: colors.overlay }]}
-            onPress={() => setBannerModal('none')}
-          />
-          <View
-            style={[
-              {
-                borderTopLeftRadius: radius.lg,
-                borderTopRightRadius: radius.lg,
-                backgroundColor: colors.surface,
-                paddingTop: spacing.sm,
-                paddingBottom: insets.bottom + spacing.xs,
-              },
-              shadows.lg,
-            ]}>
-            <View
-              style={{
-                alignSelf: 'center',
-                width: 38,
-                height: 4,
-                borderRadius: radius.full,
-                backgroundColor: colors.borderStrong,
-                marginBottom: spacing.sm,
-              }}
-            />
-
-            <AppText style={[typography.label, { textAlign: 'center', paddingBottom: spacing.xs }]}>
-              Trip photo
-            </AppText>
-
-            {bannerUri ? (
-              <SheetOption icon="eye-outline" label="View photo" onPress={() => setBannerModal('view')} />
-            ) : null}
-            <SheetOption icon="camera-outline" label="Take photo" onPress={() => setBannerModal('camera')} />
-            <SheetOption
-              icon="images-outline"
-              label="Choose from library"
-              onPress={() => {
-                void handlePickFromLibrary();
-              }}
-            />
-            {bannerUri ? (
-              <SheetOption
-                icon="trash-outline"
-                label="Remove photo"
-                destructive
-                onPress={handleRemoveBanner}
-              />
-            ) : null}
-            <SheetOption icon="close-outline" label="Cancel" muted onPress={() => setBannerModal('none')} />
-          </View>
-        </View>
-      </Modal>
+        title="Trip photo"
+        onClose={() => setBannerModal('none')}
+        items={[
+          {
+            key: 'camera',
+            label: 'Take photo',
+            icon: 'camera-outline',
+            onPress: () => setBannerModal('camera'),
+          },
+          {
+            key: 'library',
+            label: 'Choose from library',
+            icon: 'images-outline',
+            closeDelayMs: 120,
+            onPress: () => {
+              void handlePickFromLibrary();
+            },
+          },
+          ...(bannerUri ? [{
+            key: 'adjust',
+            label: 'Adjust photo',
+            icon: 'scan-outline' as const,
+            onPress: () => setBannerModal('adjust'),
+          }] : []),
+          ...(bannerUri ? [{
+            key: 'delete',
+            label: 'Delete photo',
+            icon: 'trash-outline' as const,
+            destructive: true,
+            onPress: handleRemoveBanner,
+          }] : []),
+        ]}
+      />
+      <PhotoAdjustModal
+        visible={bannerModal === 'adjust'}
+        uri={displayBannerUri ?? bannerUri}
+        title="Adjust trip photo"
+        shape="landscape"
+        onSave={setBannerUri}
+        onClose={() => setBannerModal('none')}
+      />
     </>
   );
-
-  function DateField({
-    label,
-    value,
-    active,
-    onPress,
-  }: {
-    label: string;
-    value: string;
-    active: boolean;
-    onPress: () => void;
-  }) {
-    return (
-      <View style={{ flex: 1, gap: spacing.xs }}>
-        <AppText variant="caption">{label}</AppText>
-        <Pressable
-          accessibilityRole="button"
-          onPress={onPress}
-          style={({ pressed }) => ({
-            minHeight: 56,
-            borderRadius: radius.md,
-            backgroundColor: colors.surfaceMuted,
-            paddingHorizontal: spacing.sm,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            borderWidth: stroke.thin,
-            borderColor: colors.transparent,
-            opacity: pressed ? opacity.pressed : 1,
-          })}>
-          <AppText
-            numberOfLines={1}
-            style={{ flex: 1, color: active ? colors.text : colors.textMuted }}>
-            {value}
-          </AppText>
-          <Ionicons name="calendar-outline" size={18} color={colors.icon} />
-        </Pressable>
-      </View>
-    );
-  }
 
   function PreviewCard({
     name: previewName,
@@ -652,45 +551,6 @@ export function TripEditForm({ onClose }: Props) {
           onPress={onPress}
         />
       </View>
-    );
-  }
-
-  function SheetOption({
-    icon,
-    label,
-    muted = false,
-    destructive = false,
-    onPress,
-  }: {
-    icon: keyof typeof Ionicons.glyphMap;
-    label: string;
-    muted?: boolean;
-    destructive?: boolean;
-    onPress: () => void;
-  }) {
-    const foreground = destructive
-      ? colors.error
-      : muted
-        ? colors.textMuted
-        : colors.text;
-
-    return (
-      <Pressable
-        accessibilityRole="button"
-        onPress={onPress}
-        style={({ pressed }) => ({
-          minHeight: 56,
-          paddingHorizontal: spacing.md,
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: spacing.sm,
-          opacity: pressed ? opacity.pressed : 1,
-        })}>
-        <Ionicons name={icon} size={20} color={foreground} />
-        <AppText style={[typography.label, { color: foreground }]}>
-          {label}
-        </AppText>
-      </Pressable>
     );
   }
 }

@@ -1,20 +1,24 @@
+import { manipulateAsync, FlipType, SaveFormat } from 'expo-image-manipulator';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { useRef, useState } from 'react';
 import { ActivityIndicator, Image, Platform, Pressable, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
+import { PhotoAdjustModal } from '@/components/ui/photo-adjust-modal';
 
 export interface GeneralCameraProps {
   onPhotoTaken: (uri: string) => void;
   onClose: () => void;
+  adjustShape?: 'circle' | 'landscape';
 }
 
-export default function GeneralCamera({ onPhotoTaken, onClose }: GeneralCameraProps) {
+export default function GeneralCamera({ onPhotoTaken, onClose, adjustShape }: GeneralCameraProps) {
   const [permission, requestPermission] = useCameraPermissions();
   const [facing, setFacing] = useState<CameraType>('back');
   const [isTaking, setIsTaking] = useState(false);
   const [previewUri, setPreviewUri] = useState<string | null>(null);
+  const [adjustUri, setAdjustUri] = useState<string | null>(null);
   const cameraRef = useRef<CameraView>(null);
   const insets = useSafeAreaInsets();
 
@@ -48,8 +52,24 @@ export default function GeneralCamera({ onPhotoTaken, onClose }: GeneralCameraPr
     setIsTaking(true);
     try {
       const photo = await cameraRef.current.takePictureAsync({ quality: 0.8 });
-      if (photo?.uri) {
-        setPreviewUri(photo.uri);
+      if (!photo?.uri) {
+        return;
+      }
+
+      let nextUri = photo.uri;
+      if (facing === 'front') {
+        const flipped = await manipulateAsync(
+          photo.uri,
+          [{ flip: FlipType.Horizontal }],
+          { compress: 0.9, format: SaveFormat.JPEG },
+        );
+        nextUri = flipped.uri;
+      }
+
+      if (adjustShape) {
+        setAdjustUri(nextUri);
+      } else {
+        setPreviewUri(nextUri);
       }
     } finally {
       setIsTaking(false);
@@ -63,8 +83,8 @@ export default function GeneralCamera({ onPhotoTaken, onClose }: GeneralCameraPr
   /* ── Photo preview / confirmation ── */
   if (previewUri) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top }]}>
-        <View style={styles.topBar}>
+      <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
+        <View style={[styles.topBar, { paddingTop: Math.max(insets.top, 20) + 28 }]}>
           <ThemedText style={styles.previewTitle}>Use this photo?</ThemedText>
         </View>
 
@@ -87,14 +107,25 @@ export default function GeneralCamera({ onPhotoTaken, onClose }: GeneralCameraPr
             <ThemedText style={styles.useText}>Use Photo</ThemedText>
           </Pressable>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   /* ── Live camera ── */
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.topBar}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
+      <PhotoAdjustModal
+        visible={!!adjustUri}
+        uri={adjustUri}
+        title="Adjust photo"
+        shape={adjustShape ?? 'landscape'}
+        onSave={(uri) => {
+          setAdjustUri(null);
+          onPhotoTaken(uri);
+        }}
+        onClose={() => setAdjustUri(null)}
+      />
+      <View style={[styles.topBar, { paddingTop: Math.max(insets.top, 20) + 28 }]}>
         <Pressable onPress={onClose} hitSlop={12}>
           <ThemedText style={styles.cancelText}>Cancel</ThemedText>
         </Pressable>
@@ -130,7 +161,7 @@ export default function GeneralCamera({ onPhotoTaken, onClose }: GeneralCameraPr
           </Pressable>
         </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -144,7 +175,8 @@ const styles = StyleSheet.create({
   /* Top bar */
   topBar: {
     paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingTop: 24,
+    paddingBottom: 12,
     alignItems: 'center',
   },
   cancelText: {
@@ -160,8 +192,8 @@ const styles = StyleSheet.create({
 
   /* Viewfinder / preview image */
   viewfinder: {
+    flex: 1,
     width: '100%',
-    aspectRatio: 3 / 4,
     overflow: 'hidden',
   },
   camera: {
@@ -173,21 +205,21 @@ const styles = StyleSheet.create({
 
   /* Bottom controls */
   bottomBar: {
-    flex: 1,
+    minHeight: 160,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 32,
-    paddingTop: 16,
+    paddingTop: 24,
   },
   sideSlot: {
-    width: 48,
+    width: 56,
     alignItems: 'center',
   },
   shutterButton: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
     borderWidth: 4,
     borderColor: '#fff',
     alignItems: 'center',
@@ -198,15 +230,15 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   shutterInner: {
-    width: 62,
-    height: 62,
-    borderRadius: 31,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     backgroundColor: '#fff',
   },
   flipButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',

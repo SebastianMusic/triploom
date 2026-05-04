@@ -1,11 +1,12 @@
-import * as ImagePicker from 'expo-image-picker';
-import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Image, Modal, Pressable, View } from 'react-native';
 
 import GeneralCamera from '@/components/camera/general-camera';
+import { BottomActionSheet } from '@/components/ui/bottom-action-sheet';
+import { PhotoAdjustModal } from '@/components/ui/photo-adjust-modal';
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
+import { pickSingleImageFromLibrary } from '@/lib/media-picker';
 
 type EventBannerPickerProps = {
   uri: string | null;
@@ -16,16 +17,14 @@ type EventBannerPickerProps = {
 export function EventBannerPicker({ uri, onSelect, onRemove }: EventBannerPickerProps) {
   const { theme: { colors, radius, spacing } } = useAppTheme();
   const [showCamera, setShowCamera] = useState(false);
+  const [showActions, setShowActions] = useState(false);
+  const [showAdjustPreview, setShowAdjustPreview] = useState(false);
 
   async function openGallery() {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [16, 9],
-      quality: 0.8,
-    });
-    if (!result.canceled && result.assets[0]) {
-      onSelect(result.assets[0].uri);
+    const selectedUri = await pickSingleImageFromLibrary({ aspect: [16, 9] });
+    if (selectedUri) {
+      onSelect(selectedUri);
+      setShowAdjustPreview(true);
     }
   }
 
@@ -34,83 +33,26 @@ export function EventBannerPicker({ uri, onSelect, onRemove }: EventBannerPicker
       <View style={{ gap: spacing.xs }}>
         <AppText variant="caption">Banner image</AppText>
 
-        {/* Preview area */}
-        <View style={{
-          width: '100%',
-          aspectRatio: 16 / 9,
-          borderRadius: radius.md,
-          backgroundColor: colors.surfaceMuted,
-          overflow: 'hidden',
-          alignItems: 'center',
-          justifyContent: 'center',
-          borderWidth: 1,
-          borderColor: colors.border,
-        }}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => setShowActions(true)}
+          style={{
+            width: '100%',
+            aspectRatio: 16 / 9,
+            borderRadius: radius.md,
+            backgroundColor: colors.surfaceMuted,
+            overflow: 'hidden',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
           {uri ? (
-            <>
-              <Image source={{ uri }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-              {onRemove ? (
-                <Pressable
-                  onPress={onRemove}
-                  accessibilityLabel="Remove banner"
-                  style={{
-                    position: 'absolute',
-                    top: spacing.xs,
-                    right: spacing.xs,
-                    backgroundColor: 'rgba(0,0,0,0.55)',
-                    borderRadius: 999,
-                    padding: 6,
-                  }}>
-                  <Ionicons name="trash-outline" size={16} color="#fff" />
-                </Pressable>
-              ) : null}
-            </>
+            <Image source={{ uri }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
           ) : (
-            <Ionicons name="image-outline" size={40} color={colors.textMuted} />
+            <AppText tone="muted">Tap to add banner</AppText>
           )}
-        </View>
-
-        {/* Action buttons */}
-        <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-          <Pressable
-            onPress={() => setShowCamera(true)}
-            style={({ pressed }) => ({
-              flex: 1,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: spacing.xs / 2,
-              paddingVertical: spacing.sm - spacing.xs / 2,
-              borderRadius: radius.md,
-              borderWidth: 1,
-              borderColor: colors.border,
-              backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
-            })}>
-            <Ionicons name="camera-outline" size={18} color={colors.text} />
-            <AppText>Camera</AppText>
-          </Pressable>
-
-          <Pressable
-            onPress={() => { void openGallery(); }}
-            style={({ pressed }) => ({
-              flex: 1,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: spacing.xs / 2,
-              paddingVertical: spacing.sm - spacing.xs / 2,
-              borderRadius: radius.md,
-              borderWidth: 1,
-              borderColor: colors.border,
-              backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
-            })}>
-            <Ionicons name="images-outline" size={18} color={colors.text} />
-            <AppText>Gallery</AppText>
-          </Pressable>
-        </View>
+        </Pressable>
       </View>
 
-      {/* Full-screen camera modal */}
       <Modal visible={showCamera} animationType="slide" statusBarTranslucent>
         <GeneralCamera
           onPhotoTaken={(photoUri) => {
@@ -118,8 +60,50 @@ export function EventBannerPicker({ uri, onSelect, onRemove }: EventBannerPicker
             setShowCamera(false);
           }}
           onClose={() => setShowCamera(false)}
+          adjustShape="landscape"
         />
       </Modal>
+      <BottomActionSheet
+        visible={showActions}
+        title="Banner photo"
+        onClose={() => setShowActions(false)}
+        items={[
+          {
+            key: 'camera',
+            label: 'Take photo',
+            icon: 'camera-outline',
+            onPress: () => setShowCamera(true),
+          },
+          {
+            key: 'library',
+            label: 'Choose from library',
+            icon: 'images-outline',
+            closeDelayMs: 120,
+            onPress: () => { void openGallery(); },
+          },
+          ...(uri ? [{
+            key: 'adjust',
+            label: 'Adjust photo',
+            icon: 'scan-outline' as const,
+            onPress: () => setShowAdjustPreview(true),
+          }] : []),
+          ...(uri && onRemove ? [{
+            key: 'delete',
+            label: 'Delete photo',
+            icon: 'trash-outline' as const,
+            destructive: true,
+            onPress: onRemove,
+          }] : []),
+        ]}
+      />
+      <PhotoAdjustModal
+        visible={showAdjustPreview}
+        uri={uri}
+        title="Adjust banner photo"
+        shape="landscape"
+        onSave={onSelect}
+        onClose={() => setShowAdjustPreview(false)}
+      />
     </>
   );
 }

@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Pressable, View } from 'react-native';
+import { Animated, Easing, Platform, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { isPrimaryTripTab, TRIP_TAB_ITEMS } from '@/components/layout/trip-navigation';
@@ -41,8 +41,8 @@ export function TripTabBar({ state, descriptors, navigation }: BottomTabBarProps
   const isHidden = !isPrimaryTripTab(activeRouteName ?? '');
   const activeIndex = tabs.findIndex(({ route }) => route.name === activeRouteName);
   const safeIndex = activeIndex >= 0 ? activeIndex : 0;
-  const bottomInset = Math.max(insets.bottom, spacing.sm);
-  const reserveHeight = sizes.navigation.barHeight + bottomInset + spacing.sm;
+  const bottomInset = Math.max(insets.bottom, Platform.OS === 'android' ? spacing.sm : spacing.xs);
+  const reserveHeight = sizes.navigation.barHeight + bottomInset + spacing.xs;
   const segmentWidth = barWidth > 0 ? (barWidth - sizes.navigation.indicatorInset * 2) / Math.max(tabs.length, 1) : 0;
   const indicatorWidth = Math.max(segmentWidth - spacing.xs, 0);
 

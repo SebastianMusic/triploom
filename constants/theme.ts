@@ -1,4 +1,4 @@
-import { Platform, type TextStyle, type ViewStyle } from 'react-native';
+import type { TextStyle, ViewStyle } from 'react-native';
 
 export type ThemeMode = 'light' | 'dark';
 export type ThemeColorPreset = 'ocean' | 'citrus' | 'forest' | 'rose';
@@ -67,9 +67,9 @@ export const sizes = {
     minHeight: 76,
   },
   navigation: {
-    barHeight: 72,
+    barHeight: 64,
     headerAction: 44,
-    indicatorInset: 8,
+    indicatorInset: 7,
   },
 } as const;
 
@@ -84,64 +84,40 @@ export const layout = {
   floatingBarMaxWidth: 460,
 } as const;
 
-const fontFamilies = Platform.select({
-  ios: {
-    sans: 'System',
-    serif: 'ui-serif',
-    rounded: 'ui-rounded',
-    mono: 'ui-monospace',
-  },
-  default: {
-    sans: 'sans-serif',
-    serif: 'serif',
-    rounded: 'sans-serif',
-    mono: 'monospace',
-  },
-  web: {
-    sans: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-    serif: "Georgia, 'Times New Roman', serif",
-    rounded: "'SF Pro Rounded', 'Hiragino Maru Gothic ProN', sans-serif",
-    mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Courier New', monospace",
-  },
-}) ?? {
-  sans: 'sans-serif',
-  serif: 'serif',
-  rounded: 'sans-serif',
-  mono: 'monospace',
-};
+const fontFamilies = {
+  sansRegular: 'Roboto_400Regular',
+  sansMedium: 'Roboto_500Medium',
+  sansBold: 'Roboto_700Bold',
+  sansBlack: 'Roboto_900Black',
+} as const;
 
 export const typography = {
   title: {
-    fontFamily: fontFamilies.sans,
+    fontFamily: fontFamilies.sansBold,
     fontSize: 38,
     lineHeight: 40,
-    fontWeight: '900' as const,
     letterSpacing: 0,
   },
   subtitle: {
-    fontFamily: fontFamilies.sans,
+    fontFamily: fontFamilies.sansBold,
     fontSize: 24,
     lineHeight: 30,
-    fontWeight: '700' as const,
     letterSpacing: 0,
   },
   body: {
-    fontFamily: fontFamilies.sans,
+    fontFamily: fontFamilies.sansRegular,
     fontSize: 16,
     lineHeight: 26,
-    fontWeight: '500' as const,
   },
   caption: {
-    fontFamily: fontFamilies.sans,
+    fontFamily: fontFamilies.sansRegular,
     fontSize: 13,
     lineHeight: 20,
-    fontWeight: '600' as const,
   },
   label: {
-    fontFamily: fontFamilies.sans,
+    fontFamily: fontFamilies.sansMedium,
     fontSize: 15,
     lineHeight: 22,
-    fontWeight: '700' as const,
   },
 } as const satisfies Record<string, TextStyle>;
 
@@ -207,7 +183,7 @@ const lightColors: ThemeColors = {
   primarySoft: '#DDF7FA',
   secondary: '#2F81C6',
   secondarySoft: '#E7F1FF',
-  accent: '#F1C84C',
+  accent: '#79DDE7',
   successSoft: '#DFF4EA',
   warningSoft: '#FBEFCC',
   errorSoft: '#FBE2DF',
@@ -219,7 +195,7 @@ const lightColors: ThemeColors = {
   overlay: 'rgba(16, 32, 42, 0.08)',
   overlayStrong: 'rgba(16, 32, 42, 0.54)',
   success: '#219165',
-  warning: '#C48A2C',
+  warning: '#B8842A',
   error: '#CC5B52',
 };
 
@@ -235,7 +211,7 @@ const darkColors: ThemeColors = {
   primarySoft: '#143541',
   secondary: '#7BAFDD',
   secondarySoft: '#142636',
-  accent: '#F0C45A',
+  accent: '#7EE1EC',
   successSoft: '#133629',
   warningSoft: '#3C3118',
   errorSoft: '#3B1F1C',
@@ -247,7 +223,7 @@ const darkColors: ThemeColors = {
   overlay: 'rgba(3, 9, 14, 0.4)',
   overlayStrong: 'rgba(3, 9, 14, 0.66)',
   success: '#63C08D',
-  warning: '#E0AA53',
+  warning: '#CC9A4A',
   error: '#F08A80',
 };
 
@@ -272,7 +248,7 @@ export const themeColorPresets: Record<ThemeColorPreset, ThemeColorPresetConfig>
       primarySoft: '#DDF7FA',
       secondary: '#2F81C6',
       secondarySoft: '#E7F1FF',
-      accent: '#F1C84C',
+      accent: '#0CB8CF',
       focusRing: '#58C2D2',
     },
     dark: {
@@ -280,7 +256,7 @@ export const themeColorPresets: Record<ThemeColorPreset, ThemeColorPresetConfig>
       primarySoft: '#143541',
       secondary: '#7BAFDD',
       secondarySoft: '#142636',
-      accent: '#F0C45A',
+      accent: '#7EE1EC',
       focusRing: '#7BDDEA',
     },
   },
@@ -292,7 +268,7 @@ export const themeColorPresets: Record<ThemeColorPreset, ThemeColorPresetConfig>
       primarySoft: '#FFF0D8',
       secondary: '#E65E54',
       secondarySoft: '#FFE6E0',
-      accent: '#F4C94E',
+  accent: '#FFD191',
       focusRing: '#F3B24A',
     },
     dark: {
@@ -300,7 +276,7 @@ export const themeColorPresets: Record<ThemeColorPreset, ThemeColorPresetConfig>
       primarySoft: '#40280B',
       secondary: '#F08B7F',
       secondarySoft: '#351B1B',
-      accent: '#F4CF65',
+      accent: '#FFC166',
       focusRing: '#F7C46A',
     },
   },
@@ -312,7 +288,7 @@ export const themeColorPresets: Record<ThemeColorPreset, ThemeColorPresetConfig>
       primarySoft: '#DDF7EE',
       secondary: '#1F8EAE',
       secondarySoft: '#E2F5F8',
-      accent: '#F0C15D',
+  accent: '#97DFC3',
       focusRing: '#47BA91',
     },
     dark: {
@@ -320,28 +296,28 @@ export const themeColorPresets: Record<ThemeColorPreset, ThemeColorPresetConfig>
       primarySoft: '#12352B',
       secondary: '#67BCD6',
       secondarySoft: '#112A34',
-      accent: '#EBC56D',
+      accent: '#6DDEB1',
       focusRing: '#72D4B0',
     },
   },
   rose: {
     label: 'Coral',
-    swatch: '#E26D6D',
+    swatch: '#D96F86',
     light: {
-      primary: '#E26D6D',
-      primarySoft: '#FFE7E4',
-      secondary: '#C75395',
+      primary: '#D96F86',
+      primarySoft: '#FDE8EE',
+      secondary: '#B65C96',
       secondarySoft: '#FBE7F4',
-      accent: '#F3B24E',
-      focusRing: '#EB8D8D',
+  accent: '#F2B4C2',
+      focusRing: '#E39AAE',
     },
     dark: {
-      primary: '#F08C87',
-      primarySoft: '#3B1A1C',
-      secondary: '#DB7DB8',
+      primary: '#E892A5',
+      primarySoft: '#331A23',
+      secondary: '#D587B9',
       secondarySoft: '#2F1730',
-      accent: '#F0BF60',
-      focusRing: '#F5AAA4',
+      accent: '#F3A1B4',
+      focusRing: '#E8AABC',
     },
   },
 };

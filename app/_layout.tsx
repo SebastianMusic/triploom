@@ -1,11 +1,20 @@
-import { Stack, router } from 'expo-router';
+import { Stack, router, useSegments } from 'expo-router';
+import { useFonts } from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { Text, View } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import * as Linking from 'expo-linking';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import {
+  Roboto_400Regular,
+  Roboto_500Medium,
+  Roboto_700Bold,
+  Roboto_900Black,
+} from '@expo-google-fonts/roboto';
 
 import { ThemeProvider, useAppTheme } from '@/components/ui/theme-provider';
+import { TripFadeOverlays } from '@/components/layout';
 import { useAuthStore } from '@/store/auth.store';
 import { useThemeStore } from '@/store/theme.store';
 import { useChatStore } from '@/store/chat.store';
@@ -26,7 +35,9 @@ Notifications.setNotificationHandler({
 
 function RootNavigator() {
 	const { session, isLoading, initialize } = useAuthStore();
+  const segments = useSegments();
   const { mode, theme } = useAppTheme();
+  const isTripRoute = segments[0] === '(app)' && segments[1] === '(trip)';
 
 	useEffect(() => {
 		initialize();
@@ -75,7 +86,12 @@ function RootNavigator() {
 					<Stack.Screen name="(auth)" options={{ headerShown: false }} />
 				</Stack.Protected>
 			</Stack>
-			<StatusBar style={mode === 'dark' ? 'light' : 'dark'} backgroundColor={theme.colors.background} />
+      {!isTripRoute ? <TripFadeOverlays top bottom={false} /> : null}
+			<StatusBar
+        style={mode === 'dark' ? 'light' : 'dark'}
+        backgroundColor="transparent"
+        translucent
+      />
 		</>
 	);
 }
@@ -83,10 +99,22 @@ function RootNavigator() {
 export default function RootLayout() {
   const themePreference = useThemeStore((state) => state.preference);
   const modeOverride = themePreference === 'native' ? undefined : themePreference;
+  const [fontsLoaded] = useFonts({
+    Roboto_400Regular,
+    Roboto_500Medium,
+    Roboto_700Bold,
+    Roboto_900Black,
+  });
+
+  if (!fontsLoaded) {
+    return null;
+  }
 
   return (
-    <ThemeProvider modeOverride={modeOverride}>
-      <RootNavigator />
-    </ThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider modeOverride={modeOverride}>
+        <RootNavigator />
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }
