@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Alert, Modal, Pressable, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText } from '@/components/ui/text';
 import { Avatar } from '@/components/ui/avatar';
@@ -39,6 +40,7 @@ export function TaskStatsModal({
   onClose: () => void;
 }) {
   const { theme: { colors, spacing, stroke } } = useAppTheme();
+  const insets = useSafeAreaInsets();
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [completionView, setCompletionView] = useState(false);
   const [selectedPerson, setSelectedPerson] = useState<SelectedPerson | null>(null);
@@ -81,7 +83,9 @@ export function TaskStatsModal({
       <View style={{ flex: 1, backgroundColor: colors.background }}>
         <View style={{
           flexDirection: 'row', alignItems: 'center',
-          paddingHorizontal: spacing.sm, paddingVertical: spacing.sm,
+          paddingHorizontal: spacing.sm,
+          paddingTop: insets.top + spacing.sm,
+          paddingBottom: spacing.sm,
           backgroundColor: colors.surface,
           borderBottomWidth: stroke.thin, borderBottomColor: colors.border,
         }}>
@@ -131,6 +135,7 @@ export function TaskStatsModal({
             tasks={tasks}
             allAssignments={allAssignments}
             totalParticipants={totalParticipants}
+            bottomInset={insets.bottom}
             onSelect={handleSelectTask}
           />
         )}
@@ -143,11 +148,13 @@ function TaskOverallList({
   tasks,
   allAssignments,
   totalParticipants,
+  bottomInset,
   onSelect,
 }: {
   tasks: Task[];
   allAssignments: Record<string, AssignmentWithParticipant[]>;
   totalParticipants: number;
+  bottomInset: number;
   onSelect: (task: Task) => void;
 }) {
   const { theme: { colors, spacing, radius, stroke } } = useAppTheme();
@@ -168,7 +175,7 @@ function TaskOverallList({
   });
 
   return (
-    <ScrollView contentContainerStyle={{ padding: spacing.md, gap: spacing.sm }}>
+    <ScrollView contentContainerStyle={{ padding: spacing.md, paddingBottom: bottomInset + spacing.md, gap: spacing.sm }}>
       {sorted.map((task) => {
         const assignments = allAssignments[task.id] ?? [];
         const completed = assignments.filter(a => a.is_completed).length;
@@ -232,6 +239,7 @@ function CompletionList({
   onSendReminder: (taskTitle: string, userIds: string[]) => Promise<void>;
 }) {
   const { theme: { colors, spacing, radius, stroke } } = useAppTheme();
+  const insets = useSafeAreaInsets();
   const [sending, setSending] = useState(false);
 
   const completedIds = new Set(allAssignments.filter(a => a.is_completed).map(a => a.participant_id));
@@ -290,7 +298,7 @@ function CompletionList({
         )}
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: spacing.md, gap: spacing.xs }}>
+      <ScrollView contentContainerStyle={{ padding: spacing.md, paddingBottom: insets.bottom + spacing.md, gap: spacing.xs }}>
         {sorted.map((participant) => {
           const assignment = allAssignments.find(a => a.participant_id === participant.id) ?? null;
           const name = participant.profile?.user_name ?? 'Unknown';
@@ -341,11 +349,12 @@ function TaskDetailStats({
   onSelectOption: (label: string, responses: FieldResponseWithParticipant[]) => void;
 }) {
   const { theme: { colors, spacing, radius, stroke, sizes } } = useAppTheme();
+  const insets = useSafeAreaInsets();
 
   const completed = allAssignments.filter(a => a.is_completed).length;
 
   return (
-    <ScrollView contentContainerStyle={{ padding: spacing.md, gap: spacing.md }}>
+    <ScrollView contentContainerStyle={{ padding: spacing.md, paddingBottom: insets.bottom + spacing.md, gap: spacing.md }}>
       {task.description ? (
         <AppText tone="muted">{task.description}</AppText>
       ) : null}
@@ -492,10 +501,11 @@ function PersonDetailStats({
   allFieldResponses: Record<string, FieldResponseWithParticipant[]>;
 }) {
   const { theme: { colors, spacing, radius, stroke } } = useAppTheme();
+  const insets = useSafeAreaInsets();
   const isCompleted = assignment?.is_completed ?? false;
 
   return (
-    <ScrollView contentContainerStyle={{ padding: spacing.md, gap: spacing.md }}>
+    <ScrollView contentContainerStyle={{ padding: spacing.md, paddingBottom: insets.bottom + spacing.md, gap: spacing.md }}>
       <Row gap="sm" style={{
         backgroundColor: colors.surfaceMuted,
         borderRadius: radius.md, borderWidth: stroke.thin,
@@ -588,6 +598,7 @@ function PersonDetailStats({
 
 function OptionDetailList({ responses }: { responses: FieldResponseWithParticipant[] }) {
   const { theme: { colors, spacing, radius } } = useAppTheme();
+  const insets = useSafeAreaInsets();
 
   if (responses.length === 0) {
     return (
@@ -598,7 +609,7 @@ function OptionDetailList({ responses }: { responses: FieldResponseWithParticipa
   }
 
   return (
-    <ScrollView contentContainerStyle={{ padding: spacing.md, gap: spacing.xs }}>
+    <ScrollView contentContainerStyle={{ padding: spacing.md, paddingBottom: insets.bottom + spacing.md, gap: spacing.xs }}>
       {responses.map((r) => {
         const name = r.trip_participant?.profile?.user_name ?? 'Unknown';
         const avatarUrl = r.trip_participant?.profile?.profile_picture_url;

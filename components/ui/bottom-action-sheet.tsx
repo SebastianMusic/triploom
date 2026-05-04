@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Modal, Platform, Pressable, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
@@ -31,6 +32,7 @@ export function BottomActionSheet({
   const {
     theme: { colors, opacity, radius, shadows, spacing, typography },
   } = useAppTheme();
+  const insets = useSafeAreaInsets();
 
   return (
     <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose}>
@@ -46,7 +48,7 @@ export function BottomActionSheet({
               borderTopRightRadius: radius.lg,
               backgroundColor: colors.surface,
               paddingTop: spacing.sm,
-              paddingBottom: spacing.sm,
+              paddingBottom: insets.bottom + spacing.sm,
             },
             shadows.lg,
           ]}>

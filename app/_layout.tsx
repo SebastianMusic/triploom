@@ -5,7 +5,9 @@ import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import * as Linking from 'expo-linking';
+import * as SystemUI from 'expo-system-ui';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import {
   Roboto_400Regular,
   Roboto_500Medium,
@@ -44,6 +46,10 @@ function RootNavigator() {
 		initialize();
 	}, [initialize]);
 
+  useEffect(() => {
+    void SystemUI.setBackgroundColorAsync(theme.colors.background);
+  }, [theme.colors.background]);
+
 	useEffect(() => {
 		if (!isLoading && session && pendingCode) {
 			router.push(`/(app)/invite?code=${encodeURIComponent(pendingCode)}`);
@@ -81,7 +87,11 @@ function RootNavigator() {
 
 	return (
 		<>
-			<Stack>
+			<Stack
+        screenOptions={{
+          contentStyle: { backgroundColor: theme.colors.background },
+          gestureEnabled: true,
+        }}>
 				<Stack.Protected guard={!!session}>
 					<Stack.Screen name="(app)" options={{ headerShown: false }} />
 				</Stack.Protected>
@@ -115,9 +125,11 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <ThemeProvider modeOverride={modeOverride}>
-        <RootNavigator />
-      </ThemeProvider>
+      <SafeAreaProvider>
+        <ThemeProvider modeOverride={modeOverride}>
+          <RootNavigator />
+        </ThemeProvider>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }

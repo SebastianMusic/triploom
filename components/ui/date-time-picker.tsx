@@ -160,10 +160,10 @@ export function AppDateTimePicker({
   if (Platform.OS === 'android') {
     return (
       <DateTimePicker
+        key={`${mode}-${step}-${visible ? 'open' : 'closed'}`}
         value={tempDate}
         mode={mode === 'date' ? 'date' : step}
         display="default"
-        design="material"
         minimumDate={minimumDate}
         onChange={handleChange}
       />

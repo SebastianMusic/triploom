@@ -1,17 +1,27 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useEffect, useState } from 'react';
-import { Alert, Modal, StyleSheet, View } from 'react-native';
+import { Alert, LayoutAnimation, Modal, Platform, StyleSheet, TextInput, UIManager, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import GeneralCamera from '@/components/camera/general-camera';
 import { ImageThumbnailStrip } from '@/components/chat/image-thumbnail-strip';
+import { BottomActionSheet } from '@/components/ui/bottom-action-sheet';
 import { IconButton } from '@/components/ui/icon-button';
-import { Input } from '@/components/ui/input';
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
+import { pickImagesFromLibrary } from '@/lib/media-picker';
 import type { MessageWithSender } from '@/types';
 
 const MAX_IMAGES = 10;
+const INPUT_LINE_HEIGHT = 25;
+const INPUT_VERTICAL_PADDING = 18;
+const INPUT_MIN_HEIGHT = INPUT_LINE_HEIGHT + INPUT_VERTICAL_PADDING;
+const INPUT_MAX_HEIGHT = INPUT_LINE_HEIGHT * 5 + INPUT_VERTICAL_PADDING;
+
+if (Platform.OS === 'android') {
+  UIManager.setLayoutAnimationEnabledExperimental?.(true);
+}
 
 interface Props {
   onSubmit: (text: string, images: ImagePicker.ImagePickerAsset[]) => void;
@@ -44,8 +54,10 @@ export function MessageInput({
 }: Props) {
   const [text, setText] = useState('');
   const [cameraVisible, setCameraVisible] = useState(false);
+  const [actionSheetVisible, setActionSheetVisible] = useState(false);
+  const insets = useSafeAreaInsets();
   const {
-    theme: { colors, spacing },
+    theme: { colors, radius, spacing, typography },
   } = useAppTheme();
 
   useEffect(() => {
@@ -67,19 +79,14 @@ export function MessageInput({
       Alert.alert('Limit reached', `You can attach at most ${MAX_IMAGES} images per message.`);
       return;
     }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsMultipleSelection: true,
-      selectionLimit: remaining,
-      quality: 0.8,
-    });
-    if (!result.canceled && result.assets.length > 0) {
-      const combined = [...pendingImages, ...result.assets];
+    const assets = await pickImagesFromLibrary({ selectionLimit: remaining });
+    if (assets.length > 0) {
+      const combined = [...pendingImages, ...assets];
       if (combined.length > MAX_IMAGES) {
         Alert.alert('Too many images', `You can attach at most ${MAX_IMAGES} images per message.`);
         onAddImages(combined.slice(0, MAX_IMAGES));
       } else {
-        onAddImages(result.assets);
+        onAddImages(assets);
       }
     }
   }
@@ -104,11 +111,54 @@ export function MessageInput({
     }
   }
 
+  function animateInputLayout() {
+    LayoutAnimation.configureNext({
+      duration: 170,
+      update: {
+        type: LayoutAnimation.Types.easeInEaseOut,
+      },
+    });
+  }
+
   return (
-    <View style={[styles.wrapper, { borderTopColor: colors.border, backgroundColor: colors.surface }]}>
+    <View
+      style={[
+        styles.wrapper,
+        {
+          borderTopColor: colors.border,
+          backgroundColor: colors.surface,
+          paddingBottom: Math.max(insets.bottom, spacing.xs),
+        },
+      ]}>
       <Modal visible={cameraVisible} animationType="slide" statusBarTranslucent onRequestClose={() => setCameraVisible(false)}>
         <GeneralCamera onPhotoTaken={handlePhotoTaken} onClose={() => setCameraVisible(false)} />
       </Modal>
+      <BottomActionSheet
+        visible={actionSheetVisible}
+        title="Add to message"
+        onClose={() => setActionSheetVisible(false)}
+        items={[
+          ...(onShareLocation ? [{
+            key: 'location',
+            label: 'Share location',
+            icon: 'location-outline' as const,
+            onPress: onShareLocation,
+          }] : []),
+          {
+            key: 'camera',
+            label: 'Take photo',
+            icon: 'camera-outline',
+            onPress: () => setCameraVisible(true),
+          },
+          {
+            key: 'library',
+            label: 'Choose from library',
+            icon: 'images-outline',
+            closeDelayMs: 120,
+            onPress: () => { void handlePickImages(); },
+          },
+        ]}
+      />
       {isEditing && (
         <View
           style={[
@@ -149,57 +199,64 @@ export function MessageInput({
             borderTopColor: colors.border,
           },
         ]}>
-        {!isEditing && (
-          <View style={styles.actionColumn}>
-            {onShareLocation && (
-              <IconButton
-                icon={<Ionicons name="location-outline" size={20} color={colors.textMuted} />}
-                variant="ghost"
-                onPress={onShareLocation}
-                disabled={isBusy}
-                accessibilityLabel="Share location"
-              />
-            )}
-            <IconButton
-              icon={<Ionicons name="camera-outline" size={22} color={isBusy ? colors.textMuted : colors.primary} />}
-              variant="ghost"
-              onPress={() => setCameraVisible(true)}
-              disabled={isBusy || pendingImages.length >= MAX_IMAGES}
-              accessibilityLabel="Take photo"
-            />
-            <IconButton
-              icon={<Ionicons name="image-outline" size={22} color={isBusy ? colors.textMuted : colors.primary} />}
-              variant="ghost"
-              onPress={handlePickImages}
-              disabled={isBusy || pendingImages.length >= MAX_IMAGES}
-              accessibilityLabel="Add images"
-            />
+        {!isEditing ? (
+          <View style={styles.topAlignedControl}>
+          <IconButton
+            icon={<Ionicons name="ellipsis-horizontal" size={22} color={isBusy ? colors.textMuted : colors.primary} />}
+            variant="ghost"
+            onPress={() => setActionSheetVisible(true)}
+            disabled={isBusy || pendingImages.length >= MAX_IMAGES}
+            accessibilityLabel="Add attachment"
+          />
           </View>
-        )}
+        ) : null}
         <View style={styles.inputWrapper}>
-          <Input
+          <TextInput
             value={text}
             onChangeText={setText}
             placeholder={isEditing ? 'Edit message...' : 'Type a message...'}
+            placeholderTextColor={colors.textMuted}
             multiline
+            scrollEnabled
+            onFocus={animateInputLayout}
+            onContentSizeChange={animateInputLayout}
             maxLength={2000}
             editable={!isBusy}
+            textAlignVertical="top"
+            style={{
+              minHeight: INPUT_MIN_HEIGHT,
+              maxHeight: INPUT_MAX_HEIGHT,
+              borderRadius: radius.lg,
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: colors.border,
+              backgroundColor: colors.surfaceMuted,
+              paddingHorizontal: spacing.sm,
+              paddingTop: 9,
+              paddingBottom: 9,
+              color: colors.text,
+              includeFontPadding: false,
+              ...typography.body,
+              fontSize: 17,
+              lineHeight: INPUT_LINE_HEIGHT,
+            }}
           />
         </View>
-        <IconButton
-          icon={
-            <Ionicons
-              name={isEditing ? 'checkmark' : 'send'}
-              size={20}
-              color={canSend ? colors.primary : colors.textMuted}
-            />
-          }
-          variant="ghost"
-          onPress={handleSubmit}
-          disabled={!canSend}
-          loading={isBusy}
-          accessibilityLabel={isEditing ? 'Save edit' : 'Send message'}
-        />
+        <View style={styles.topAlignedControl}>
+          <IconButton
+            icon={
+              <Ionicons
+                name={isEditing ? 'checkmark' : 'send'}
+                size={20}
+                color={canSend ? colors.primary : colors.textMuted}
+              />
+            }
+            variant="ghost"
+            onPress={handleSubmit}
+            disabled={!canSend}
+            loading={isBusy}
+            accessibilityLabel={isEditing ? 'Save edit' : 'Send message'}
+          />
+        </View>
       </View>
     </View>
   );
@@ -220,13 +277,11 @@ const styles = StyleSheet.create({
   },
   container: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'flex-start',
     gap: 8,
   },
-  actionColumn: {
-    alignItems: 'center',
-    gap: 2,
-    paddingBottom: 2,
+  topAlignedControl: {
+    marginTop: 0,
   },
   inputWrapper: {
     flex: 1,

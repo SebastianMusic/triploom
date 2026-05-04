@@ -4,6 +4,7 @@ import { Link } from 'expo-router';
 import { signUpSchema } from '@/types/auth.types';
 import { useAuthStore } from '@/store/auth.store';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { Container } from '@/components/ui/container';
 import { Input } from '@/components/ui/input';
 import { KeyboardScreenView } from '@/components/ui/keyboard-screen-view';
@@ -20,7 +21,7 @@ export default function SignupScreen() {
 
 	const { signUp, isLoading } = useAuthStore();
   const {
-    theme: { colors, spacing, typography },
+    theme: { colors, radius, spacing, typography },
   } = useAppTheme();
 
 	async function handleSignUp() {
@@ -44,14 +45,18 @@ export default function SignupScreen() {
 	if (pendingConfirmation) {
 		return (
 			<View style={{ flex: 1, justifyContent: 'center', padding: spacing.md, backgroundColor: colors.background }}>
-				<AppText variant="title">Check your email</AppText>
-				<AppText tone="muted">
-					We sent a confirmation link to {email}.{'\n'}
-					Click it to activate your account.
-				</AppText>
-				<Link href="/(auth)/login" style={{ color: colors.primary, textAlign: 'center', marginTop: spacing.md, ...typography.body }}>
-					Back to sign in
-				</Link>
+        <Card style={{ padding: spacing.md }}>
+          <Stack space="sm">
+            <AppText variant="title">Check your email</AppText>
+            <AppText tone="muted">
+              We sent a confirmation link to {email}.{'\n'}
+              Click it to activate your account.
+            </AppText>
+            <Link href="/(auth)/login" style={{ color: colors.primary, textAlign: 'center', marginTop: spacing.md, ...typography.body }}>
+              Back to sign in
+            </Link>
+          </Stack>
+        </Card>
 			</View>
 		);
 	}
@@ -61,41 +66,56 @@ export default function SignupScreen() {
       style={{ backgroundColor: colors.background }}
       contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingVertical: spacing.xl }}>
       <Container>
-        <Stack space="sm">
-          <View style={{ gap: spacing.xs }}>
-            <AppText variant="title">Create account</AppText>
-            <AppText tone="muted">Join Triploom</AppText>
+        <Stack space="md">
+          <View style={{ gap: spacing.xs, alignItems: 'center' }}>
+            <View
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: radius.full,
+                backgroundColor: colors.primarySoft,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+              <AppText variant="subtitle" tone="primary">T</AppText>
+            </View>
+            <AppText variant="title" style={{ textAlign: 'center' }}>Create account</AppText>
+            <AppText tone="muted" style={{ textAlign: 'center' }}>Start planning with Triploom</AppText>
           </View>
 
-          <Input
-            label="Username"
-            placeholder="Username"
-            value={username}
-            onChangeText={setUsername}
-            autoCapitalize="none"
-            textContentType="username"
-          />
-          <Input
-            label="Email"
-            placeholder="Email"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            textContentType="emailAddress"
-          />
-          <Input
-            label="Password"
-            placeholder="Password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            textContentType="newPassword"
-          />
+          <Card style={{ padding: spacing.md }}>
+            <Stack space="sm">
+              <Input
+                label="Username"
+                placeholder="Username"
+                value={username}
+                onChangeText={setUsername}
+                autoCapitalize="none"
+                textContentType="username"
+              />
+              <Input
+                label="Email"
+                placeholder="Email"
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                textContentType="emailAddress"
+              />
+              <Input
+                label="Password"
+                placeholder="Password"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                textContentType="newPassword"
+              />
 
-          {error ? <AppText tone="error">{error}</AppText> : null}
+              {error ? <AppText tone="error">{error}</AppText> : null}
 
-          <Button label="Create account" fullWidth loading={isLoading} onPress={handleSignUp} />
+              <Button label="Create account" fullWidth loading={isLoading} onPress={handleSignUp} />
+            </Stack>
+          </Card>
 
           <Link href="/(auth)/login" style={{ color: colors.primary, textAlign: 'center', ...typography.body }}>
             Already have an account? Sign in

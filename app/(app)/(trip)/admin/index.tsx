@@ -145,12 +145,20 @@ export default function AdminScreen() {
               />
 						) : null}
             {canManage ? (
-              <Button
-                label="Delete trip"
-                variant="destructive"
-                fullWidth
-                onPress={handleDeleteTrip}
-              />
+              <View
+                style={{
+                  marginTop: spacing.lg,
+                  paddingTop: spacing.md,
+                  borderTopWidth: 1,
+                  borderTopColor: colors.border,
+                }}>
+                <Button
+                  label="Delete trip"
+                  variant="destructive"
+                  fullWidth
+                  onPress={handleDeleteTrip}
+                />
+              </View>
             ) : null}
 					</Stack>
 				</Container>

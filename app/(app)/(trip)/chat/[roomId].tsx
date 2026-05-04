@@ -1,7 +1,14 @@
-import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useEffect, useState } from 'react';
-import { Alert, FlatList, KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
+import {
+  Alert,
+  FlatList,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 
 import { ChatLocationMapPicker, type PickedLocation } from '@/components/chat/chat-location-picker';
@@ -33,7 +40,6 @@ export default function ChatRoomScreen() {
   const currentUserId = useAuthStore((s) => s.session?.user.id ?? null);
   const [error, setError] = useState<string | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
-  const [pendingText, setPendingText] = useState<string | null>(null);
   const [actionSheetVisible, setActionSheetVisible] = useState(false);
   const [locationPickerVisible, setLocationPickerVisible] = useState(false);
   const [pendingImages, setPendingImages] = useState<ImagePicker.ImagePickerAsset[]>([]);
@@ -42,6 +48,15 @@ export default function ChatRoomScreen() {
   const [viewerVisible, setViewerVisible] = useState(false);
 
   const roomName = chatRooms.find((r) => r.id === roomId)?.chat_name ?? 'Chat';
+
+  useEffect(() => {
+    const eventName = Platform.OS === 'ios' ? 'keyboardWillChangeFrame' : 'keyboardDidShow';
+    const subscription = Keyboard.addListener(eventName, (event) => {
+      Keyboard.scheduleLayoutAnimation(event);
+    });
+
+    return () => subscription.remove();
+  }, []);
 
   useEffect(() => {
     if (!roomId) return;
@@ -174,7 +189,7 @@ export default function ChatRoomScreen() {
         <FlatList
           data={messages}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={{ paddingTop: headerContentOffset, paddingBottom: spacing.xs }}
+          contentContainerStyle={{ paddingBottom: 0 }}
           renderItem={({ item }) => (
             <MessageBubble
               message={item}
@@ -185,6 +200,7 @@ export default function ChatRoomScreen() {
             />
           )}
           inverted
+          ListFooterComponent={<View style={{ height: headerContentOffset }} />}
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.2}
           ListEmptyComponent={

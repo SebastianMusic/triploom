@@ -297,6 +297,8 @@ export default function ProfileScreen({
         onMobileNumberChange={setEditablePhoneNumber}
         onBack={() => {
           setPendingLocalUri(null);
+          setEditableFullName(resolvedFullName === 'Not added yet' ? '' : resolvedFullName);
+          setEditablePhoneNumber(profile?.phonenumber ?? '');
           setSaveError(null);
           setShowEditScreen(false);
         }}

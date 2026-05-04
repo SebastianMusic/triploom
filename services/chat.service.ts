@@ -12,9 +12,10 @@ function mapToMessageWithSender(raw: {
   deleted_at?: string | null;
   group_chat_id: string | null;
   user_id: string | null;
-  profile: { user_name: string | null } | null;
+  profile: { user_name: string | null; profile_picture_url?: string | null } | null;
   message_location?: MessageLocationData[] | MessageLocationData | null;
   images?: MessageImage[];
+  senderAvatarUrl?: string | null;
 }): MessageWithSender {
   const loc = raw.message_location;
   const locationData = Array.isArray(loc) ? (loc[0] ?? null) : (loc ?? null);
@@ -28,9 +29,21 @@ function mapToMessageWithSender(raw: {
     group_chat_id: raw.group_chat_id,
     user_id: raw.user_id,
     senderName: raw.profile?.user_name ?? null,
+    senderAvatarUrl: raw.senderAvatarUrl ?? null,
     location: locationData,
     images: raw.images ?? [],
   };
+}
+
+async function resolveSenderAvatarUrl(
+  userId: string | null,
+  profile: { profile_picture_url?: string | null } | null,
+): Promise<string | null> {
+  if (!userId || !profile?.profile_picture_url) return null;
+  const { data } = await supabase.storage
+    .from('profile_image')
+    .createSignedUrl(`${userId}/${profile.profile_picture_url}`, 3600);
+  return data?.signedUrl ?? null;
 }
 
 async function resolveImages(messageId: string): Promise<MessageImage[]> {
@@ -126,7 +139,7 @@ export async function getAllMessages(
 ): Promise<MessageWithSender[]> {
   let query = supabase
     .from('message')
-    .select('*, profile:user_id(user_name), message_location(*), chat_image(image_url)')
+    .select('*, profile:user_id(user_name, profile_picture_url), message_location(*), chat_image(image_url)')
     .eq('group_chat_id', roomId)
     .order('created_at', { ascending: false })
     .range(page * 50, page * 50 + 49);
@@ -153,6 +166,7 @@ export async function getAllMessages(
           return { path: img.image_url, url: signed?.signedUrl ?? '' };
         })
       );
+      const profile = Array.isArray(row.profile) ? (row.profile[0] ?? null) : row.profile;
       return mapToMessageWithSender({
         id: row.id,
         content: row.content,
@@ -162,7 +176,8 @@ export async function getAllMessages(
         deleted_at: row.deleted_at,
         group_chat_id: row.group_chat_id,
         user_id: row.user_id,
-        profile: Array.isArray(row.profile) ? (row.profile[0] ?? null) : row.profile,
+        profile,
+        senderAvatarUrl: await resolveSenderAvatarUrl(row.user_id, profile),
         message_location: row.message_location ?? null,
         images,
       });
@@ -179,7 +194,7 @@ export async function sendMessage(dto: SendMessageDTO): Promise<MessageWithSende
   const { data, error } = await supabase
     .from('message')
     .insert({ content: dto.content ?? null, type: 'text', group_chat_id: dto.group_chat_id, user_id: user?.id })
-    .select('*, profile:user_id(user_name)')
+    .select('*, profile:user_id(user_name, profile_picture_url)')
     .single();
   if (error) throw error;
 
@@ -192,6 +207,7 @@ export async function sendMessage(dto: SendMessageDTO): Promise<MessageWithSende
     images = await resolveImages(data.id);
   }
 
+  const profile = Array.isArray(data.profile) ? (data.profile[0] ?? null) : data.profile;
   return mapToMessageWithSender({
     id: data.id,
     content: data.content,
@@ -201,7 +217,8 @@ export async function sendMessage(dto: SendMessageDTO): Promise<MessageWithSende
     deleted_at: data.deleted_at,
     group_chat_id: data.group_chat_id,
     user_id: data.user_id,
-    profile: Array.isArray(data.profile) ? (data.profile[0] ?? null) : data.profile,
+    profile,
+    senderAvatarUrl: await resolveSenderAvatarUrl(data.user_id, profile),
     message_location: null,
     images,
   });
@@ -216,7 +233,7 @@ export async function sendLocationMessage(dto: SendLocationMessageDTO): Promise<
   const { data: message, error: messageError } = await supabase
     .from('message')
     .insert({ content: null, type: 'location', group_chat_id: dto.group_chat_id, user_id: user?.id })
-    .select('*, profile:user_id(user_name)')
+    .select('*, profile:user_id(user_name, profile_picture_url)')
     .single();
   if (messageError) throw messageError;
 
@@ -227,6 +244,7 @@ export async function sendLocationMessage(dto: SendLocationMessageDTO): Promise<
     .single();
   if (locationError) throw locationError;
 
+  const profile = Array.isArray(message.profile) ? (message.profile[0] ?? null) : message.profile;
   return mapToMessageWithSender({
     id: message.id,
     content: message.content,
@@ -236,7 +254,8 @@ export async function sendLocationMessage(dto: SendLocationMessageDTO): Promise<
     deleted_at: message.deleted_at,
     group_chat_id: message.group_chat_id,
     user_id: message.user_id,
-    profile: Array.isArray(message.profile) ? (message.profile[0] ?? null) : message.profile,
+    profile,
+    senderAvatarUrl: await resolveSenderAvatarUrl(message.user_id, profile),
     message_location: location,
     images: [],
   });
@@ -250,10 +269,11 @@ export async function updateMessage(dto: EditMessageDTO): Promise<MessageWithSen
     .from('message')
     .update({ content: dto.content, updated_at: new Date().toISOString() })
     .eq('id', dto.id)
-    .select('*, profile:user_id(user_name), message_location(*)')
+    .select('*, profile:user_id(user_name, profile_picture_url), message_location(*)')
     .single();
   if (error) throw error;
 
+  const profile = Array.isArray(data.profile) ? (data.profile[0] ?? null) : data.profile;
   return mapToMessageWithSender({
     id: data.id,
     content: data.content,
@@ -263,7 +283,8 @@ export async function updateMessage(dto: EditMessageDTO): Promise<MessageWithSen
     deleted_at: data.deleted_at,
     group_chat_id: data.group_chat_id,
     user_id: data.user_id,
-    profile: Array.isArray(data.profile) ? (data.profile[0] ?? null) : data.profile,
+    profile,
+    senderAvatarUrl: await resolveSenderAvatarUrl(data.user_id, profile),
     message_location: data.message_location ?? null,
     images: [],
   });
@@ -285,9 +306,10 @@ export async function deleteMessage(messageId: string): Promise<MessageWithSende
     .from('message')
     .update({ content: null, deleted_at: new Date().toISOString() })
     .eq('id', messageId)
-    .select('*, profile:user_id(user_name), message_location(*)')
+    .select('*, profile:user_id(user_name, profile_picture_url), message_location(*)')
     .single();
   if (error) throw error;
+  const profile = Array.isArray(data.profile) ? (data.profile[0] ?? null) : data.profile;
   return mapToMessageWithSender({
     id: data.id,
     content: data.content,
@@ -297,7 +319,8 @@ export async function deleteMessage(messageId: string): Promise<MessageWithSende
     deleted_at: data.deleted_at,
     group_chat_id: data.group_chat_id,
     user_id: data.user_id,
-    profile: Array.isArray(data.profile) ? (data.profile[0] ?? null) : data.profile,
+    profile,
+    senderAvatarUrl: await resolveSenderAvatarUrl(data.user_id, profile),
     message_location: data.message_location ?? null,
     images: [],
   });
@@ -350,10 +373,11 @@ export function subscribeToMessages(
         };
         const { data } = await supabase
           .from('message')
-          .select('*, profile:user_id(user_name), message_location(*)')
+          .select('*, profile:user_id(user_name, profile_picture_url), message_location(*)')
           .eq('id', raw.id)
           .single();
         const source = data ?? raw;
+        const profile = data ? (Array.isArray(data.profile) ? (data.profile[0] ?? null) : data.profile) : null;
         const images = data ? await resolveImages(data.id) : [];
         onMessage(
           mapToMessageWithSender({
@@ -365,7 +389,8 @@ export function subscribeToMessages(
             deleted_at: data?.deleted_at,
             group_chat_id: source.group_chat_id,
             user_id: source.user_id,
-            profile: data ? (Array.isArray(data.profile) ? (data.profile[0] ?? null) : data.profile) : null,
+            profile,
+            senderAvatarUrl: await resolveSenderAvatarUrl(source.user_id, profile),
             message_location: data?.message_location ?? null,
             images,
           })
@@ -391,10 +416,11 @@ export function subscribeToMessages(
         };
         const { data } = await supabase
           .from('message')
-          .select('*, profile:user_id(user_name), message_location(*)')
+          .select('*, profile:user_id(user_name, profile_picture_url), message_location(*)')
           .eq('id', raw.id)
           .single();
         const source = data ?? raw;
+        const profile = data ? (Array.isArray(data.profile) ? (data.profile[0] ?? null) : data.profile) : null;
         const images = data ? await resolveImages(data.id) : [];
         onMessageUpdated(
           mapToMessageWithSender({
@@ -406,7 +432,8 @@ export function subscribeToMessages(
             deleted_at: data?.deleted_at,
             group_chat_id: source.group_chat_id,
             user_id: source.user_id,
-            profile: data ? (Array.isArray(data.profile) ? (data.profile[0] ?? null) : data.profile) : null,
+            profile,
+            senderAvatarUrl: await resolveSenderAvatarUrl(source.user_id, profile),
             message_location: data?.message_location ?? null,
             images,
           })

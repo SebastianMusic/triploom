@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Pressable, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAppTheme } from '@/components/ui/theme-provider';
 
@@ -19,13 +20,14 @@ export function FloatingActionButton({
   const {
     theme: { colors, opacity, radius, shadows, sizes, spacing },
   } = useAppTheme();
+  const insets = useSafeAreaInsets();
 
   const positionStyle: ViewStyle =
     position === 'bottomRight'
       ? {
           position: 'absolute',
           right: spacing.md,
-          bottom: spacing.lg,
+          bottom: Math.max(insets.bottom, spacing.sm) + spacing.lg,
         }
       : {};
 

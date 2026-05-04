@@ -49,6 +49,7 @@ export type MessageWithSender = {
   group_chat_id: string | null;
   user_id: string | null;
   senderName: string | null;
+  senderAvatarUrl: string | null;
   location: MessageLocationData | null;
   images: MessageImage[];
 };
