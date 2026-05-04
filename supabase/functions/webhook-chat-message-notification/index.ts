@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
   try {
     const [profileRes, roomRes] = await Promise.all([
       supabase.from("profile").select("user_name").eq("id", senderId).single(),
-      supabase.from("group_chat").select("chat_name").eq("id", chatRoomId).single(),
+      supabase.from("group_chat").select("chat_name, trip_id").eq("id", chatRoomId).single(),
     ]);
 
     const senderName = profileRes.data?.user_name ?? "Someone";
@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
       : `${senderName} sent a photo`;
 
     const tokens = await getPushTokensForChatRoomExcluding(chatRoomId, senderId);
-    const res = await sendNotification(tokens, roomName, body, { group_chat_id: chatRoomId });
+    const res = await sendNotification(tokens, roomName, body, { group_chat_id: chatRoomId, trip_id: roomRes.data?.trip_id });
     return new Response(JSON.stringify(res), {
       headers: { "Content-Type": "application/json" },
     });
