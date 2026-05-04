@@ -193,7 +193,7 @@ export function TripSummaryPreviewCard({
               {cardDateLabel}
             </AppText>
             <AppText
-              numberOfLines={1}
+              numberOfLines={2}
               style={[
                 typography.title,
                 { color: colors.textOnPrimary, fontSize: 28, lineHeight: 30 },

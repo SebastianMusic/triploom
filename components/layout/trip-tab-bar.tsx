@@ -41,7 +41,7 @@ export function TripTabBar({ state, descriptors, navigation }: BottomTabBarProps
   const isHidden = !isPrimaryTripTab(activeRouteName ?? '');
   const activeIndex = tabs.findIndex(({ route }) => route.name === activeRouteName);
   const safeIndex = activeIndex >= 0 ? activeIndex : 0;
-  const bottomInset = Math.max(insets.bottom, Platform.OS === 'android' ? spacing.sm : spacing.xs);
+  const bottomInset = Math.max(insets.bottom, Platform.OS === 'android' ? spacing.md : spacing.xs);
   const reserveHeight = sizes.navigation.barHeight + bottomInset + spacing.xs;
   const segmentWidth = barWidth > 0 ? (barWidth - sizes.navigation.indicatorInset * 2) / Math.max(tabs.length, 1) : 0;
   const indicatorWidth = Math.max(segmentWidth - spacing.xs, 0);
@@ -77,7 +77,8 @@ export function TripTabBar({ state, descriptors, navigation }: BottomTabBarProps
       }}>
       <View
         onLayout={(event) => {
-          setBarWidth(event.nativeEvent.layout.width);
+          const nextWidth = event.nativeEvent.layout.width;
+          setBarWidth((currentWidth) => (Math.abs(currentWidth - nextWidth) > 0.5 ? nextWidth : currentWidth));
         }}
         style={[
           {
@@ -101,7 +102,7 @@ export function TripTabBar({ state, descriptors, navigation }: BottomTabBarProps
             style={{
               position: 'absolute',
               top: sizes.navigation.indicatorInset,
-              left: sizes.navigation.indicatorInset,
+              left: sizes.navigation.indicatorInset + spacing.xs / 2,
               width: indicatorWidth,
               height: sizes.navigation.barHeight - sizes.navigation.indicatorInset * 2,
               borderRadius: radius.full,

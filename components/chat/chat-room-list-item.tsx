@@ -1,8 +1,11 @@
 import { View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { ListItem } from '@/components/ui/list-item';
+import { Card } from '@/components/ui/card';
+import { Row } from '@/components/ui/row';
+import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import type { ChatRoomWithMeta } from '@/types';
 
@@ -23,24 +26,39 @@ interface Props {
 }
 
 export function ChatRoomListItem({ room, onPress }: Props) {
-  const { theme: { colors, radius, stroke } } = useAppTheme();
-  const isGeneral = room.event_id === null && room.trip_group_id === null;
-  const CARD_RADIUS = radius.sm;
-
-  const borderStyle = isGeneral
-    ? { borderRadius: CARD_RADIUS, borderWidth: stroke.focus, borderColor: colors.primary }
-    : { borderRadius: CARD_RADIUS, borderWidth: stroke.thin, borderColor: colors.border };
+  const { theme: { colors, radius, sizes, spacing, stroke, typography } } = useAppTheme();
 
   return (
-    <View style={borderStyle}>
-      <ListItem
-        borderRadius={CARD_RADIUS}
-        title={room.chat_name ?? 'Chat'}
-        subtitle={room.lastActivityAt ? formatRelativeTime(room.lastActivityAt) : undefined}
-        leading={<Avatar name={room.chat_name ?? 'C'} size="md" borderRadius={CARD_RADIUS} source={room.imageUrl ? { uri: room.imageUrl } : undefined} />}
-        trailing={room.hasUnread ? <Badge label="New" variant="info" /> : undefined}
-        onPress={onPress}
-      />
-    </View>
+    <Card
+      variant="interactive"
+      onPress={onPress}
+      style={{
+        paddingVertical: spacing.sm,
+        backgroundColor: room.hasUnread ? colors.secondarySoft : colors.surface,
+        borderWidth: room.hasUnread ? stroke.focus : 0,
+        borderColor: room.hasUnread ? colors.primary : colors.transparent,
+        shadowOpacity: 0,
+        shadowRadius: 0,
+        elevation: 0,
+      }}>
+      <Row align="center" gap="sm">
+        <Avatar
+          name={room.chat_name ?? 'C'}
+          size="md"
+          borderRadius={radius.sm}
+          source={room.imageUrl ? { uri: room.imageUrl } : undefined}
+        />
+        <View style={{ flex: 1, minWidth: 0, paddingVertical: 2 }}>
+          <AppText style={[typography.label, { color: colors.text }]} numberOfLines={1}>
+            {room.chat_name ?? 'Chat'}
+          </AppText>
+          <AppText variant="caption" tone="muted" numberOfLines={1}>
+            {room.lastActivityAt ? formatRelativeTime(room.lastActivityAt) : 'No messages yet'}
+          </AppText>
+        </View>
+        {room.hasUnread ? <Badge label="New" variant="info" /> : null}
+        <Ionicons name="chevron-forward" size={sizes.icon.sm} color={colors.textMuted} />
+      </Row>
+    </Card>
   );
 }

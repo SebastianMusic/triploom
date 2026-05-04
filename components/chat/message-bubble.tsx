@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Image, Pressable, StyleSheet, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 
 import { MessageContextMenu } from '@/components/chat/message-context-menu';
@@ -59,11 +59,13 @@ export function MessageBubble({ message, isOwnMessage, onEdit, onDelete, onImage
     }
   }
 
+  const avatarInitial = (message.senderName?.trim()?.[0] ?? '?').toUpperCase();
+
   return (
     <View
       style={[
         styles.container,
-        { paddingHorizontal: spacing.sm, paddingVertical: spacing.xs / 2 },
+        { paddingHorizontal: spacing.sm, paddingVertical: 2 },
         isOwnMessage ? styles.containerOwn : styles.containerOther,
       ]}>
       {!isOwnMessage && (
@@ -71,10 +73,38 @@ export function MessageBubble({ message, isOwnMessage, onEdit, onDelete, onImage
           {message.senderName ?? 'Unknown'}
         </AppText>
       )}
-      <Pressable
-        onLongPress={handleLongPress}
-        onPress={isLocation ? () => setLocationModalVisible(true) : undefined}
-        delayLongPress={400}>
+      <View
+        style={[
+          styles.messageRow,
+          isOwnMessage ? styles.messageRowOwn : styles.messageRowOther,
+          { gap: spacing.xs },
+        ]}>
+        <View
+          style={[
+            styles.avatar,
+            {
+              borderRadius: radius.full,
+              backgroundColor: isOwnMessage ? colors.primarySoft : colors.surfaceMuted,
+            },
+          ]}>
+          {message.senderAvatarUrl ? (
+            <Image source={{ uri: message.senderAvatarUrl }} style={styles.avatarImage} />
+          ) : (
+            <AppText
+              variant="caption"
+              style={{
+                color: isOwnMessage ? colors.primary : colors.textMuted,
+                fontWeight: '700',
+              }}>
+              {avatarInitial}
+            </AppText>
+          )}
+        </View>
+        <View style={[styles.messageColumn, isOwnMessage ? styles.columnOwn : styles.columnOther]}>
+          <Pressable
+            onLongPress={handleLongPress}
+            onPress={isLocation ? () => setLocationModalVisible(true) : undefined}
+            delayLongPress={400}>
         <View
           style={[
             styles.bubble,
@@ -119,7 +149,7 @@ export function MessageBubble({ message, isOwnMessage, onEdit, onDelete, onImage
               <AppText
                 variant="caption"
                 style={{ color: isOwnMessage ? colors.textOnPrimary : colors.primary, marginTop: 2 }}>
-                Tap to open
+                Tap to open map
               </AppText>
             </View>
           ) : (
@@ -143,7 +173,16 @@ export function MessageBubble({ message, isOwnMessage, onEdit, onDelete, onImage
             </>
           )}
         </View>
-      </Pressable>
+          </Pressable>
+
+          <AppText
+            variant="caption"
+            tone="muted"
+            style={[styles.time, isOwnMessage ? styles.timeOwn : styles.timeOther]}>
+            {copied ? 'Copied' : `${formatTime(message.created_at)}${isEdited ? ' · edited' : ''}`}
+          </AppText>
+        </View>
+      </View>
 
       {isLocation && message.location && (
         <LocationViewModal
@@ -154,12 +193,6 @@ export function MessageBubble({ message, isOwnMessage, onEdit, onDelete, onImage
           label={message.location.label}
         />
       )}
-      <AppText
-        variant="caption"
-        tone="muted"
-        style={[styles.time, isOwnMessage ? styles.timeOwn : styles.timeOther]}>
-        {copied ? 'Copied' : `${formatTime(message.created_at)}${isEdited ? ' · edited' : ''}`}
-      </AppText>
 
       {isOwnMessage && onEdit && onDelete && !isDeleted && (
         <MessageContextMenu
@@ -176,15 +209,44 @@ export function MessageBubble({ message, isOwnMessage, onEdit, onDelete, onImage
 
 const styles = StyleSheet.create({
   container: {
-    maxWidth: '75%',
+    width: '100%',
   },
   containerOwn: {
-    alignSelf: 'flex-end',
     alignItems: 'flex-end',
   },
   containerOther: {
-    alignSelf: 'flex-start',
     alignItems: 'flex-start',
+  },
+  messageRow: {
+    maxWidth: '86%',
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+  },
+  messageRowOwn: {
+    flexDirection: 'row-reverse',
+  },
+  messageRowOther: {
+    flexDirection: 'row',
+  },
+  messageColumn: {
+    flexShrink: 1,
+  },
+  columnOwn: {
+    alignItems: 'flex-end',
+  },
+  columnOther: {
+    alignItems: 'flex-start',
+  },
+  avatar: {
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
   },
   sender: {
     marginBottom: 2,
@@ -204,8 +266,8 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   content: {
-    fontSize: 15,
-    lineHeight: 21,
+    fontSize: 16,
+    lineHeight: 23,
   },
   time: {
     marginTop: 2,

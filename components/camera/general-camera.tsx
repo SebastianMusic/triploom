@@ -84,7 +84,7 @@ export default function GeneralCamera({ onPhotoTaken, onClose, adjustShape }: Ge
   if (previewUri) {
     return (
       <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
-        <View style={[styles.topBar, { paddingTop: Math.max(insets.top, 20) + 28 }]}>
+        <View style={[styles.topBar, { paddingTop: Math.max(insets.top, 20) + 44 }]}>
           <ThemedText style={styles.previewTitle}>Use this photo?</ThemedText>
         </View>
 
@@ -125,7 +125,7 @@ export default function GeneralCamera({ onPhotoTaken, onClose, adjustShape }: Ge
         }}
         onClose={() => setAdjustUri(null)}
       />
-      <View style={[styles.topBar, { paddingTop: Math.max(insets.top, 20) + 28 }]}>
+      <View style={[styles.topBar, { paddingTop: Math.max(insets.top, 20) + 44 }]}>
         <Pressable onPress={onClose} hitSlop={12}>
           <ThemedText style={styles.cancelText}>Cancel</ThemedText>
         </Pressable>

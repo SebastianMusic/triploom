@@ -181,7 +181,6 @@ export default function EditProfileScreen({
                 placeholder="Enter your mobile number"
                 value={mobileNumber}
                 onChangeText={onMobileNumberChange}
-                keyboardType="phone-pad"
               />
 
               {errorMessage ? (

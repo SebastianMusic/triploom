@@ -4,10 +4,12 @@ import { GlobalProfileButton } from '@/components/layout';
 import { useProfileStore } from '@/store/profile.store';
 import { useAuthStore } from '@/store/auth.store';
 import { usePushNotifications } from '@/hooks/use-push-notifications';
+import { useAppTheme } from '@/components/ui/theme-provider';
 
 export default function AppLayout() {
 	const { selectedTrip, fetchProfile } = useProfileStore();
 	const { session } = useAuthStore();
+	const { theme } = useAppTheme();
 
 	useEffect(() => {
 		fetchProfile();
@@ -17,7 +19,12 @@ export default function AppLayout() {
 
 	return (
 		<>
-			<Stack screenOptions={{ headerShown: false }}>
+			<Stack
+				screenOptions={{
+					headerShown: false,
+					contentStyle: { backgroundColor: theme.colors.background },
+					gestureEnabled: true,
+				}}>
 				<Stack.Protected guard={!!selectedTrip}>
 					<Stack.Screen name="(trip)" />
 				</Stack.Protected>

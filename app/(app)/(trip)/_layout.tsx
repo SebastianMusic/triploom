@@ -45,7 +45,7 @@ export default function TripLayout() {
     getTripById(selectedTrip).then(setCurrentTrip).catch(() => setCurrentTrip(null));
     getAllChatRooms(selectedTrip).catch(() => {});
     return () => { resetChatState(); };
-  }, [selectedTrip, setCurrentTrip]);
+  }, [getAllChatRooms, resetChatState, selectedTrip, setCurrentTrip]);
 
   return (
     <>
@@ -60,7 +60,7 @@ export default function TripLayout() {
         <Tabs.Screen name="home/index" options={{ title: 'Home' }} />
         <Tabs.Screen name="events/index" options={{ title: 'Events' }} />
         <Tabs.Screen name="tasks/index" options={{ title: 'Tasks' }} />
-        <Tabs.Screen name="chat/index" options={{ title: 'Chat' }} />
+        <Tabs.Screen name="chat/index" options={{ title: 'Chats' }} />
         <Tabs.Screen name="account/index" options={{ title: 'Profile', href: null }} />
         <Tabs.Screen name="admin/index" options={{ title: 'Admin', href: null }} />
         <Tabs.Screen name="admin/people" options={{ title: 'People & groups', href: null }} />

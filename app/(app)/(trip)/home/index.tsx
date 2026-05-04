@@ -119,13 +119,14 @@ export default function HomeScreen() {
   const params = useLocalSearchParams<{ compose?: string; editAnnouncement?: string }>();
   const { height: viewportHeight } = useWindowDimensions();
   const { session } = useAuthStore();
-  const { selectedTrip } = useProfileStore();
+  const { selectedTrip, setSelectedTrip } = useProfileStore();
   const {
     currentTrip,
     currentParticipant,
     participantsWithProfiles,
     fetchCurrentParticipant,
     fetchParticipants,
+    leaveTrip,
   } = useTripStore();
   const { events, isLoading: eventsLoading, fetchEvents } = useEventsStore();
   const {
@@ -324,6 +325,17 @@ export default function HomeScreen() {
     void fetchAllAssignments([topTask.id]).catch(() => undefined);
   }
 
+  function handleLeaveTrip() {
+    confirmDestructiveAction({
+      title: 'Leave trip',
+      message: `Leave "${currentTrip.name ?? 'this trip'}"? You can rejoin later with an invite link.`,
+      onConfirm: async () => {
+        await leaveTrip(currentTrip.id);
+        await setSelectedTrip(null);
+      },
+    });
+  }
+
   if (!currentTrip) {
     return (
       <View style={{ flex: 1, justifyContent: 'center' }}>
@@ -401,7 +413,7 @@ export default function HomeScreen() {
           <Container>
             <Stack space="sm">
               <View style={{ paddingTop: Math.max(0, headerContentOffset - HERO_HEIGHT + SHEET_OVERLAP) }}>
-                <AppText variant="title" numberOfLines={1}>
+                <AppText variant="title" numberOfLines={3}>
                   {currentTrip.name ?? 'Trip'}
                 </AppText>
                 <Row gap="sm" align="center" style={{ marginTop: spacing.xs }}>
@@ -412,13 +424,22 @@ export default function HomeScreen() {
 
               <View
                 style={{
-                  height: 2,
+                  height: 10,
                   marginTop: spacing.xs / 2,
-                  marginBottom: 0,
+                  marginBottom: spacing.xs,
                   borderRadius: radius.full,
-                  backgroundColor: colors.border,
-                }}
-              />
+                  backgroundColor: colors.surfaceMuted,
+                  overflow: 'hidden',
+                }}>
+                <View
+                  style={{
+                    width: `${getTripProgressPercent()}%`,
+                    height: '100%',
+                    borderRadius: radius.full,
+                    backgroundColor: colors.primary,
+                  }}
+                />
+              </View>
 
               <Stack space="sm">
                 <AnnouncementPreview />
@@ -454,15 +475,54 @@ export default function HomeScreen() {
                 {topTask ? (
                   <>
                     <TaskPreviewCard />
-                    <InlineViewMoreButton
-                      label="View more tasks"
-                      onPress={() => router.push('/(app)/(trip)/tasks')}
-                    />
                   </>
                 ) : (
                   <EmptyPreview label="No active tasks" />
                 )}
               </Stack>
+
+              <Card
+                variant="interactive"
+                onPress={() => router.push('/(app)/(trip)/admin/people')}
+                style={{ padding: spacing.md, shadowOpacity: 0, shadowRadius: 0, elevation: 0 }}>
+                <Row justify="space-between" align="center" gap="sm">
+                  <Row gap="sm" align="center" style={{ flex: 1 }}>
+                    <View
+                      style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: radius.full,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: colors.secondarySoft,
+                      }}>
+                      <Ionicons name="people-outline" size={22} color={colors.secondary} />
+                    </View>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <AppText style={typography.label}>People & groups</AppText>
+                      <AppText variant="caption" tone="muted" numberOfLines={1}>
+                        {participantsWithProfiles.length} {participantsWithProfiles.length === 1 ? 'person' : 'people'}
+                      </AppText>
+                    </View>
+                  </Row>
+                  <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+                </Row>
+              </Card>
+
+              <View
+                style={{
+                  marginTop: spacing.lg,
+                  paddingTop: spacing.md,
+                  borderTopWidth: 1,
+                  borderTopColor: colors.border,
+                }}>
+                <Button
+                  label="Leave trip"
+                  variant="destructive"
+                  fullWidth
+                  onPress={handleLeaveTrip}
+                />
+              </View>
 
               {loading ? <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.xs }} /> : null}
             </Stack>
@@ -892,6 +952,17 @@ export default function HomeScreen() {
         <AppText tone="muted">{label}</AppText>
       </Card>
     );
+  }
+
+  function getTripProgressPercent() {
+    const start = currentTrip?.start_date ? new Date(currentTrip.start_date).getTime() : null;
+    const end = currentTrip?.end_date ? new Date(currentTrip.end_date).getTime() : null;
+    if (!start || !end || Number.isNaN(start) || Number.isNaN(end) || end <= start) {
+      return 0;
+    }
+
+    const progress = ((Date.now() - start) / (end - start)) * 100;
+    return Math.min(100, Math.max(0, progress));
   }
 }
 

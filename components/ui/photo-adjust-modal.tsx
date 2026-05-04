@@ -215,14 +215,15 @@ export function PhotoAdjustModal({
   if (!uri) return null;
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
       <SafeAreaView
         style={{
           flex: 1,
           backgroundColor: '#000000',
           justifyContent: 'center',
           paddingHorizontal: spacing.sm,
-          paddingVertical: spacing.xl,
+          paddingTop: spacing.xxl,
+          paddingBottom: spacing.md,
         }}
         edges={['top', 'bottom', 'left', 'right']}>
         <View style={{ alignItems: 'center', gap: spacing.xs, marginBottom: spacing.md }}>

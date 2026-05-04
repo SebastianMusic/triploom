@@ -15,10 +15,18 @@ import { getProfileBadge } from '@/constants/profile-badges';
 import { useProfileStore } from '@/store/profile.store';
 import { useTripHeaderActionsStore } from '@/store/trip-header-actions.store';
 import { useTripStore } from '@/store/trip.store';
+import { useChatStore } from '@/store/chat.store';
 import { TripRole } from '@/types';
 
 type TripHeaderProps = {
   routeName: string;
+};
+
+type HeaderActionItem = {
+  key: string;
+  accessibilityLabel: string;
+  iconName?: string;
+  onPress: () => void;
 };
 
 export function TripHeader({ routeName }: TripHeaderProps) {
@@ -28,15 +36,21 @@ export function TripHeader({ routeName }: TripHeaderProps) {
   const screenAction = useTripHeaderActionsStore((state) => state.action);
   const screenActions = useTripHeaderActionsStore((state) => state.actions);
   const currentParticipant = useTripStore((state) => state.currentParticipant);
+  const chatRooms = useChatStore((state) => state.chatRooms);
+  const activeChatRoomId = useChatStore((state) => state.activeChatRoomId);
   const {
     theme: { colors, layout, spacing, typography },
   } = useAppTheme();
   const isProfileRoute = routeName === 'account/index';
   const isHomeRoute = routeName === 'home/index';
+  const isChatRoomRoute = routeName === 'chat/[roomId]';
   const isPrimaryRoute = isPrimaryTripTab(routeName);
   const [isSwitchingTrip, setIsSwitchingTrip] = useState(false);
   const badgeLevel = getProfileBadge(participatedTripCount ?? 0).level;
   const title = getTripScreenTitle(routeName);
+  const activeChatName = isChatRoomRoute
+    ? chatRooms.find((room) => room.id === activeChatRoomId)?.chat_name ?? 'Chat'
+    : null;
   const actionVariant = isPrimaryRoute ? 'ghost' : 'surface';
   const canCreateAnnouncement =
     routeName === 'home/index' &&
@@ -45,21 +59,23 @@ export function TripHeader({ routeName }: TripHeaderProps) {
   const isOrganizer =
     currentParticipant?.role === TripRole.Organizer ||
     currentParticipant?.role === TripRole.CoOrganizer;
-  const headerActions =
+  const headerActions: HeaderActionItem[] =
     canCreateAnnouncement
       ? [{
+          key: 'create-announcement',
           accessibilityLabel: 'Create announcement',
           onPress: handleCreateAnnouncement,
         }]
       : routeName === 'events/index' && isOrganizer
         ? [{
+            key: 'create-event',
             accessibilityLabel: 'Create event',
             onPress: () => router.push('/(app)/(trip)/events/create_event'),
           }]
         : screenActions.length > 0
-          ? screenActions
+          ? routeName === 'tasks/index' ? screenActions : []
           : screenAction
-            ? [screenAction]
+            ? routeName === 'tasks/index' ? [screenAction] : []
             : [];
 
   function handleOpenProfile() {
@@ -94,6 +110,30 @@ export function TripHeader({ routeName }: TripHeaderProps) {
         paddingBottom: layout.headerPaddingBottom,
         paddingHorizontal: layout.headerPaddingHorizontal,
       }}>
+      {isChatRoomRoute ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+          <BackButton
+            variant="surface"
+            size="md"
+            onPress={() => router.replace('/(app)/(trip)/chat')}
+          />
+          <AppText
+            numberOfLines={1}
+            style={[
+              typography.subtitle,
+              {
+                flex: 1,
+                color: colors.text,
+                fontSize: 24,
+                lineHeight: 30,
+                textAlign: 'left',
+              },
+            ]}>
+            {activeChatName}
+          </AppText>
+          <View style={{ width: 44, height: 44 }} />
+        </View>
+      ) : (
       <View
         style={{
           flexDirection: 'row',
@@ -130,7 +170,7 @@ export function TripHeader({ routeName }: TripHeaderProps) {
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
             {headerActions.map((action) => (
               <IconButton
-                key={action.accessibilityLabel}
+                key={action.key}
                 accessibilityLabel={action.accessibilityLabel}
                 variant="accent"
                 size="md"
@@ -163,6 +203,7 @@ export function TripHeader({ routeName }: TripHeaderProps) {
           </View>
         )}
       </View>
+      )}
     </View>
   );
 }

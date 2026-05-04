@@ -12,6 +12,8 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSCameraUsageDescription": "Triploom uses the camera to take profile pictures and photos for trips.",
+        "NSPhotoLibraryUsageDescription": "Triploom needs access to your photo library to let you choose profile pictures and trip photos.",
+        "NSPhotoLibraryAddUsageDescription": "Triploom needs permission to save edited photos when you choose images for your trips.",
         "ITSAppUsesNonExemptEncryption": false
       },
       "bundleIdentifier": "com.triploomapp.triploom"
@@ -31,6 +33,10 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.triploomapp.triploom"
+    },
+    "androidNavigationBar": {
+      "backgroundColor": "#071219",
+      "barStyle": "light-content"
     },
     "web": {
       "output": "static",
