@@ -4,6 +4,7 @@ import { GlobalProfileButton } from '@/components/layout';
 import { useProfileStore } from '@/store/profile.store';
 import { useAuthStore } from '@/store/auth.store';
 import { usePushNotifications } from '@/hooks/use-push-notifications';
+import { useNotificationNavigation } from '@/hooks/use-notification-navigation';
 import { useAppTheme } from '@/components/ui/theme-provider';
 
 export default function AppLayout() {
@@ -16,6 +17,7 @@ export default function AppLayout() {
 	}, []);
 
 	usePushNotifications(session?.user.id);
+	useNotificationNavigation();
 
 	return (
 		<>
