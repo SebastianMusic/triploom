@@ -23,8 +23,15 @@ export async function pickImagesFromLibrary({
   selectionLimit?: number;
 } = {}): Promise<ImagePicker.ImagePickerAsset[]> {
   try {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
+    const existingPermission = await ImagePicker.getMediaLibraryPermissionsAsync();
+    const permission =
+      existingPermission.granted || existingPermission.accessPrivileges === 'limited'
+        ? existingPermission
+        : existingPermission.canAskAgain
+          ? await ImagePicker.requestMediaLibraryPermissionsAsync()
+          : existingPermission;
+
+    if (!permission.granted && permission.accessPrivileges !== 'limited') {
       Alert.alert(
         'Photo access needed',
         'Open settings and allow photo library access for Expo Go to choose images.',

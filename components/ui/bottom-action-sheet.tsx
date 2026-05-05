@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useRef } from 'react';
 import { Modal, Platform, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -29,13 +30,35 @@ export function BottomActionSheet({
   onClose,
   items,
 }: BottomActionSheetProps) {
+  const pendingDismissActionRef = useRef<{
+    onPress: () => void;
+    delayMs: number;
+  } | null>(null);
   const {
     theme: { colors, opacity, radius, shadows, spacing, typography },
   } = useAppTheme();
   const insets = useSafeAreaInsets();
 
   return (
-    <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose}>
+    <Modal
+      transparent
+      visible={visible}
+      animationType="fade"
+      onRequestClose={onClose}
+      onDismiss={() => {
+        const pendingAction = pendingDismissActionRef.current;
+        if (!pendingAction) return;
+
+        pendingDismissActionRef.current = null;
+        if (pendingAction.delayMs > 0) {
+          setTimeout(() => {
+            pendingAction.onPress();
+          }, pendingAction.delayMs);
+          return;
+        }
+
+        pendingAction.onPress();
+      }}>
       <View style={{ flex: 1, justifyContent: 'flex-end' }}>
         <Pressable
           style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: colors.overlayStrong }}
@@ -79,8 +102,20 @@ export function BottomActionSheet({
                 key={item.key}
                 accessibilityRole="button"
                 onPress={() => {
+                  const delay = item.closeDelayMs ?? 0;
+                  const shouldWaitForDismiss = Platform.OS === 'ios' && !item.skipIosCloseDelay;
+
+                  pendingDismissActionRef.current = null;
                   onClose();
-                  const delay = item.closeDelayMs ?? (Platform.OS === 'ios' && !item.skipIosCloseDelay ? 220 : 0);
+
+                  if (shouldWaitForDismiss) {
+                    pendingDismissActionRef.current = {
+                      onPress: item.onPress,
+                      delayMs: delay,
+                    };
+                    return;
+                  }
+
                   if (delay > 0) {
                     setTimeout(() => {
                       item.onPress();
