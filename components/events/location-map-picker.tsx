@@ -9,10 +9,12 @@ import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import { buildAndroidMapHtml, getLastKnownLocation, requestLocationForMap, reverseGeocode } from '@/hooks/use-location';
 
+export type SelectedLocation = { label: string; latitude: number; longitude: number };
+
 type Props = {
   visible: boolean;
   onClose: () => void;
-  onSelectLocation: (address: string) => void;
+  onSelectLocation: (location: SelectedLocation) => void;
 };
 
 const OSLO = { latitude: 59.9139, longitude: 10.7522 };
@@ -47,9 +49,9 @@ function IOSPicker({ onClose, onSelectLocation }: Omit<Props, 'visible'>) {
   async function handleConfirm() {
     const { latitude, longitude } = regionRef.current;
     setIsGeocoding(true);
-    const address = await reverseGeocode(latitude, longitude);
+    const label = await reverseGeocode(latitude, longitude);
     setIsGeocoding(false);
-    onSelectLocation(address);
+    onSelectLocation({ label, latitude, longitude });
     onClose();
   }
 
@@ -149,8 +151,8 @@ function AndroidPicker({ onClose, onSelectLocation }: Omit<Props, 'visible'>) {
     try {
       const { lat, lng } = JSON.parse(event.nativeEvent.data) as { lat: number; lng: number };
       setIsGeocoding(true);
-      const address = await reverseGeocode(lat, lng);
-      onSelectLocation(address);
+      const label = await reverseGeocode(lat, lng);
+      onSelectLocation({ label, latitude: lat, longitude: lng });
       onClose();
     } catch {
       Alert.alert('Error', 'Could not fetch location. Please try again.');

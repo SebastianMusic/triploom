@@ -51,7 +51,8 @@ export default function CreateEventScreen() {
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [location, setLocation] = useState('');
+  const [locationLabel, setLocationLabel] = useState('');
+  const [locationCoords, setLocationCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [priceRange, setPriceRange] = useState('');
@@ -74,7 +75,8 @@ export default function CreateEventScreen() {
   function clearForm() {
     setTitle('');
     setDescription('');
-    setLocation('');
+    setLocationLabel('');
+    setLocationCoords(null);
     setStartDate(null);
     setEndDate(null);
     setPriceRange('');
@@ -105,7 +107,9 @@ export default function CreateEventScreen() {
     const result = createEventSchema.safeParse({
       title,
       description,
-      location,
+      location_label: locationLabel,
+      latitude: locationCoords?.latitude ?? null,
+      longitude: locationCoords?.longitude ?? null,
       start_time: startDate ? startDate.toISOString() : '',
       end_time: endDate ? endDate.toISOString() : '',
       price_range: priceRange || undefined,
@@ -159,7 +163,9 @@ export default function CreateEventScreen() {
       await createEvent({
         title: result.data.title,
         description: result.data.description,
-        location: result.data.location,
+        location_label: result.data.location_label,
+        latitude: result.data.latitude ?? null,
+        longitude: result.data.longitude ?? null,
         start_time: startDate.toISOString(),
         end_time: endDate.toISOString(),
         price_range: result.data.price_range ?? null,
@@ -210,9 +216,10 @@ export default function CreateEventScreen() {
         />
 
         <EventLocationInput
-          value={location}
-          onChangeText={(text) => { setLocation(text); setErrors((e) => ({ ...e, location: undefined })); }}
-          error={errors.location}
+          value={locationLabel}
+          onChangeText={(text) => { setLocationLabel(text); setLocationCoords(null); setErrors((e) => ({ ...e, location_label: undefined })); }}
+          onSelectLocation={(loc) => { setLocationLabel(loc.label); setLocationCoords(loc); setErrors((e) => ({ ...e, location_label: undefined })); }}
+          error={errors.location_label}
         />
 
         {/* Start time */}

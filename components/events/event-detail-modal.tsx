@@ -123,9 +123,9 @@ export function EventDetailModal({
 
           <Card style={{ padding: spacing.md }}>
             <Stack space="sm">
-              {event.location ? (
+              {event.location_label ? (
                 <Pressable onPress={() => setLocationVisible(true)}>
-                  <InfoRow icon="location-outline" label="Location" value={event.location} tone="primary" />
+                  <InfoRow icon="location-outline" label="Location" value={event.location_label} tone="primary" />
                 </Pressable>
               ) : null}
               <InfoRow icon="time-outline" label="Start" value={formatFull(event.start_time)} />
@@ -172,11 +172,13 @@ export function EventDetailModal({
         </ScrollView>
       )}
 
-      {event.location ? (
+      {event.location_label ? (
         <LocationViewModal
           visible={locationVisible}
           onClose={() => setLocationVisible(false)}
-          address={event.location}
+          label={event.location_label}
+          latitude={event.latitude ?? undefined}
+          longitude={event.longitude ?? undefined}
         />
       ) : null}
     </PageSheetModal>

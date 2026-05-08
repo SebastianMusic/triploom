@@ -172,20 +172,22 @@ function ViewEvent({ event, onBack, isCreator, isOrganizer, onEdit, onDelete }: 
           ) : null}
 
           <View style={{ gap: spacing.sm }}>
-            {event.location ? (
+            {event.location_label ? (
               <Pressable onPress={() => setLocationModalVisible(true)}>
                 <Row icon="location-outline">
                   <AppText variant="caption" tone="muted">Location</AppText>
-                  <AppText tone="primary">{event.location}</AppText>
+                  <AppText tone="primary">{event.location_label}</AppText>
                 </Row>
               </Pressable>
             ) : null}
 
-            {event.location ? (
+            {event.location_label ? (
               <LocationViewModal
                 visible={locationModalVisible}
                 onClose={() => setLocationModalVisible(false)}
-                address={event.location}
+                label={event.location_label}
+                latitude={event.latitude ?? undefined}
+                longitude={event.longitude ?? undefined}
               />
             ) : null}
 
@@ -302,7 +304,12 @@ function EditEvent({ event, onBack, onDeleteSuccess }: { event: EventWithCount; 
 
   const [title, setTitle] = useState(event.title ?? '');
   const [description, setDescription] = useState(event.description ?? '');
-  const [location, setLocation] = useState(event.location ?? '');
+  const [locationLabel, setLocationLabel] = useState(event.location_label ?? '');
+  const [locationCoords, setLocationCoords] = useState<{ latitude: number; longitude: number } | null>(
+    event.latitude != null && event.longitude != null
+      ? { latitude: event.latitude, longitude: event.longitude }
+      : null,
+  );
   const [priceRange, setPriceRange] = useState(event.price_range ?? '');
   const [isMandatory, setIsMandatory] = useState(event.is_optional === false);
   const [bannerLocalUri, setBannerLocalUri] = useState<string | null>(null);
@@ -333,11 +340,14 @@ function EditEvent({ event, onBack, onDeleteSuccess }: { event: EventWithCount; 
   async function handleSave() {
     setErrors({});
       const result = createEventSchema.safeParse({
-       title, description, location,
-      start_time: startDate ? startDate.toISOString() : '',
-      end_time: endDate ? endDate.toISOString() : '',
-       price_range: priceRange || undefined,
-     });
+        title, description,
+        location_label: locationLabel,
+        latitude: locationCoords?.latitude ?? null,
+        longitude: locationCoords?.longitude ?? null,
+        start_time: startDate ? startDate.toISOString() : '',
+        end_time: endDate ? endDate.toISOString() : '',
+        price_range: priceRange || undefined,
+      });
 
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
@@ -371,13 +381,15 @@ function EditEvent({ event, onBack, onDeleteSuccess }: { event: EventWithCount; 
         await updateEvent(event.id, {
           title: result.data.title,
           description: result.data.description,
-          location: result.data.location,
+          location_label: result.data.location_label,
+          latitude: result.data.latitude ?? null,
+          longitude: result.data.longitude ?? null,
           start_time: startDate.toISOString(),
           end_time: endDate.toISOString(),
           price_range: result.data.price_range ?? null,
           is_optional: isOrganizer ? !isMandatory : event.is_optional,
           banner_image_url: bannerPath,
-      });
+        });
       onBack();
     } catch {
       Alert.alert('Error', 'Could not save changes. Please try again.');
@@ -418,9 +430,10 @@ function EditEvent({ event, onBack, onDeleteSuccess }: { event: EventWithCount; 
             <Input label="Title *" placeholder="Event title" value={title} onChangeText={setTitle} error={errors.title} />
             <Input label="Description *" placeholder="What is this event about?" value={description} onChangeText={setDescription} multiline error={errors.description} />
             <EventLocationInput
-              value={location}
-              onChangeText={(text) => { setLocation(text); setErrors((e) => ({ ...e, location: undefined })); }}
-              error={errors.location}
+              value={locationLabel}
+              onChangeText={(text) => { setLocationLabel(text); setLocationCoords(null); setErrors((e) => ({ ...e, location_label: undefined })); }}
+              onSelectLocation={(loc) => { setLocationLabel(loc.label); setLocationCoords(loc); setErrors((e) => ({ ...e, location_label: undefined })); }}
+              error={errors.location_label}
             />
 
             <DateTimeField
