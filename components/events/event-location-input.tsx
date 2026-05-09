@@ -5,16 +5,17 @@ import { Pressable, View } from 'react-native';
 import { Input } from '@/components/ui/input';
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
-import { LocationMapPicker } from '@/components/events/location-map-picker';
+import { LocationMapPicker, type SelectedLocation } from '@/components/events/location-map-picker';
 import { buildShortLabel, type NominatimAddress } from '@/hooks/use-location';
 
 interface Props {
   value: string;
   onChangeText: (text: string) => void;
+  onSelectLocation?: (location: SelectedLocation) => void;
   error?: string;
 }
 
-export function EventLocationInput({ value, onChangeText, error }: Props) {
+export function EventLocationInput({ value, onChangeText, onSelectLocation, error }: Props) {
   const { theme: { colors, radius, spacing, stroke } } = useAppTheme();
   const [mapVisible, setMapVisible] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -51,6 +52,11 @@ export function EventLocationInput({ value, onChangeText, error }: Props) {
   function handleSelect(address: string) {
     onChangeText(address);
     setSuggestions([]);
+  }
+
+  function handleMapSelect(loc: SelectedLocation) {
+    onChangeText(loc.label);
+    onSelectLocation?.(loc);
   }
 
   return (
@@ -110,7 +116,7 @@ export function EventLocationInput({ value, onChangeText, error }: Props) {
       <LocationMapPicker
         visible={mapVisible}
         onClose={() => setMapVisible(false)}
-        onSelectLocation={handleSelect}
+        onSelectLocation={handleMapSelect}
       />
     </>
   );

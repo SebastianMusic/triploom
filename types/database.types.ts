@@ -124,7 +124,9 @@ export type Database = {
           end_time: string | null
           id: string
           is_optional: boolean | null
-          location: string | null
+          latitude: number | null
+          location_label: string | null
+          longitude: number | null
           price_range: string | null
           start_time: string | null
           title: string | null
@@ -138,7 +140,9 @@ export type Database = {
           end_time?: string | null
           id?: string
           is_optional?: boolean | null
-          location?: string | null
+          latitude?: number | null
+          location_label?: string | null
+          longitude?: number | null
           price_range?: string | null
           start_time?: string | null
           title?: string | null
@@ -152,7 +156,9 @@ export type Database = {
           end_time?: string | null
           id?: string
           is_optional?: boolean | null
-          location?: string | null
+          latitude?: number | null
+          location_label?: string | null
+          longitude?: number | null
           price_range?: string | null
           start_time?: string | null
           title?: string | null

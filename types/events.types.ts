@@ -4,7 +4,9 @@ import type { EventInsert } from '@/types';
 export const createEventSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   description: z.string().min(1, 'Description is required'),
-  location: z.string().min(1, 'Location is required'),
+  location_label: z.string().min(1, 'Location is required'),
+  latitude: z.number().nullable().optional(),
+  longitude: z.number().nullable().optional(),
   start_time: z.string().min(1, 'Start time is required'),
   end_time: z.string().min(1, 'End time is required'),
   price_range: z.string().optional(),
