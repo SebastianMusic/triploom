@@ -177,8 +177,9 @@ export default function CreateEventScreen() {
 
       clearForm();
       router.replace('/(app)/(trip)/events');
-    } catch {
-      Alert.alert('Error', 'Could not create event. Please try again.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : JSON.stringify(err);
+      Alert.alert('Error', msg);
     } finally {
       setIsSubmitting(false);
     }
