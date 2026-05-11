@@ -401,7 +401,11 @@ export default function HomeScreen() {
           }}>
           <Container>
             <Stack space="sm">
-              <View style={{ paddingTop: Math.max(0, headerContentOffset - HERO_HEIGHT + SHEET_OVERLAP) }}>
+              <View
+                style={{
+                  paddingTop: Math.max(spacing.xs, headerContentOffset - HERO_HEIGHT + SHEET_OVERLAP + spacing.xs),
+                  paddingHorizontal: spacing.xs,
+                }}>
                 <AppText variant="title" numberOfLines={3}>
                   {currentTrip.name ?? 'Trip'}
                 </AppText>

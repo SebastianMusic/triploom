@@ -42,6 +42,7 @@ export function TaskDetailModal({
   const [pending, setPending] = useState<PendingResponseMap>({});
   const [completing, setCompleting] = useState(false);
   const isCompleted = assignment?.is_completed ?? false;
+  const isMandatory = task?.is_mandatory ?? false;
 
   useEffect(() => { setPending({}); }, [task?.id]);
 
@@ -99,6 +100,20 @@ export function TaskDetailModal({
       onDelete={onDelete}
     >
       <ScrollView contentContainerStyle={{ padding: spacing.md, gap: spacing.md }} keyboardShouldPersistTaps="handled">
+          {isMandatory ? (
+            <View
+              style={{
+                alignSelf: 'flex-start',
+                borderRadius: radius.full,
+                backgroundColor: colors.warning,
+                paddingHorizontal: spacing.xs,
+                paddingVertical: 3,
+              }}>
+              <AppText variant="caption" style={{ color: colors.textOnPrimary, fontWeight: '700' }}>
+                Mandatory
+              </AppText>
+            </View>
+          ) : null}
           {task.description ? <AppText tone="muted">{task.description}</AppText> : null}
 
           {task.due_time || relatedEventName ? (
