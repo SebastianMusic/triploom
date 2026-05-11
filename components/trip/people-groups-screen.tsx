@@ -62,7 +62,7 @@ export function PeopleGroupsScreen({
   actorUserId,
   actorRole,
 }: Props) {
-  const { headerContentOffset, safeAreaInsets } = useTripChromeInsets();
+  const { headerContentOffset, bottomOverlayOffset } = useTripChromeInsets();
   const {
     theme: { colors, opacity, radius, shadows, spacing, stroke, typography },
   } = useAppTheme();
@@ -241,9 +241,12 @@ export function PeopleGroupsScreen({
   }
 
   return (
-    <>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScrollView
+        style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        nestedScrollEnabled
         refreshControl={
           <RefreshControl
             tintColor={colors.primary}
@@ -255,8 +258,9 @@ export function PeopleGroupsScreen({
           />
         }
         contentContainerStyle={{
+          flexGrow: 1,
           paddingTop: headerContentOffset,
-          paddingBottom: safeAreaInsets.bottom + spacing.lg,
+          paddingBottom: Math.max(spacing.xxxl, bottomOverlayOffset),
         }}>
         <Container>
         <Stack space="sm">
@@ -719,7 +723,7 @@ export function PeopleGroupsScreen({
           onClose={() => setSelectedParticipant(null)}
         />
       ) : null}
-    </>
+    </View>
   );
 
   function StatPill({ icon, value }: { icon: keyof typeof Ionicons.glyphMap; value: number }) {

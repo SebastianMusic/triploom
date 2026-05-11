@@ -17,12 +17,12 @@ import { EventDetailModal } from '@/components/events/event-detail-modal';
 import { EventFormSheet } from '@/components/events/event-form-sheet';
 import { EventPreviewCard } from '@/components/events/event-preview-card';
 import { useTripChromeInsets } from '@/components/layout/use-trip-chrome';
+import { TaskCard } from '@/components/tasks/task-card';
 import { TaskDetailModal } from '@/components/tasks/task-detail-modal';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { confirmDestructiveAction } from '@/components/ui/confirm-destructive-action';
 import { Container } from '@/components/ui/container';
-import { Input } from '@/components/ui/input';
 import { PageSheetModal } from '@/components/ui/page-sheet-modal';
 import { AppRefreshControl } from '@/components/ui/app-refresh-control';
 import { Row } from '@/components/ui/row';
@@ -41,15 +41,9 @@ import { useTripHeaderActionsStore } from '@/store/trip-header-actions.store';
 import { useTripStore } from '@/store/trip.store';
 import type { Announcement, Task } from '@/types';
 import { TripRole } from '@/types';
-import { TaskFieldType } from '@/types/tasks.types';
 
 const HERO_HEIGHT = 320;
 const SHEET_OVERLAP = 48;
-
-type PendingResponseMap = Record<
-  string,
-  { option_id?: string | null; is_checked?: boolean | null; value?: string | null }[]
->;
 
 function formatFullDay(iso: string | null | undefined): string {
   if (!iso) return '';
@@ -64,11 +58,6 @@ function formatFullDay(iso: string | null | undefined): string {
 function formatTime(iso: string | null | undefined): string {
   if (!iso) return '';
   return new Date(iso).toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' });
-}
-
-function formatDue(iso: string | null | undefined): string {
-  if (!iso) return 'No deadline';
-  return `${formatFullDay(iso)} ${formatTime(iso)}`;
 }
 
 function withAlpha(hexColor: string, alpha: number) {
@@ -168,7 +157,8 @@ export default function HomeScreen() {
   const [earlierAnnouncementsVisible, setEarlierAnnouncementsVisible] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [announcementDescriptionHasOverflow, setAnnouncementDescriptionHasOverflow] = useState(false);
-  const [taskPendingResponses, setTaskPendingResponses] = useState<PendingResponseMap>({});
+  const [tripDescriptionHasOverflow, setTripDescriptionHasOverflow] = useState(false);
+  const [tripDescriptionVisible, setTripDescriptionVisible] = useState(false);
   const setHeaderActions = useTripHeaderActionsStore((state) => state.setActions);
 
   const isOrganizer =
@@ -220,7 +210,6 @@ export default function HomeScreen() {
     () => topTaskCandidates[0] ?? null,
     [topTaskCandidates],
   );
-  const topTaskFields = topTask ? (fields[topTask.id] ?? []) : [];
   const topTaskAssignment = topTask ? (assignments[topTask.id] ?? null) : null;
   const sortedEvents = useMemo(() => sortEventsByPriority(events), [events]);
   const upcomingEvents = useMemo(
@@ -228,12 +217,15 @@ export default function HomeScreen() {
     [sortedEvents],
   );
   const topEvent = upcomingEvents[0] ?? null;
+  const selectedEventTasks = selectedEvent
+    ? tasks.filter((task) => task.event_id === selectedEvent.id)
+    : [];
   const latestAnnouncement = announcements[0] ?? null;
   const loading = eventsLoading || tasksLoading || announcementsLoading;
   const announcementEditorVisible = params.compose === 'announcement' || !!editingAnnouncement;
   const visibleTaskIds = useMemo(
-    () => Array.from(new Set([topTask?.id, selectedTask?.id].filter(Boolean) as string[])),
-    [selectedTask?.id, topTask?.id],
+    () => Array.from(new Set([selectedTask?.id].filter(Boolean) as string[])),
+    [selectedTask?.id],
   );
   const isInitialLoading =
     loading &&
@@ -268,8 +260,9 @@ export default function HomeScreen() {
   }, [latestAnnouncement?.id]);
 
   useEffect(() => {
-    setTaskPendingResponses({});
-  }, [topTask?.id]);
+    setTripDescriptionHasOverflow(false);
+    setTripDescriptionVisible(false);
+  }, [currentTrip?.description]);
 
   useEffect(() => {
     if (visibleTaskIds.length === 0) return;
@@ -318,42 +311,6 @@ export default function HomeScreen() {
     } finally {
       setIsRefreshing(false);
     }
-  }
-
-  async function handleCompleteTopTask() {
-    if (!currentParticipant || !topTask) return;
-    const fieldIds = topTaskFields.map((field) => field.id);
-    if (fieldIds.length > 0) {
-      await deleteMyFieldResponses(currentParticipant.id, fieldIds);
-    }
-    for (const field of topTaskFields) {
-      const pending = taskPendingResponses[field.id];
-      if (!pending) continue;
-      for (const response of pending) {
-        await upsertFieldResponse(field.id, currentParticipant.id, response);
-      }
-    }
-    await upsertAssignment(topTask.id, currentParticipant.id, { is_completed: true });
-    setTaskPendingResponses({});
-    void fetchAllAssignments([topTask.id]).catch(() => undefined);
-  }
-
-  function handleUndoTopTaskComplete() {
-    if (!currentParticipant || !topTask) return;
-    const prefilled: PendingResponseMap = {};
-    for (const field of topTaskFields) {
-      const responses = myFieldResponses[field.id] ?? [];
-      if (responses.length > 0) {
-        prefilled[field.id] = responses.map((response) => ({
-          option_id: response.option_id,
-          is_checked: response.is_checked,
-          value: response.value,
-        }));
-      }
-    }
-    setTaskPendingResponses(prefilled);
-    void upsertAssignment(topTask.id, currentParticipant.id, { is_completed: false });
-    void fetchAllAssignments([topTask.id]).catch(() => undefined);
   }
 
   function handleLeaveTrip() {
@@ -452,6 +409,32 @@ export default function HomeScreen() {
                   <InlineMeta icon="calendar-outline" value={formatFullDay(currentTrip.start_date)} />
                   <InlineMeta icon="people-outline" value={String(participantsWithProfiles.length)} />
                 </Row>
+                {currentTrip.description ? (
+                  <View style={{ marginTop: spacing.sm, gap: spacing.xs / 2 }}>
+                    <AppText
+                      tone="muted"
+                      numberOfLines={3}
+                      onTextLayout={(event) => {
+                        if (event.nativeEvent.lines.length >= 3 || currentTrip.description!.length > 150) {
+                          setTripDescriptionHasOverflow(true);
+                        }
+                      }}>
+                      {currentTrip.description}
+                    </AppText>
+                    {tripDescriptionHasOverflow ? (
+                      <Pressable
+                        onPress={() => setTripDescriptionVisible(true)}
+                        style={({ pressed }) => ({
+                          alignSelf: 'flex-start',
+                          opacity: pressed ? 0.72 : 1,
+                        })}>
+                        <AppText variant="caption" tone="primary" style={{ fontWeight: '700' }}>
+                          Read more
+                        </AppText>
+                      </Pressable>
+                    ) : null}
+                  </View>
+                ) : null}
               </View>
 
               <View
@@ -503,12 +486,14 @@ export default function HomeScreen() {
                 )}
               </Stack>
 
-              <Stack space="sm" style={{ marginTop: spacing.xs }}>
+              <Stack space="sm" style={{ marginTop: spacing.lg }}>
                 <SectionEyebrow label="Next task" />
                 {topTask ? (
-                  <>
-                    <TaskPreviewCard />
-                  </>
+                  <TaskCard
+                    task={topTask}
+                    assignment={topTaskAssignment}
+                    onPress={() => setSelectedTask(topTask)}
+                  />
                 ) : (
                   <EmptyPreview label="No active tasks" />
                 )}
@@ -537,11 +522,16 @@ export default function HomeScreen() {
 
       <EventDetailModal
         event={selectedEvent}
+        relatedTasks={selectedEventTasks}
         onClose={() => setSelectedEventId(null)}
         onEdit={isCreatorOfEvent(selectedEvent) ? () => {
           setEditingEvent(selectedEvent);
           setSelectedEventId(null);
         } : undefined}
+        onTaskPress={(task) => {
+          setSelectedEventId(null);
+          setSelectedTask(task);
+        }}
       />
       <EventFormSheet
         visible={!!editingEvent}
@@ -555,6 +545,7 @@ export default function HomeScreen() {
         fields={selectedTask ? (fields[selectedTask.id] ?? []) : []}
         assignment={selectedTask ? (assignments[selectedTask.id] ?? null) : null}
         myFieldResponses={myFieldResponses}
+        relatedEventName={selectedTask?.event_id ? events.find((event) => event.id === selectedTask.event_id)?.title : null}
         onClose={() => setSelectedTask(null)}
         onMarkComplete={async (pending) => {
           if (!currentParticipant || !selectedTask) return;
@@ -668,6 +659,14 @@ export default function HomeScreen() {
         </ScrollView>
       </PageSheetModal>
       <PageSheetModal
+        visible={tripDescriptionVisible}
+        title={currentTrip.name ?? 'Trip'}
+        onClose={() => setTripDescriptionVisible(false)}>
+        <ScrollView contentContainerStyle={{ padding: spacing.md }}>
+          <AppText>{currentTrip.description}</AppText>
+        </ScrollView>
+      </PageSheetModal>
+      <PageSheetModal
         visible={settingsVisible}
         title="Trip settings"
         onClose={() => setSettingsVisible(false)}>
@@ -744,189 +743,6 @@ export default function HomeScreen() {
               <View />
             )}
           </Row>
-        </Stack>
-      </Card>
-    );
-  }
-
-  function TaskPreviewCard() {
-    if (!topTask) return null;
-
-    const isCompleted = topTaskAssignment?.is_completed ?? false;
-    const isMandatory = topTask.is_mandatory ?? false;
-
-    function getResponses(fieldId: string) {
-      if (isCompleted) return myFieldResponses[fieldId] ?? [];
-      return taskPendingResponses[fieldId] ?? [];
-    }
-
-    function handleToggleCheckbox(fieldId: string) {
-      setTaskPendingResponses((prev) => {
-        const current = prev[fieldId]?.[0]?.is_checked ?? false;
-        return { ...prev, [fieldId]: [{ option_id: null, is_checked: !current }] };
-      });
-    }
-
-    function handleSelectSingleChoice(fieldId: string, optionId: string) {
-      setTaskPendingResponses((prev) => ({
-        ...prev,
-        [fieldId]: [{ option_id: optionId, is_checked: null, value: null }],
-      }));
-    }
-
-    function handleChangeText(fieldId: string, value: string) {
-      setTaskPendingResponses((prev) => ({
-        ...prev,
-        [fieldId]: [{ option_id: null, is_checked: null, value }],
-      }));
-    }
-
-    return (
-      <Card
-        style={{
-          padding: spacing.md,
-          backgroundColor: isMandatory ? colors.secondarySoft : colors.surface,
-        }}>
-        <Stack space="sm">
-          <Row justify="space-between" align="flex-start" gap="sm">
-            <View style={{ flex: 1, gap: 6 }}>
-              {isMandatory ? (
-                <View
-                  style={{
-                    alignSelf: 'flex-start',
-                    borderRadius: radius.full,
-                    backgroundColor: colors.warning,
-                    paddingHorizontal: spacing.xs,
-                    paddingVertical: 4,
-                  }}>
-                  <AppText variant="caption" style={{ color: colors.textOnPrimary }}>
-                    Mandatory
-                  </AppText>
-                </View>
-              ) : null}
-              <AppText variant="subtitle" numberOfLines={2}>
-                {topTask.title ?? 'Untitled task'}
-              </AppText>
-            </View>
-            <Pressable
-              onPress={() => setSelectedTask(topTask)}
-              hitSlop={8}
-              style={({ pressed }) => ({ opacity: pressed ? 0.72 : 1 })}>
-              <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-            </Pressable>
-          </Row>
-
-          <InlineMeta icon="calendar-outline" value={formatDue(topTask.due_time)} />
-          {topTask.description ? <AppText tone="muted">{topTask.description}</AppText> : null}
-
-          {topTaskFields.map((field) => {
-            const responses = getResponses(field.id);
-
-            if (field.type === TaskFieldType.Checkbox) {
-              const checked = responses[0]?.is_checked ?? false;
-              return (
-                <Pressable
-                  key={field.id}
-                  disabled={isCompleted}
-                  onPress={() => handleToggleCheckbox(field.id)}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: spacing.sm,
-                    opacity: isCompleted ? 0.6 : 1,
-                  }}>
-                  <View
-                    style={{
-                      width: 22,
-                      height: 22,
-                      borderRadius: 6,
-                      borderWidth: 2,
-                      borderColor: checked ? colors.primary : colors.border,
-                      backgroundColor: checked ? colors.primary : 'transparent',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}>
-                    {checked ? <Ionicons name="checkmark" size={14} color={colors.textOnPrimary} /> : null}
-                  </View>
-                  <AppText>{field.label}</AppText>
-                </Pressable>
-              );
-            }
-
-            if (field.type === TaskFieldType.SingleChoice) {
-              const selected = responses[0]?.option_id ?? null;
-              return (
-                <Stack key={field.id} space="xs" style={{ opacity: isCompleted ? 0.6 : 1 }}>
-                  <AppText variant="caption" tone="muted">
-                    {field.label}
-                  </AppText>
-                  {field.options.map((option) => {
-                    const active = selected === option.id;
-                    return (
-                      <Pressable
-                        key={option.id}
-                        disabled={isCompleted}
-                        onPress={() => handleSelectSingleChoice(field.id, option.id)}
-                        style={{
-                          borderRadius: radius.md,
-                          borderWidth: 1.5,
-                          borderColor: active ? colors.primary : colors.border,
-                          backgroundColor: active ? colors.primarySoft : colors.surface,
-                          paddingHorizontal: spacing.sm,
-                          paddingVertical: spacing.sm,
-                        }}>
-                        <AppText tone={active ? 'primary' : 'default'}>{option.label}</AppText>
-                      </Pressable>
-                    );
-                  })}
-                </Stack>
-              );
-            }
-
-            if (field.type === TaskFieldType.TextInput) {
-              const value = (responses[0]?.value ?? '') as string;
-              return (
-                <Stack key={field.id} space="xs">
-                  <AppText variant="caption" tone="muted">
-                    {field.label}
-                  </AppText>
-                  <TaskTextFieldInput
-                    initialValue={value}
-                    editable={!isCompleted}
-                    onSave={(text) => handleChangeText(field.id, text)}
-                  />
-                </Stack>
-              );
-            }
-
-            return null;
-          })}
-
-          {isCompleted ? (
-            <Pressable
-              onPress={handleUndoTopTaskComplete}
-              style={({ pressed }) => ({
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                borderRadius: radius.full,
-                borderWidth: 1.5,
-                borderColor: colors.success,
-                paddingHorizontal: spacing.md,
-                paddingVertical: spacing.sm,
-                opacity: pressed ? 0.72 : 1,
-              })}>
-              <Row gap="xs">
-                <Ionicons name="checkmark-circle" size={18} color={colors.success} />
-                <AppText style={{ color: colors.success, fontWeight: '600' }}>Completed</AppText>
-              </Row>
-              <AppText variant="caption" tone="muted">
-                Tap to undo
-              </AppText>
-            </Pressable>
-          ) : (
-            <Button label="Mark as done" fullWidth onPress={() => { void handleCompleteTopTask(); }} />
-          )}
         </Stack>
       </Card>
     );
@@ -1033,35 +849,4 @@ export default function HomeScreen() {
   function isCreatorOfEvent(event: EventWithCount | null) {
     return !!event && !!currentParticipant?.id && event.created_by_id === currentParticipant.id;
   }
-}
-
-function TaskTextFieldInput({
-  initialValue,
-  editable,
-  onSave,
-}: {
-  initialValue: string;
-  editable: boolean;
-  onSave: (value: string) => void;
-}) {
-  const {
-    theme: { colors },
-  } = useAppTheme();
-  const [localValue, setLocalValue] = useState(initialValue);
-
-  useEffect(() => {
-    setLocalValue(initialValue);
-  }, [initialValue]);
-
-  return (
-    <Input
-      value={localValue}
-      onChangeText={setLocalValue}
-      onBlur={() => onSave(localValue)}
-      editable={editable}
-      placeholder="Type here..."
-      multiline
-      style={{ opacity: editable ? 1 : 0.6, color: editable ? colors.text : colors.textMuted }}
-    />
-  );
 }

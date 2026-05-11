@@ -35,11 +35,24 @@ export function EventCard({ event, onPress }: EventCardProps) {
     <Card
       variant="interactive"
       onPress={onPress}
-      style={isMandatory ? { borderLeftWidth: 3, borderLeftColor: colors.warning } : undefined}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs / 2, marginBottom: spacing.xs / 2 }}>
+      style={{
+        backgroundColor: isMandatory ? colors.secondarySoft : colors.surface,
+        borderLeftWidth: isMandatory ? 4 : 0,
+        borderLeftColor: isMandatory ? colors.warning : colors.transparent,
+      }}>
+      <View style={{ gap: spacing.xs / 2, marginBottom: spacing.xs / 2 }}>
         {isMandatory ? (
-          <View style={{ backgroundColor: colors.warning, borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 }}>
-            <AppText variant="caption" style={{ color: '#fff', fontSize: 11 }}>Mandatory</AppText>
+          <View
+            style={{
+              alignSelf: 'flex-start',
+              borderRadius: 999,
+              backgroundColor: colors.warning,
+              paddingHorizontal: spacing.xs,
+              paddingVertical: 3,
+            }}>
+            <AppText variant="caption" style={{ color: colors.textOnPrimary, fontWeight: '700' }}>
+              Mandatory
+            </AppText>
           </View>
         ) : null}
         <AppText variant="subtitle">{event.title}</AppText>

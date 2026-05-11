@@ -168,7 +168,7 @@ export default function TasksScreen() {
 		const allFieldIds = Object.values(fields).flat().map((f) => f.id);
 		void fetchAllAssignments(taskIds);
 		if (allFieldIds.length > 0) void fetchAllFieldResponses(allFieldIds);
-	}, [statsVisible]);
+	}, [currentParticipant, fetchAllAssignments, fetchAllFieldResponses, fields, statsVisible, tasks]);
 
 	const now = Date.now();
 	const sortedTasks = useMemo(() => sortTasksByPriority(tasks, assignments), [assignments, tasks]);
@@ -193,13 +193,16 @@ export default function TasksScreen() {
 		[assignments, now, sortedTasks],
 	);
 	const visiblePreviousTasks = previousTasks.slice(0, visiblePreviousTaskCount);
+	const eventTitleById = useMemo(
+		() => new Map(events.map((event) => [event.id, event.title ?? 'Untitled event'])),
+		[events],
+	);
 
 	// Group tasks: event-linked groups first (in event order), then general
 	const eventGroups = events
 		.map((e) => ({ eventId: e.id, title: e.title ?? 'Untitled event', tasks: activeTasks.filter((t) => t.event_id === e.id) }))
 		.filter((g) => g.tasks.length > 0);
 	const generalTasks = activeTasks.filter((t) => !t.event_id);
-	const hasGroups = eventGroups.length > 0;
 
 	async function handleRefresh() {
 		if (!selectedTrip || !currentParticipant) return;
@@ -384,12 +387,12 @@ export default function TasksScreen() {
 								) : null}
 								{generalTasks.length > 0 && (
 									<View style={{ gap: spacing.xs }}>
-										{hasGroups && <AppText variant="caption" tone="primary" style={{ paddingHorizontal: 2 }}>General</AppText>}
 										{generalTasks.map((task) => (
 											<TaskCard
 												key={task.id}
 												task={task}
 												assignment={assignments[task.id] ?? null}
+												eventName={task.event_id ? eventTitleById.get(task.event_id) : null}
 												isOrganizer={isOrganizer}
 												onPress={() => setDetailTask(task)}
 												onExportPress={() => handleExport(task)}
@@ -399,12 +402,12 @@ export default function TasksScreen() {
 								)}
 								{eventGroups.map((group) => (
 									<View key={group.eventId} style={{ gap: spacing.xs }}>
-										<AppText variant="caption" tone="accent" style={{ paddingHorizontal: 2 }}>{group.title}</AppText>
 										{group.tasks.map((task) => (
 											<TaskCard
 												key={task.id}
 												task={task}
 												assignment={assignments[task.id] ?? null}
+												eventName={group.title}
 												isOrganizer={isOrganizer}
 												onPress={() => setDetailTask(task)}
 												onExportPress={() => handleExport(task)}
@@ -434,7 +437,9 @@ export default function TasksScreen() {
 														key={task.id}
 														task={task}
 														assignment={assignments[task.id] ?? null}
+														eventName={task.event_id ? eventTitleById.get(task.event_id) : null}
 														isOrganizer={isOrganizer}
+														compact
 														onPress={() => setDetailTask(task)}
 														onExportPress={() => handleExport(task)}
 													/>
@@ -476,6 +481,7 @@ export default function TasksScreen() {
 				fields={detailTask ? (fields[detailTask.id] ?? []) : []}
 				assignment={detailTask ? (assignments[detailTask.id] ?? null) : null}
 				myFieldResponses={myFieldResponses}
+				relatedEventName={detailTask?.event_id ? eventTitleById.get(detailTask.event_id) : null}
 				onClose={() => setDetailTask(null)}
 				onMarkComplete={async (pending) => {
 					if (!currentParticipant || !detailTask) return;
