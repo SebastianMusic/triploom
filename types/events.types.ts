@@ -1,5 +1,5 @@
-import { z } from 'zod';
 import type { EventInsert } from '@/types';
+import { z } from 'zod';
 
 export const createEventSchema = z.object({
   title: z.string().min(1, 'Title is required'),

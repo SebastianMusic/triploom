@@ -52,11 +52,11 @@ export function EventCard({ event, onPress }: EventCardProps) {
       ) : null}
 
       <View style={{ gap: spacing.xs / 2 }}>
-        {event.location ? (
+        {event.location_label ? (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs / 2 }}>
             <Ionicons name="location-outline" size={14} color={colors.textMuted} />
             <AppText variant="caption" tone="muted">
-              {event.location}
+              {event.location_label}
             </AppText>
           </View>
         ) : null}

@@ -69,7 +69,7 @@ export function TaskCard({
           </AppText>
           {task.due_time ? (
             <AppText variant="caption" tone="muted">
-              {new Date(task.due_time).toLocaleDateString('nb-NO', { day: 'numeric', month: 'short', year: 'numeric' })}
+              {new Date(task.due_time).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
             </AppText>
           ) : null}
         </View>

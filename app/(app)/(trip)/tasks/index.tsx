@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Modal, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -274,7 +274,7 @@ export default function TasksScreen() {
         try {
           await deleteTask(task.id);
         } catch {
-          Alert.alert('Feil', 'Kunne ikke slette oppgaven.');
+          Alert.alert('Error', 'Could not delete the task.');
         }
       },
     });
@@ -297,11 +297,11 @@ export default function TasksScreen() {
 
 		for (const f of draftFields) {
 			if (!f.label.trim()) {
-				Alert.alert('Mangler label', 'Alle felt må ha en label.');
+				Alert.alert('Missing label', 'All fields must have a label.');
 				return;
 			}
 			if (fieldNeedsOptions(f.type) && f.options.length < 2) {
-				Alert.alert('For få valg', `"${f.label}" trenger minst 2 valg.`);
+				Alert.alert('Too few options', `"${f.label}" needs at least 2 options.`);
 				return;
 			}
 		}
@@ -327,7 +327,7 @@ export default function TasksScreen() {
 			setAdminVisible(false);
 			resetForm();
 		} catch {
-			Alert.alert('Feil', 'Kunne ikke lagre oppgaven. Prøv igjen.');
+			Alert.alert('Error', 'Could not save the task. Please try again.');
 		} finally {
 			setSaving(false);
 		}
@@ -354,7 +354,9 @@ export default function TasksScreen() {
 							title="Upcoming tasks"
 							count={activeTasks.length}
 						/>
-						{tasks.length === 0 && !isLoading ? (
+						{isLoading ? (
+							<ActivityIndicator color={colors.primary} style={{ marginTop: spacing.xl }} />
+						) : tasks.length === 0 ? (
 							<EmptyState
 								title="No tasks yet"
 								description={
@@ -509,26 +511,26 @@ export default function TasksScreen() {
 						backgroundColor: colors.surface,
 						borderBottomWidth: stroke.thin, borderBottomColor: colors.border,
 					}}>
-						<Button label="Avbryt" variant="ghost" size="md" onPress={() => { setAdminVisible(false); resetForm(); }} />
+						<Button label="Cancel" variant="ghost" size="md" onPress={() => { setAdminVisible(false); resetForm(); }} />
 						<AppText variant="body" style={{ fontWeight: '600' }}>
-							{editingTask ? 'Rediger oppgave' : 'Ny oppgave'}
+							{editingTask ? 'Edit task' : 'New task'}
 						</AppText>
-						<Button label={saving ? 'Lagrer...' : 'Lagre'} size="sm" loading={saving} onPress={handleSave} />
+						<Button label={saving ? 'Saving...' : 'Save'} size="sm" loading={saving} onPress={handleSave} />
 					</View>
 
 					<ScrollView keyboardShouldPersistTaps="handled">
 						<Container>
 							<Stack space="sm">
 								<Input
-									label="Tittel *"
-									placeholder="Hva skal gjøres?"
+									label="Title *"
+									placeholder="What needs to be done?"
 									value={title}
 									onChangeText={(t) => { setTitle(t); setTitleError(''); }}
 									error={titleError || undefined}
 								/>
 								<Input
-									label="Beskrivelse"
-									placeholder="Valgfri beskrivelse"
+									label="Description"
+									placeholder="Optional description"
 									value={description}
 									onChangeText={setDescription}
 									multiline
@@ -570,13 +572,13 @@ export default function TasksScreen() {
 								)}
 
 								<DateTimeField
-                  label="Frist"
+                  label="Due date"
                   value={
                     dueDate
-                      ? `${dueDate.toLocaleDateString('nb-NO', { day: 'numeric', month: 'long', year: 'numeric' })} kl. ${dueDate.toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' })}`
+                      ? `${dueDate.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })} at ${dueDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`
                       : ''
                   }
-                  placeholder="Velg dato og tid"
+                  placeholder="Select date and time"
                   active={!!dueDate}
                   onPress={() => { setTempDate(dueDate ?? new Date()); setShowDatePicker(true); }}
                   onClear={dueDate ? () => setDueDate(null) : undefined}
@@ -584,7 +586,7 @@ export default function TasksScreen() {
 
 								{draftFields.length > 0 && (
 									<Stack space="sm">
-										<AppText variant="caption">Felt</AppText>
+										<AppText variant="caption">Fields</AppText>
 										{draftFields.map((field) => (
 											<FieldEditor
 												key={field.tempId}
@@ -599,7 +601,7 @@ export default function TasksScreen() {
 								)}
 
 								<Stack space="xs">
-									<AppText variant="caption">Legg til felt</AppText>
+									<AppText variant="caption">Add field</AppText>
 									<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
 										{TASK_FIELD_TYPE_OPTIONS.map((type) => (
 											<Pressable
@@ -620,7 +622,7 @@ export default function TasksScreen() {
 
 								{isOrganizer && editingTask && (
 									<Button
-										label="Slett oppgave"
+										label="Delete task"
 										variant="ghost"
 										fullWidth
 										onPress={() => { setAdminVisible(false); handleDelete(editingTask); resetForm(); }}
@@ -752,7 +754,7 @@ function FieldEditor({
 					))}
 					<Row gap="xs">
 						<Input
-							placeholder="Legg til valg..."
+							placeholder="Add option..."
 							value={optionInput}
 							onChangeText={setOptionInput}
 							onSubmitEditing={submitOption}

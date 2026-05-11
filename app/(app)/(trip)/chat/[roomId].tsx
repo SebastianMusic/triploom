@@ -3,13 +3,12 @@ import { useEffect, useState } from 'react';
 import {
   Alert,
   FlatList,
-  Keyboard,
-  KeyboardAvoidingView,
-  Platform,
   StyleSheet,
   View,
 } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
+import Animated, { useAnimatedKeyboard, useAnimatedStyle } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ChatLocationMapPicker, type PickedLocation } from '@/components/chat/chat-location-picker';
 import { LocationActionSheet } from '@/components/chat/location-action-sheet';
@@ -27,6 +26,11 @@ import type { MessageImage, MessageWithSender, SendMessageDTO, SendLocationMessa
 export default function ChatRoomScreen() {
   const { roomId } = useLocalSearchParams<{ roomId: string }>();
   const { headerContentOffset } = useTripChromeInsets();
+  const insets = useSafeAreaInsets();
+  const keyboard = useAnimatedKeyboard();
+  const keyboardStyle = useAnimatedStyle(() => ({
+    paddingBottom: Math.max(0, keyboard.height.value - insets.bottom),
+  }));
   const {
     theme: { colors, spacing },
   } = useAppTheme();
@@ -49,14 +53,6 @@ export default function ChatRoomScreen() {
 
   const roomName = chatRooms.find((r) => r.id === roomId)?.chat_name ?? 'Chat';
 
-  useEffect(() => {
-    const eventName = Platform.OS === 'ios' ? 'keyboardWillChangeFrame' : 'keyboardDidShow';
-    const subscription = Keyboard.addListener(eventName, (event) => {
-      Keyboard.scheduleLayoutAnimation(event);
-    });
-
-    return () => subscription.remove();
-  }, []);
 
   useEffect(() => {
     if (!roomId) return;
@@ -163,9 +159,7 @@ export default function ChatRoomScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+    <Animated.View style={[styles.container, { backgroundColor: colors.background }, keyboardStyle]}>
       {error ? (
         <View style={[styles.centered, { padding: spacing.md, paddingTop: headerContentOffset }]}>
           <AppText tone="error" style={{ marginBottom: spacing.xs, textAlign: 'center' }}>
@@ -279,7 +273,7 @@ export default function ChatRoomScreen() {
           handleLocationSelected(loc);
         }}
       />
-    </KeyboardAvoidingView>
+    </Animated.View>
   );
 }
 
