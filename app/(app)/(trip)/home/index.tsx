@@ -326,6 +326,7 @@ export default function HomeScreen() {
   }
 
   function handleLeaveTrip() {
+    if (!currentTrip) return;
     confirmDestructiveAction({
       title: 'Leave trip',
       message: `Leave "${currentTrip.name ?? 'this trip'}"? You can rejoin later with an invite link.`,
@@ -739,7 +740,7 @@ export default function HomeScreen() {
       });
     }
 
-    function handleSelectDropdown(fieldId: string, optionId: string) {
+    function handleSelectSingleChoice(fieldId: string, optionId: string) {
       setTaskPendingResponses((prev) => ({
         ...prev,
         [fieldId]: [{ option_id: optionId, is_checked: null, value: null }],
@@ -825,7 +826,7 @@ export default function HomeScreen() {
               );
             }
 
-            if (field.type === TaskFieldType.Dropdown) {
+            if (field.type === TaskFieldType.SingleChoice) {
               const selected = responses[0]?.option_id ?? null;
               return (
                 <Stack key={field.id} space="xs" style={{ opacity: isCompleted ? 0.6 : 1 }}>
@@ -838,7 +839,7 @@ export default function HomeScreen() {
                       <Pressable
                         key={option.id}
                         disabled={isCompleted}
-                        onPress={() => handleSelectDropdown(field.id, option.id)}
+                        onPress={() => handleSelectSingleChoice(field.id, option.id)}
                         style={{
                           borderRadius: radius.md,
                           borderWidth: 1.5,

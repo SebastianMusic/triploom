@@ -84,7 +84,7 @@ export function TaskStatsModal({
         <View style={{
           flexDirection: 'row', alignItems: 'center',
           paddingHorizontal: spacing.sm,
-          paddingTop: insets.top + spacing.sm,
+          paddingTop: spacing.sm,
           paddingBottom: spacing.sm,
           backgroundColor: colors.surface,
           borderBottomWidth: stroke.thin, borderBottomColor: colors.border,
@@ -393,7 +393,7 @@ function TaskDetailStats({
       {fields.map((field) => {
         const responses = allFieldResponses[field.id] ?? [];
 
-        if (field.type === TaskFieldType.Dropdown) {
+        if (field.type === TaskFieldType.SingleChoice) {
           const total = responses.length;
           return (
             <Stack key={field.id} space="sm">
@@ -543,7 +543,7 @@ function PersonDetailStats({
           );
         }
 
-        if (field.type === TaskFieldType.Dropdown) {
+        if (field.type === TaskFieldType.SingleChoice) {
           const selected = myResponses[0]?.option_id;
           return (
             <Stack key={field.id} space="xs">

@@ -148,6 +148,14 @@ export default function TasksScreen() {
 		if (isOrganizer) fetchAllFieldResponses(allFieldIds);
 	}, [currentParticipant, fetchAllFieldResponses, fetchMyFieldResponses, fields, isOrganizer]);
 
+	useEffect(() => {
+		if (!statsVisible || !currentParticipant || tasks.length === 0) return;
+		const taskIds = tasks.map((t) => t.id);
+		const allFieldIds = Object.values(fields).flat().map((f) => f.id);
+		void fetchAllAssignments(taskIds);
+		if (allFieldIds.length > 0) void fetchAllFieldResponses(allFieldIds);
+	}, [statsVisible]);
+
 	const now = Date.now();
 	const sortedTasks = useMemo(() => sortTasksByPriority(tasks, assignments), [assignments, tasks]);
 	const activeTasks = useMemo(
@@ -474,7 +482,7 @@ export default function TasksScreen() {
 					const allFieldIds = taskFields.map((f) => f.id);
 
 					// Wipe all existing responses first — guarantees no stale rows survive,
-					// including old dropdown option rows that differ from the current selection.
+					// including old single choice option rows that differ from the current selection.
 					if (allFieldIds.length > 0) {
 						await deleteMyFieldResponses(currentParticipant.id, allFieldIds);
 					}
@@ -518,7 +526,7 @@ export default function TasksScreen() {
 						<Button label={saving ? 'Saving...' : 'Save'} size="sm" loading={saving} onPress={handleSave} />
 					</View>
 
-					<ScrollView keyboardShouldPersistTaps="handled">
+					<ScrollView keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets contentContainerStyle={{ paddingBottom: insets.bottom + spacing.xl }}>
 						<Container>
 							<Stack space="sm">
 								<Input

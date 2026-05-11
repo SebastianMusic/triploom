@@ -3,20 +3,20 @@ import { z } from 'zod';
 
 export enum TaskFieldType {
   Checkbox = 'checkbox',
-  Dropdown = 'dropdown',
+  SingleChoice = 'single_choice',
   TextInput = 'text_input',
 }
 
 export const TASK_FIELD_TYPE_LABELS: Record<TaskFieldType, string> = {
   [TaskFieldType.Checkbox]: 'Checkbox',
-  [TaskFieldType.Dropdown]: 'Dropdown',
+  [TaskFieldType.SingleChoice]: 'Single choice',
   [TaskFieldType.TextInput]: 'Text input',
 };
 
 export const TASK_FIELD_TYPE_OPTIONS = Object.values(TaskFieldType);
 
 export function fieldNeedsOptions(type: TaskFieldType): boolean {
-  return type === TaskFieldType.Dropdown;
+  return type === TaskFieldType.SingleChoice;
 }
 
 export const createTaskSchema = z.object({

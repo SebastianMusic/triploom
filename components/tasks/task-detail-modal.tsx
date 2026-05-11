@@ -57,7 +57,7 @@ export function TaskDetailModal({
     });
   }
 
-  function handleSelectDropdown(fieldId: string, optionId: string) {
+  function handleSelectSingleChoice(fieldId: string, optionId: string) {
     setPending((prev) => ({ ...prev, [fieldId]: [{ option_id: optionId, is_checked: null, value: null }] }));
   }
 
@@ -142,7 +142,7 @@ export function TaskDetailModal({
               );
             }
 
-            if (field.type === TaskFieldType.Dropdown) {
+            if (field.type === TaskFieldType.SingleChoice) {
               const selected = responses[0]?.option_id ?? null;
               return (
                 <Stack key={field.id} space="xs" style={{ opacity: isCompleted ? 0.6 : 1 }}>
@@ -153,7 +153,7 @@ export function TaskDetailModal({
                       <Pressable
                         key={opt.id}
                         disabled={isCompleted}
-                        onPress={() => handleSelectDropdown(field.id, opt.id)}
+                        onPress={() => handleSelectSingleChoice(field.id, opt.id)}
                         style={{
                           borderRadius: radius.md, borderWidth: 1.5,
                           borderColor: active ? colors.primary : colors.border,
