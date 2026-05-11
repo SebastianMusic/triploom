@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
+  Linking,
   Pressable,
   ScrollView,
   useWindowDimensions,
@@ -13,6 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { AnnouncementForm } from '@/components/announcement/AnnouncementForm';
 import { EventDetailModal } from '@/components/events/event-detail-modal';
+import { EventFormSheet } from '@/components/events/event-form-sheet';
 import { EventPreviewCard } from '@/components/events/event-preview-card';
 import { useTripChromeInsets } from '@/components/layout/use-trip-chrome';
 import { TaskDetailModal } from '@/components/tasks/task-detail-modal';
@@ -27,6 +29,7 @@ import { Row } from '@/components/ui/row';
 import { Stack } from '@/components/ui/stack';
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
+import { TripSettingsPanel } from '@/components/trip/trip-settings-panel';
 import { useTripBannerUrl } from '@/hooks/use-trip-banner-url';
 import type { EventWithCount } from '@/services/events.service';
 import { useAnnouncementStore } from '@/store/announcement.store';
@@ -34,6 +37,7 @@ import { useAuthStore } from '@/store/auth.store';
 import { useEventsStore } from '@/store/events.store';
 import { useProfileStore } from '@/store/profile.store';
 import { useTasksStore } from '@/store/tasks.store';
+import { useTripHeaderActionsStore } from '@/store/trip-header-actions.store';
 import { useTripStore } from '@/store/trip.store';
 import type { Announcement, Task } from '@/types';
 import { TripRole } from '@/types';
@@ -159,14 +163,41 @@ export default function HomeScreen() {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
+  const [editingEvent, setEditingEvent] = useState<EventWithCount | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [earlierAnnouncementsVisible, setEarlierAnnouncementsVisible] = useState(false);
+  const [settingsVisible, setSettingsVisible] = useState(false);
   const [announcementDescriptionHasOverflow, setAnnouncementDescriptionHasOverflow] = useState(false);
   const [taskPendingResponses, setTaskPendingResponses] = useState<PendingResponseMap>({});
+  const setHeaderActions = useTripHeaderActionsStore((state) => state.setActions);
 
   const isOrganizer =
     currentParticipant?.role === TripRole.Organizer ||
     currentParticipant?.role === TripRole.CoOrganizer;
+
+  useFocusEffect(useCallback(() => {
+    if (!isOrganizer) {
+      setHeaderActions([]);
+      return () => setHeaderActions([]);
+    }
+
+    setHeaderActions([
+      {
+        key: 'trip-settings',
+        accessibilityLabel: 'Open trip settings',
+        iconName: 'settings-outline',
+        onPress: () => setSettingsVisible(true),
+      },
+      {
+        key: 'create-announcement',
+        accessibilityLabel: 'Create announcement',
+        iconName: 'add',
+        onPress: () => router.push({ pathname: '/(app)/(trip)/home', params: { compose: 'announcement' } }),
+      },
+    ]);
+
+    return () => setHeaderActions([]);
+  }, [isOrganizer, router, setHeaderActions]));
 
   const selectedEvent = selectedEventId
     ? (events.find((event) => event.id === selectedEventId) ?? null)
@@ -448,6 +479,7 @@ export default function HomeScreen() {
                   label="View all announcements"
                   onPress={() => setEarlierAnnouncementsVisible(true)}
                 />
+                <AttachmentLinkCard />
               </Stack>
 
               <Stack space="sm" style={{ marginTop: spacing.xs }}>
@@ -482,34 +514,6 @@ export default function HomeScreen() {
                 )}
               </Stack>
 
-              <Card
-                variant="interactive"
-                onPress={() => router.push('/(app)/(trip)/admin/people')}
-                style={{ padding: spacing.md, shadowOpacity: 0, shadowRadius: 0, elevation: 0 }}>
-                <Row justify="space-between" align="center" gap="sm">
-                  <Row gap="sm" align="center" style={{ flex: 1 }}>
-                    <View
-                      style={{
-                        width: 44,
-                        height: 44,
-                        borderRadius: radius.full,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        backgroundColor: colors.secondarySoft,
-                      }}>
-                      <Ionicons name="people-outline" size={22} color={colors.secondary} />
-                    </View>
-                    <View style={{ flex: 1, minWidth: 0 }}>
-                      <AppText style={typography.label}>People & groups</AppText>
-                      <AppText variant="caption" tone="muted" numberOfLines={1}>
-                        {participantsWithProfiles.length} {participantsWithProfiles.length === 1 ? 'person' : 'people'}
-                      </AppText>
-                    </View>
-                  </Row>
-                  <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-                </Row>
-              </Card>
-
               <View
                 style={{
                   marginTop: spacing.lg,
@@ -531,7 +535,21 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
 
-      <EventDetailModal event={selectedEvent} onClose={() => setSelectedEventId(null)} />
+      <EventDetailModal
+        event={selectedEvent}
+        onClose={() => setSelectedEventId(null)}
+        onEdit={isCreatorOfEvent(selectedEvent) ? () => {
+          setEditingEvent(selectedEvent);
+          setSelectedEventId(null);
+        } : undefined}
+      />
+      <EventFormSheet
+        visible={!!editingEvent}
+        mode="edit"
+        event={editingEvent}
+        onClose={() => setEditingEvent(null)}
+        onDeleted={() => setSelectedEventId(null)}
+      />
       <TaskDetailModal
         task={selectedTask}
         fields={selectedTask ? (fields[selectedTask.id] ?? []) : []}
@@ -648,6 +666,15 @@ export default function HomeScreen() {
             />
           </Container>
         </ScrollView>
+      </PageSheetModal>
+      <PageSheetModal
+        visible={settingsVisible}
+        title="Trip settings"
+        onClose={() => setSettingsVisible(false)}>
+        <TripSettingsPanel
+          onClose={() => setSettingsVisible(false)}
+          contentInsetBottom={bottomOverlayOffset}
+        />
       </PageSheetModal>
     </View>
   );
@@ -933,6 +960,43 @@ export default function HomeScreen() {
     );
   }
 
+  function AttachmentLinkCard() {
+    const url = currentTrip?.description_file_url;
+    if (!url) return null;
+
+    return (
+      <Card
+        variant="interactive"
+        onPress={() => {
+          void Linking.openURL(url);
+        }}
+        style={{ padding: spacing.sm, shadowOpacity: 0, shadowRadius: 0, elevation: 0 }}>
+        <Row justify="space-between" align="center" gap="sm">
+          <Row gap="sm" align="center" style={{ flex: 1 }}>
+            <View
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: radius.full,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: colors.primarySoft,
+              }}>
+              <Ionicons name="link-outline" size={20} color={colors.primary} />
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <AppText style={typography.label}>Attachment</AppText>
+              <AppText variant="caption" tone="muted" numberOfLines={1}>
+                {url}
+              </AppText>
+            </View>
+          </Row>
+          <Ionicons name="open-outline" size={18} color={colors.textMuted} />
+        </Row>
+      </Card>
+    );
+  }
+
   function SectionEyebrow({ label }: { label: string }) {
     return (
       <AppText
@@ -964,6 +1028,10 @@ export default function HomeScreen() {
 
     const progress = ((Date.now() - start) / (end - start)) * 100;
     return Math.min(100, Math.max(0, progress));
+  }
+
+  function isCreatorOfEvent(event: EventWithCount | null) {
+    return !!event && !!currentParticipant?.id && event.created_by_id === currentParticipant.id;
   }
 }
 

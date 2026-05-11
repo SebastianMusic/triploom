@@ -16,6 +16,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { AppDateTimePicker, DateTimeField } from '@/components/ui/date-time-picker';
 import { Button } from '@/components/ui/button';
 import { confirmDestructiveAction } from '@/components/ui/confirm-destructive-action';
+import { DestructiveFormFooter } from '@/components/ui/destructive-form-footer';
 import { EventLocationInput } from '@/components/events/event-location-input';
 import { Input } from '@/components/ui/input';
 import { KeyboardScreenView } from '@/components/ui/keyboard-screen-view';
@@ -83,7 +84,7 @@ function ViewEvent({ event, onBack, isCreator, isOrganizer, onEdit, onDelete }: 
     } else {
       setBannerUrl(null);
     }
-  }, [event.banner_image_url]);
+  }, [event.banner_image_url, getEventBannerUrl]);
 
   useEffect(() => {
     setEventParticipants(null);
@@ -118,7 +119,7 @@ function ViewEvent({ event, onBack, isCreator, isOrganizer, onEdit, onDelete }: 
       })
       .catch(() => setEventParticipants([]))
       .finally(() => setLoadingParticipants(false));
-  }, [event.event_participation.length, showParticipants]);
+  }, [event.event_participation.length, event.id, getEventParticipants, getProfileImageUrlByPath, showParticipants]);
 
   async function handleToggle() {
     if (!participantId) return;
@@ -267,7 +268,8 @@ function ViewEvent({ event, onBack, isCreator, isOrganizer, onEdit, onDelete }: 
           ) : null}
 
           {isOrganizer && !isCreator && onDelete ? (
-            <Pressable
+            <DestructiveFormFooter
+              label="Delete event"
               onPress={() => {
                 confirmDestructiveAction({
                   title: 'Delete event',
@@ -275,16 +277,7 @@ function ViewEvent({ event, onBack, isCreator, isOrganizer, onEdit, onDelete }: 
                   onConfirm: onDelete,
                 });
               }}
-              style={({ pressed }) => ({
-                width: '100%',
-                minHeight: 48,
-                borderRadius: 999,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: pressed ? '#c0392b' : '#e74c3c',
-              })}>
-              <AppText style={{ color: '#fff', fontWeight: '600' }}>Delete event</AppText>
-            </Pressable>
+            />
           ) : null}
         </Stack>
       </Container>
@@ -322,7 +315,7 @@ function EditEvent({ event, onBack, onDeleteSuccess }: { event: EventWithCount; 
     } else {
       setExistingBannerUrl(null);
     }
-  }, [event.banner_image_url]);
+  }, [event.banner_image_url, getEventBannerUrl]);
 
   function handleRemoveBanner() {
     setBannerRemoved(true);
@@ -477,7 +470,8 @@ function EditEvent({ event, onBack, onDeleteSuccess }: { event: EventWithCount; 
 
             <Button label="Save changes" fullWidth loading={isSubmitting} onPress={() => { void handleSave(); }} />
 
-            <Pressable
+            <DestructiveFormFooter
+              label="Delete event"
               onPress={() => {
                 confirmDestructiveAction({
                   title: 'Delete event',
@@ -488,16 +482,7 @@ function EditEvent({ event, onBack, onDeleteSuccess }: { event: EventWithCount; 
                   },
                 });
               }}
-              style={({ pressed }) => ({
-                width: '100%',
-                minHeight: 48,
-                borderRadius: 999,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: pressed ? '#c0392b' : '#e74c3c',
-              })}>
-              <AppText style={{ color: '#fff', fontWeight: '600' }}>Delete event</AppText>
-            </Pressable>
+            />
           </Stack>
         </Container>
       <AppDateTimePicker
@@ -533,7 +518,7 @@ export default function EventScreen() {
       setEvent(e ? { ...e, event_participation: [], creator: null } : null);
       setLoading(false);
     }).catch(() => setLoading(false));
-  }, [events, id]);
+  }, [events, getEvent, id]);
 
   // Keep in sync when store updates (register/unregister, edit)
   useEffect(() => {

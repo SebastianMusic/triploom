@@ -128,19 +128,18 @@ export function EventPreviewCard({ event, fallbackBannerUri, onPress }: EventPre
           <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
         </Row>
 
-        <EventMeta icon="time-outline" value={formatEventTime(event.start_time, event.end_time)} />
-        {event.location_label ? <EventMeta icon="location-outline" value={event.location_label} /> : null}
-        {event.price_range ? <EventMeta icon="cash-outline" value={event.price_range} /> : null}
-        <EventMeta
-          icon="people-outline"
-          value={`${event.event_participation.length} ${event.event_participation.length === 1 ? 'participant' : 'participants'}`}
-        />
-
         {event.description ? (
           <AppText tone="muted" numberOfLines={3}>
             {event.description}
           </AppText>
         ) : null}
+
+        <EventMeta icon="time-outline" value={formatEventTime(event.start_time, event.end_time)} />
+        {event.location_label ? <EventMeta icon="location-outline" value={event.location_label} /> : null}
+        <Row gap="sm" align="center" style={{ flexWrap: 'wrap' }}>
+          {event.price_range ? <EventMeta icon="cash-outline" value={event.price_range} /> : null}
+          <EventMeta icon="people-outline" value={String(event.event_participation.length)} />
+        </Row>
       </Stack>
     </Pressable>
   );

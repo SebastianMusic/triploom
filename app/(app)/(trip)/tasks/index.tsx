@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,6 +10,7 @@ import { AppText } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
 import { Container } from '@/components/ui/container';
 import { AppDateTimePicker, DateTimeField } from '@/components/ui/date-time-picker';
+import { DestructiveFormFooter } from '@/components/ui/destructive-form-footer';
 import { EmptyState } from '@/components/ui/empty-state';
 import { confirmDestructiveAction } from '@/components/ui/confirm-destructive-action';
 import { IconButton } from '@/components/ui/icon-button';
@@ -94,14 +96,26 @@ export default function TasksScreen() {
 	const [titleError, setTitleError] = useState('');
 	const nextTempId = useRef(0);
 
+	const resetForm = useCallback(() => {
+		setEditingTask(null);
+		setTitle('');
+		setDescription('');
+		setDraftFields([]);
+		setDueDate(null);
+		setEventId(null);
+		setIsMandatory(false);
+		setShowDatePicker(false);
+		setTitleError('');
+	}, []);
+
 	const isOrganizer =
 		currentParticipant?.role === TripRole.Organizer ||
 		currentParticipant?.role === TripRole.CoOrganizer;
 
-	useEffect(() => {
+	useFocusEffect(useCallback(() => {
 		if (!isOrganizer) {
 			setHeaderActions([]);
-			return;
+			return () => setHeaderActions([]);
 		}
 
 		setHeaderActions([
@@ -123,7 +137,7 @@ export default function TasksScreen() {
 		]);
 
 		return () => setHeaderActions([]);
-	}, [isOrganizer, setHeaderActions]);
+	}, [isOrganizer, resetForm, setHeaderActions]));
 
 	useEffect(() => {
 		if (selectedTrip) {
@@ -192,19 +206,6 @@ export default function TasksScreen() {
 		setRefreshing(true);
 		try { await getAllTasks(selectedTrip); }
 		finally { setRefreshing(false); }
-	}
-
-
-	function resetForm() {
-		setEditingTask(null);
-		setTitle('');
-		setDescription('');
-		setDraftFields([]);
-		setDueDate(null);
-		setEventId(null);
-		setIsMandatory(false);
-		setShowDatePicker(false);
-		setTitleError('');
 	}
 
 	function openEdit(task: Task) {
@@ -628,14 +629,12 @@ export default function TasksScreen() {
 									</ScrollView>
 								</Stack>
 
-								{isOrganizer && editingTask && (
-									<Button
+								{isOrganizer && editingTask ? (
+									<DestructiveFormFooter
 										label="Delete task"
-										variant="ghost"
-										fullWidth
 										onPress={() => { setAdminVisible(false); handleDelete(editingTask); resetForm(); }}
 									/>
-								)}
+								) : null}
 							</Stack>
 						</Container>
 					</ScrollView>

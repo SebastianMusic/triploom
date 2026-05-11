@@ -1,4 +1,5 @@
-import { Image, View, type ImageSourcePropType } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Image, View, type ImageSourcePropType, type ImageURISource } from 'react-native';
 
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
@@ -25,11 +26,25 @@ export function Avatar({ name, source, size = 'md', borderRadius: borderRadiusPr
   } = useAppTheme();
 
   const dimension = sizes.avatar[size];
+  const sourceKey = useMemo(() => {
+    if (!source) return '';
+    if (typeof source === 'number') return String(source);
+    if (Array.isArray(source)) {
+      return source.map((item) => (typeof item === 'number' ? item : item.uri ?? '')).join('|');
+    }
+    return (source as ImageURISource).uri ?? '';
+  }, [source]);
+  const [hasImageError, setHasImageError] = useState(false);
 
-  if (source) {
+  useEffect(() => {
+    setHasImageError(false);
+  }, [sourceKey]);
+
+  if (source && !hasImageError) {
     return (
       <Image
         source={source}
+        onError={() => setHasImageError(true)}
         style={{
           width: dimension,
           height: dimension,

@@ -1,8 +1,9 @@
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 
 import { EventDetailModal } from '@/components/events/event-detail-modal';
+import { EventFormSheet } from '@/components/events/event-form-sheet';
 import { CompactEventCard, EventPreviewCard } from '@/components/events/event-preview-card';
 import { useTripChromeInsets } from '@/components/layout';
 import { AppRefreshControl } from '@/components/ui/app-refresh-control';
@@ -40,6 +41,7 @@ function sortPastEvents(events: EventWithCount[]) {
 
 export default function EventsScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ compose?: string }>();
   const { selectedTrip } = useProfileStore();
   const { events, isLoading, fetchEvents, deleteEvent } = useEventsStore();
   const { currentParticipant, fetchParticipants } = useTripStore();
@@ -50,8 +52,10 @@ export default function EventsScreen() {
 
   const [refreshing, setRefreshing] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [editingEvent, setEditingEvent] = useState<EventWithCount | null>(null);
   const [visiblePastEventCount, setVisiblePastEventCount] = useState(0);
   const selectedEvent = selectedEventId ? (events.find((e) => e.id === selectedEventId) ?? null) : null;
+  const createSheetVisible = params.compose === 'event';
   const now = Date.now();
   const upcomingEvents = sortUpcomingEvents(
     events.filter((event) => {
@@ -168,15 +172,26 @@ export default function EventsScreen() {
         event={selectedEvent}
         onClose={() => setSelectedEventId(null)}
         onEdit={isCreatorOf(selectedEvent) ? () => {
-          const id = selectedEvent!.id;
+          setEditingEvent(selectedEvent);
           setSelectedEventId(null);
-          router.push({ pathname: '/(app)/(trip)/events/[id]', params: { id, edit: '1' } });
         } : undefined}
         onDelete={canDeleteEvent(selectedEvent) ? () => {
           const id = selectedEvent!.id;
           setSelectedEventId(null);
           void deleteEvent(id);
         } : undefined}
+      />
+      <EventFormSheet
+        visible={createSheetVisible}
+        mode="create"
+        onClose={() => router.setParams({ compose: undefined })}
+      />
+      <EventFormSheet
+        visible={!!editingEvent}
+        mode="edit"
+        event={editingEvent}
+        onClose={() => setEditingEvent(null)}
+        onDeleted={() => setSelectedEventId(null)}
       />
     </View>
   );

@@ -57,8 +57,9 @@ export function MessageInput({
   const [actionSheetVisible, setActionSheetVisible] = useState(false);
   const insets = useSafeAreaInsets();
   const {
-    theme: { colors, radius, spacing, typography },
+    theme: { colors, radius, sizes, spacing, typography },
   } = useAppTheme();
+  const useSharedAndroidInputMetrics = Platform.OS === 'android';
 
   useEffect(() => {
     if (editingMessage) {
@@ -222,22 +223,22 @@ export function MessageInput({
             onContentSizeChange={animateInputLayout}
             maxLength={2000}
             editable={!isBusy}
-            textAlignVertical="top"
+            textAlignVertical={useSharedAndroidInputMetrics ? 'center' : 'top'}
             style={{
-              minHeight: INPUT_MIN_HEIGHT,
+              minHeight: useSharedAndroidInputMetrics ? sizes.input.md : INPUT_MIN_HEIGHT,
               maxHeight: INPUT_MAX_HEIGHT,
               borderRadius: radius.lg,
               borderWidth: StyleSheet.hairlineWidth,
               borderColor: colors.border,
               backgroundColor: colors.surfaceMuted,
               paddingHorizontal: spacing.sm,
-              paddingTop: 7,
-              paddingBottom: 11,
+              paddingTop: useSharedAndroidInputMetrics ? 0 : 7,
+              paddingBottom: useSharedAndroidInputMetrics ? 0 : 11,
               color: colors.text,
               includeFontPadding: false,
-              ...typography.body,
-              fontSize: 17,
-              lineHeight: INPUT_LINE_HEIGHT,
+              fontFamily: typography.body.fontFamily,
+              fontSize: useSharedAndroidInputMetrics ? typography.body.fontSize : 17,
+              lineHeight: useSharedAndroidInputMetrics ? typography.body.lineHeight : INPUT_LINE_HEIGHT,
             }}
           />
         </View>

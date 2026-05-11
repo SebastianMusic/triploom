@@ -23,6 +23,18 @@ import { useAuthStore } from '@/store/auth.store';
 import { useChatStore } from '@/store/chat.store';
 import type { MessageImage, MessageWithSender, SendMessageDTO, SendLocationMessageDTO } from '@/types';
 
+function getMinuteKey(iso: string) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  date.setSeconds(0, 0);
+  return date.toISOString();
+}
+
+function isSameMessageGroup(a: MessageWithSender | undefined, b: MessageWithSender | undefined) {
+  if (!a || !b) return false;
+  return a.user_id === b.user_id && getMinuteKey(a.created_at) === getMinuteKey(b.created_at);
+}
+
 export default function ChatRoomScreen() {
   const { roomId } = useLocalSearchParams<{ roomId: string }>();
   const { headerContentOffset } = useTripChromeInsets();
@@ -158,8 +170,8 @@ export default function ChatRoomScreen() {
     );
   }
 
-  return (
-    <Animated.View style={[styles.container, { backgroundColor: colors.background }, keyboardStyle]}>
+  const screenContent = (
+    <>
       {error ? (
         <View style={[styles.centered, { padding: spacing.md, paddingTop: headerContentOffset }]}>
           <AppText tone="error" style={{ marginBottom: spacing.xs, textAlign: 'center' }}>
@@ -184,15 +196,25 @@ export default function ChatRoomScreen() {
           data={messages}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingBottom: 0 }}
-          renderItem={({ item }) => (
-            <MessageBubble
-              message={item}
-              isOwnMessage={item.user_id === currentUserId}
-              onEdit={item.user_id === currentUserId ? () => startEditingMessage(item) : undefined}
-              onDelete={item.user_id === currentUserId ? () => handleDeleteMessage(item) : undefined}
-              onImagePress={item.images.length > 0 ? (index) => handleImagePress(item, index) : undefined}
-            />
-          )}
+          renderItem={({ item, index }) => {
+            const newerMessage = messages[index - 1];
+            const olderMessage = messages[index + 1];
+            const groupedWithNewer = isSameMessageGroup(item, newerMessage);
+            const groupedWithOlder = isSameMessageGroup(item, olderMessage);
+
+            return (
+              <MessageBubble
+                message={item}
+                isOwnMessage={item.user_id === currentUserId}
+                showAvatar={!groupedWithNewer}
+                showTime={!groupedWithNewer}
+                showSender={!groupedWithOlder}
+                onEdit={item.user_id === currentUserId ? () => startEditingMessage(item) : undefined}
+                onDelete={item.user_id === currentUserId ? () => handleDeleteMessage(item) : undefined}
+                onImagePress={item.images.length > 0 ? (imageIndex) => handleImagePress(item, imageIndex) : undefined}
+              />
+            );
+          }}
           inverted
           ListFooterComponent={<View style={{ height: headerContentOffset }} />}
           onEndReached={handleLoadMore}
@@ -273,6 +295,12 @@ export default function ChatRoomScreen() {
           handleLocationSelected(loc);
         }}
       />
+    </>
+  );
+
+  return (
+    <Animated.View style={[styles.container, { backgroundColor: colors.background }, keyboardStyle]}>
+      {screenContent}
     </Animated.View>
   );
 }
