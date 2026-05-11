@@ -41,9 +41,9 @@ describe('createTaskFieldSchema', () => {
     ).toBe(true);
   });
 
-  it('accepts a dropdown field', () => {
+  it('accepts a single choice field', () => {
     expect(
-      createTaskFieldSchema.safeParse({ type: TaskFieldType.Dropdown, label: 'Seat preference' }).success
+      createTaskFieldSchema.safeParse({ type: TaskFieldType.SingleChoice, label: 'Seat preference' }).success
     ).toBe(true);
   });
 
