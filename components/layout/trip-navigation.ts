@@ -39,7 +39,7 @@ export const TRIP_TAB_ITEMS: TripTabItem[] = [
   {
     routeName: 'chat/index',
     href: '/(app)/(trip)/chat',
-    label: 'Chat',
+    label: 'Chats',
     icon: 'chatbubble-ellipses-outline',
     activeIcon: 'chatbubble-ellipses',
   },
@@ -56,7 +56,7 @@ const TRIP_SCREEN_TITLES: Record<string, string> = {
   'home/index': 'Home',
   'events/index': 'Events',
   'tasks/index': 'Tasks',
-  'chat/index': 'Chat',
+  'chat/index': 'Chats',
   'chat/[roomId]': 'Chat',
   'profile/index': 'Profile',
   'admin/index': 'People',

@@ -344,7 +344,7 @@ export function PeopleGroupsScreen({
             borderColor: colors.border,
           }}>
           <View style={{ gap: spacing.xs }}>
-            <AppText style={typography.subtitle}>People & Groups</AppText>
+            <AppText style={typography.subtitle}>Members & Groups</AppText>
             <AppText variant="caption" tone="muted">
               Keep an overview of members, organizers, and group assignments for this trip.
             </AppText>
