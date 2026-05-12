@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText } from '@/components/ui/text';
-import { Avatar } from '@/components/ui/avatar';
+import { ProfileAvatar } from '@/components/ui/profile-avatar';
 import { Row } from '@/components/ui/row';
 import { Stack } from '@/components/ui/stack';
 import { useAppTheme } from '@/components/ui/theme-provider';
@@ -16,7 +16,6 @@ import type { AssignmentWithParticipant, TaskFieldWithOptions, FieldResponseWith
 type SelectedPerson = {
   participant_id: string;
   name: string;
-  avatarUrl: string | null | undefined;
   assignment: AssignmentWithParticipant | null;
 };
 
@@ -302,12 +301,11 @@ function CompletionList({
         {sorted.map((participant) => {
           const assignment = allAssignments.find(a => a.participant_id === participant.id) ?? null;
           const name = participant.profile?.user_name ?? 'Unknown';
-          const avatarUrl = participant.profile?.profile_picture_url ?? undefined;
           const isCompleted = assignment?.is_completed ?? false;
           return (
             <Pressable
               key={participant.id}
-              onPress={() => onSelectPerson({ participant_id: participant.id, name, avatarUrl, assignment })}
+              onPress={() => onSelectPerson({ participant_id: participant.id, name, assignment })}
               style={({ pressed }) => ({
                 flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
                 backgroundColor: colors.surface, borderRadius: radius.md,
@@ -315,7 +313,12 @@ function CompletionList({
                 opacity: pressed ? 0.7 : 1,
                 marginBottom: spacing.xs / 2,
               })}>
-              <Avatar name={name} size="sm" source={avatarUrl ? { uri: avatarUrl } : undefined} />
+              <ProfileAvatar
+                name={name}
+                size="sm"
+                userId={participant.user_id}
+                imageId={participant.profile?.profile_picture_url}
+              />
               <AppText style={{ flex: 1 }}>{name}</AppText>
               <Ionicons
                 name={isCompleted ? 'checkmark-circle' : 'ellipse-outline'}
@@ -464,21 +467,34 @@ function TaskDetailStats({
         }
 
         if (field.type === TaskFieldType.TextInput) {
-          const count = responses.filter(r => r.value).length;
+          const textResponses = responses.filter((r) => !!r.value);
+          const count = textResponses.length;
           return (
             <Stack key={field.id} space="xs">
               <AppText variant="caption" tone="muted">{field.label}</AppText>
-              <View style={{
-                minHeight: 64, borderRadius: radius.md, borderWidth: stroke.thin,
-                borderColor: colors.border, backgroundColor: colors.surface,
-                paddingHorizontal: spacing.sm, paddingVertical: spacing.sm,
-                flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-              }}>
+              <Pressable
+                onPress={() => onSelectOption(field.label, textResponses)}
+                style={({ pressed }) => ({
+                  minHeight: 64,
+                  borderRadius: radius.md,
+                  borderWidth: stroke.thin,
+                  borderColor: colors.border,
+                  backgroundColor: colors.surface,
+                  paddingHorizontal: spacing.sm,
+                  paddingVertical: spacing.sm,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  opacity: pressed ? 0.75 : 1,
+                })}>
                 <AppText tone="muted" variant="caption">Text responses</AppText>
-                <AppText variant="caption" tone="muted">
-                  {count === 0 ? 'No responses' : `${count} responded`}
-                </AppText>
-              </View>
+                <Row gap="xs">
+                  <AppText variant="caption" tone="muted">
+                    {count === 0 ? 'No responses' : `${count} responded`}
+                  </AppText>
+                  <Ionicons name="chevron-forward" size={12} color={colors.textMuted} />
+                </Row>
+              </Pressable>
             </Stack>
           );
         }
@@ -612,14 +628,26 @@ function OptionDetailList({ responses }: { responses: FieldResponseWithParticipa
     <ScrollView contentContainerStyle={{ padding: spacing.md, paddingBottom: insets.bottom + spacing.md, gap: spacing.xs }}>
       {responses.map((r) => {
         const name = r.trip_participant?.profile?.user_name ?? 'Unknown';
-        const avatarUrl = r.trip_participant?.profile?.profile_picture_url;
+        const textValue = r.value?.trim();
         return (
-          <Row key={r.id} gap="sm" style={{
+          <Row key={r.id} gap="sm" align="flex-start" style={{
             backgroundColor: colors.surface, borderRadius: radius.md,
             paddingHorizontal: spacing.sm, paddingVertical: spacing.sm,
           }}>
-            <Avatar name={name} size="sm" source={avatarUrl ? { uri: avatarUrl } : undefined} />
-            <AppText>{name}</AppText>
+            <ProfileAvatar
+              name={name}
+              size="sm"
+              userId={r.trip_participant?.user_id}
+              imageId={r.trip_participant?.profile?.profile_picture_url}
+            />
+            <View style={{ flex: 1, gap: textValue ? 4 : 0 }}>
+              <AppText>{name}</AppText>
+              {textValue ? (
+                <AppText variant="caption" tone="muted">
+                  {textValue}
+                </AppText>
+              ) : null}
+            </View>
           </Row>
         );
       })}

@@ -3,7 +3,6 @@ import { Alert, Image, Pressable, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { AppText } from '@/components/ui/text';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { LocationViewModal } from '@/components/ui/location-view-modal';
@@ -15,6 +14,7 @@ import { ParticipantsList } from '@/components/trip/participants-list';
 import type { EventWithCount } from '@/services/events.service';
 import { useEventsStore } from '@/store/events.store';
 import { useTripStore } from '@/store/trip.store';
+import type { Task } from '@/types';
 
 type EventView = 'main' | 'participants';
 
@@ -28,14 +28,18 @@ function formatFull(iso: string | null): string {
 
 export function EventDetailModal({
   event,
+  relatedTasks = [],
   onClose,
   onEdit,
   onDelete,
+  onTaskPress,
 }: {
   event: EventWithCount | null;
+  relatedTasks?: Task[];
   onClose: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
+  onTaskPress?: (task: Task) => void;
 }) {
   const { theme: { colors, radius, spacing, stroke, sizes } } = useAppTheme();
   const { currentParticipant, participantsWithProfiles } = useTripStore();
@@ -113,7 +117,20 @@ export function EventDetailModal({
           ) : null}
 
           <Stack space="sm">
-            {isMandatory ? <Badge label="Mandatory" variant="warning" /> : null}
+            {isMandatory ? (
+              <View
+                style={{
+                  alignSelf: 'flex-start',
+                  borderRadius: radius.full,
+                  backgroundColor: colors.warning,
+                  paddingHorizontal: spacing.xs,
+                  paddingVertical: 3,
+                }}>
+                <AppText variant="caption" style={{ color: colors.textOnPrimary, fontWeight: '700' }}>
+                  Mandatory
+                </AppText>
+              </View>
+            ) : null}
             {event.description ? (
               <AppText tone="muted">{event.description}</AppText>
             ) : (
@@ -161,6 +178,43 @@ export function EventDetailModal({
             </Row>
             <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
           </Pressable>
+
+          {relatedTasks.length > 0 ? (
+            <Card style={{ padding: 0, overflow: 'hidden' }}>
+              <View style={{ paddingHorizontal: spacing.md, paddingTop: spacing.md, paddingBottom: spacing.xs }}>
+                <AppText style={{ fontWeight: '600' }}>Related tasks</AppText>
+              </View>
+              {relatedTasks.map((task, index) => (
+                <Pressable
+                  key={task.id}
+                  disabled={!onTaskPress}
+                  onPress={() => onTaskPress?.(task)}
+                  style={({ pressed }) => ({
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: spacing.sm,
+                    paddingHorizontal: spacing.md,
+                    paddingVertical: spacing.sm,
+                    borderTopWidth: index === 0 ? 0 : stroke.thin,
+                    borderTopColor: colors.border,
+                    opacity: pressed ? 0.72 : 1,
+                  })}>
+                  <Ionicons name="checkbox-outline" size={18} color={colors.primary} />
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <AppText numberOfLines={1}>{task.title ?? 'Untitled task'}</AppText>
+                    {task.due_time ? (
+                      <AppText variant="caption" tone="muted" numberOfLines={1}>
+                        {formatFull(task.due_time)}
+                      </AppText>
+                    ) : null}
+                  </View>
+                  {onTaskPress ? (
+                    <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+                  ) : null}
+                </Pressable>
+              ))}
+            </Card>
+          ) : null}
 
           <Button
             label={isRegistered ? 'Unregister' : 'Register'}

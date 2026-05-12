@@ -5,6 +5,7 @@ import { Animated, Easing, Platform, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { isPrimaryTripTab, TRIP_TAB_ITEMS } from '@/components/layout/trip-navigation';
+import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import { useTripStore } from '@/store/trip.store';
 import { TripRole } from '@/types/trip.types';
@@ -147,6 +148,7 @@ export function TripTabBar({ state, descriptors, navigation }: BottomTabBarProps
                 borderRadius: radius.full,
                 alignItems: 'center',
                 justifyContent: 'center',
+                gap: 2,
                 opacity: pressed ? opacity.pressed : 1,
               })}>
               <View style={{ position: 'relative' }}>
@@ -169,6 +171,17 @@ export function TripTabBar({ state, descriptors, navigation }: BottomTabBarProps
                   />
                 )}
               </View>
+              <AppText
+                variant="caption"
+                numberOfLines={1}
+                style={{
+                  color: isFocused ? colors.primary : colors.textMuted,
+                  fontSize: 10,
+                  lineHeight: 12,
+                  textAlign: 'center',
+                }}>
+                {item.label}
+              </AppText>
             </Pressable>
           );
         })}

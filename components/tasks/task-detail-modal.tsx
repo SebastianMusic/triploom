@@ -20,6 +20,7 @@ export function TaskDetailModal({
   fields,
   assignment,
   myFieldResponses,
+  relatedEventName,
   onClose,
   onMarkComplete,
   onUndoComplete,
@@ -30,6 +31,7 @@ export function TaskDetailModal({
   fields: TaskFieldWithOptions[];
   assignment: TaskAssignment | null;
   myFieldResponses: Record<string, TaskFieldResponse[]>;
+  relatedEventName?: string | null;
   onClose: () => void;
   onMarkComplete: (pending: PendingResponseMap) => Promise<void>;
   onUndoComplete: () => void;
@@ -40,6 +42,7 @@ export function TaskDetailModal({
   const [pending, setPending] = useState<PendingResponseMap>({});
   const [completing, setCompleting] = useState(false);
   const isCompleted = assignment?.is_completed ?? false;
+  const isMandatory = task?.is_mandatory ?? false;
 
   useEffect(() => { setPending({}); }, [task?.id]);
 
@@ -97,17 +100,61 @@ export function TaskDetailModal({
       onDelete={onDelete}
     >
       <ScrollView contentContainerStyle={{ padding: spacing.md, gap: spacing.md }} keyboardShouldPersistTaps="handled">
+          {isMandatory ? (
+            <View
+              style={{
+                alignSelf: 'flex-start',
+                borderRadius: radius.full,
+                backgroundColor: colors.warning,
+                paddingHorizontal: spacing.xs,
+                paddingVertical: 3,
+              }}>
+              <AppText variant="caption" style={{ color: colors.textOnPrimary, fontWeight: '700' }}>
+                Mandatory
+              </AppText>
+            </View>
+          ) : null}
           {task.description ? <AppText tone="muted">{task.description}</AppText> : null}
 
-          {task.due_time ? (
-            <Row gap="xs">
-              <Ionicons name="calendar-outline" size={sizes.icon.sm} color={colors.textMuted} />
-              <AppText variant="caption" tone="muted">
-                {new Date(task.due_time).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
-                {' '}
-                {new Date(task.due_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-              </AppText>
-            </Row>
+          {task.due_time || relatedEventName ? (
+            <View
+              style={{
+                borderRadius: radius.lg,
+                backgroundColor: colors.surface,
+                padding: spacing.md,
+              }}>
+              <Stack space="sm">
+              {task.due_time ? (
+                <Row gap="xs">
+                  <Ionicons name="time-outline" size={sizes.icon.sm} color={colors.primary} />
+                  <View style={{ flex: 1 }}>
+                    <AppText variant="caption" tone="muted">Due</AppText>
+                    <AppText>
+                      {new Date(task.due_time).toLocaleString([], {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </AppText>
+                  </View>
+                </Row>
+              ) : null}
+              {relatedEventName ? (
+                <Row gap="xs">
+                  <Ionicons name="calendar-outline" size={sizes.icon.sm} color={colors.primary} />
+                  <View style={{ flex: 1 }}>
+                    <AppText variant="caption" tone="muted">Event</AppText>
+                    <AppText tone="primary" numberOfLines={1}>
+                      {relatedEventName}
+                    </AppText>
+                  </View>
+                </Row>
+              ) : null}
+              </Stack>
+            </View>
           ) : null}
 
           {fields.length > 0 && isCompleted && (

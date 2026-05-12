@@ -62,7 +62,7 @@ export default function TripLayout() {
         <Tabs.Screen name="tasks/index" options={{ title: 'Tasks' }} />
         <Tabs.Screen name="chat/index" options={{ title: 'Chats' }} />
         <Tabs.Screen name="account/index" options={{ title: 'Profile', href: null }} />
-        <Tabs.Screen name="admin/index" options={{ title: 'Admin', href: null }} />
+        <Tabs.Screen name="admin/index" options={{ title: 'People & groups', href: null }} />
         <Tabs.Screen name="admin/people" options={{ title: 'People & groups', href: null }} />
         <Tabs.Screen name="chat/[roomId]" options={{ href: null, headerShown: false }} />
       </Tabs>

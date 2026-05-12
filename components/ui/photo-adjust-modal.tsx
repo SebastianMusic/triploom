@@ -27,6 +27,10 @@ type ImageSize = {
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 4;
 
+function shouldPrepareForManipulator(sourceUri: string) {
+  return sourceUri.startsWith('content://') || sourceUri.startsWith('file://');
+}
+
 function clamp(value: number, min: number, max: number) {
   'worklet';
   return Math.min(Math.max(value, min), max);
@@ -64,6 +68,7 @@ export function PhotoAdjustModal({
   } = useAppTheme();
 
   const [imageSize, setImageSize] = useState<ImageSize | null>(null);
+  const [workingUri, setWorkingUri] = useState<string | null>(null);
   const [isLoadingImage, setIsLoadingImage] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -85,31 +90,66 @@ export function PhotoAdjustModal({
 
   useEffect(() => {
     if (!visible || !uri) {
+      setWorkingUri(null);
       return;
     }
 
+    let cancelled = false;
     setIsLoadingImage(true);
     setImageSize(null);
+    setWorkingUri(null);
     zoom.value = 1;
     offsetX.value = 0;
     offsetY.value = 0;
+    const sourceUri = uri;
 
-    Image.getSize(
-      uri,
-      (width, height) => {
-        setImageSize({ width, height });
-        setIsLoadingImage(false);
-      },
-      () => {
-        setIsLoadingImage(false);
-      },
-    );
+    async function prepareImage() {
+      try {
+        const preparedUri = shouldPrepareForManipulator(sourceUri)
+          ? (await manipulateAsync(sourceUri, [], { compress: 1, format: SaveFormat.JPEG })).uri
+          : sourceUri;
+        if (cancelled) return;
+
+        setWorkingUri(preparedUri);
+        Image.getSize(
+          preparedUri,
+          (width, height) => {
+            if (cancelled) return;
+            setImageSize({ width, height });
+            setIsLoadingImage(false);
+          },
+          () => {
+            if (cancelled) return;
+            setIsLoadingImage(false);
+          },
+        );
+      } catch {
+        if (!cancelled) {
+          setIsLoadingImage(false);
+        }
+      }
+    }
+
+    void prepareImage();
+
+    return () => {
+      cancelled = true;
+    };
   }, [offsetX, offsetY, uri, visible, zoom]);
 
   const baseScale = useMemo(() => {
     if (!imageSize) return 1;
     return Math.max(frameWidth / imageSize.width, frameHeight / imageSize.height);
   }, [frameHeight, frameWidth, imageSize]);
+
+  useEffect(() => {
+    if (!imageSize) return;
+    const scaledWidth = imageSize.width * baseScale * zoom.value;
+    const scaledHeight = imageSize.height * baseScale * zoom.value;
+    const clamped = clampOffset(offsetX.value, offsetY.value, scaledWidth, scaledHeight, frameWidth, frameHeight);
+    offsetX.value = clamped.x;
+    offsetY.value = clamped.y;
+  }, [baseScale, frameHeight, frameWidth, imageSize, offsetX, offsetY, zoom]);
 
   const panGesture = Gesture.Pan()
     .minDistance(0)
@@ -168,27 +208,33 @@ export function PhotoAdjustModal({
   }, [baseScale, frameHeight, frameWidth, imageSize]);
 
   async function handleSave() {
-    if (!uri || !imageSize || isSaving) return;
+    if (!workingUri || !imageSize || isSaving) return;
 
     setIsSaving(true);
 
     try {
       const displayScale = baseScale * zoom.value;
-      const cropWidth = frameWidth / displayScale;
-      const cropHeight = frameHeight / displayScale;
-      const originX = clamp(
-        (imageSize.width - cropWidth) / 2 - offsetX.value / displayScale,
-        0,
-        imageSize.width - cropWidth,
+      const cropWidth = Math.max(1, Math.min(imageSize.width, Math.round(frameWidth / displayScale)));
+      const cropHeight = Math.max(1, Math.min(imageSize.height, Math.round(frameHeight / displayScale)));
+      const maxOriginX = Math.max(0, imageSize.width - cropWidth);
+      const maxOriginY = Math.max(0, imageSize.height - cropHeight);
+      const originX = Math.round(
+        clamp(
+          (imageSize.width - cropWidth) / 2 - offsetX.value / displayScale,
+          0,
+          maxOriginX,
+        ),
       );
-      const originY = clamp(
-        (imageSize.height - cropHeight) / 2 - offsetY.value / displayScale,
-        0,
-        imageSize.height - cropHeight,
+      const originY = Math.round(
+        clamp(
+          (imageSize.height - cropHeight) / 2 - offsetY.value / displayScale,
+          0,
+          maxOriginY,
+        ),
       );
 
       const result = await manipulateAsync(
-        uri,
+        workingUri,
         [
           {
             crop: {
@@ -248,7 +294,7 @@ export function PhotoAdjustModal({
                 backgroundColor: colors.surfaceMuted,
               }}>
               {imageSize ? (
-                <Animated.Image source={{ uri }} style={imageStyle} resizeMode="cover" />
+                <Animated.Image source={{ uri: workingUri ?? uri }} style={imageStyle} resizeMode="cover" />
               ) : (
                 <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
                   {isLoadingImage ? (

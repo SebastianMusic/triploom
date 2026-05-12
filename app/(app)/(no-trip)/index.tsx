@@ -310,13 +310,6 @@ export default function TripPickerScreen() {
     router.push('./create');
   }
 
-  function handleShowMorePastTrips() {
-    setVisiblePastTripCount((current) => {
-      if (current === 0) return 6;
-      return Math.min(current + 6, pastTrips.length);
-    });
-  }
-
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScrollView
@@ -417,6 +410,18 @@ export default function TripPickerScreen() {
           {pastTrips.length > 0 ? (
             <Stack space="sm">
               <SectionHeader title="Past trips" count={pastTrips.length} />
+              <Button
+                label={
+                  visiblePastTripCount === 0
+                    ? `Show previous trips (${pastTrips.length})`
+                    : 'Hide previous trips'
+                }
+                variant="secondary"
+                fullWidth
+                onPress={() => {
+                  setVisiblePastTripCount((count) => (count === 0 ? Math.min(6, pastTrips.length) : 0));
+                }}
+              />
               {visiblePastTrips.length > 0 ? (
                 <Stack space="sm">
                   {visiblePastTrips.map((trip) => (
@@ -430,12 +435,14 @@ export default function TripPickerScreen() {
                   ))}
                 </Stack>
               ) : null}
-              {visiblePastTripCount < pastTrips.length ? (
+              {visiblePastTripCount > 0 && visiblePastTripCount < pastTrips.length ? (
                 <Button
-                  label={visiblePastTripCount === 0 ? `Show previous trips (${pastTrips.length})` : 'Load more previous trips'}
+                  label="Load more previous trips"
                   variant="secondary"
                   fullWidth
-                  onPress={handleShowMorePastTrips}
+                  onPress={() => {
+                    setVisiblePastTripCount((count) => Math.min(count + 6, pastTrips.length));
+                  }}
                 />
               ) : null}
             </Stack>

@@ -1,5 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import * as Clipboard from 'expo-clipboard';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -14,15 +16,17 @@ import { useTripChromeInsets } from '@/components/layout/use-trip-chrome';
 import { ParticipantActionSheet } from '@/components/participant-ui/participant-action-sheet';
 import { CreateGroupsModal } from '@/components/trip/create-groups-modal';
 import { EditGroupModal } from '@/components/trip/edit-group-modal';
-import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Container } from '@/components/ui/container';
 import { IconButton } from '@/components/ui/icon-button';
+import { ProfileAvatar } from '@/components/ui/profile-avatar';
 import { Stack } from '@/components/ui/stack';
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import { useGroupStore } from '@/store/group.store';
+import { useTripHeaderActionsStore } from '@/store/trip-header-actions.store';
+import { useTripStore } from '@/store/trip.store';
 import type { TripParticipantWithProfile } from '@/services/trip.service';
 import type { GroupWithMembers } from '@/services/group.service';
 import { TripRole } from '@/types';
@@ -58,7 +62,7 @@ export function PeopleGroupsScreen({
   actorUserId,
   actorRole,
 }: Props) {
-  const { headerContentOffset, safeAreaInsets } = useTripChromeInsets();
+  const { headerContentOffset, bottomOverlayOffset } = useTripChromeInsets();
   const {
     theme: { colors, opacity, radius, shadows, spacing, stroke, typography },
   } = useAppTheme();
@@ -70,6 +74,11 @@ export function PeopleGroupsScreen({
   const joinTripGroup = useGroupStore((state) => state.joinGroup);
   const leaveTripGroup = useGroupStore((state) => state.leaveGroup);
   const deleteTripGroup = useGroupStore((state) => state.deleteGroup);
+  const setHeaderActions = useTripHeaderActionsStore((state) => state.setActions);
+  const inviteUrl = useTripStore((state) => state.inviteUrl);
+  const isGeneratingInvite = useTripStore((state) => state.isGeneratingInvite);
+  const inviteError = useTripStore((state) => state.inviteError);
+  const generateInvite = useTripStore((state) => state.generateInvite);
 
   const [tab, setTab] = useState<Tab>('members');
   const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);
@@ -77,8 +86,30 @@ export function PeopleGroupsScreen({
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [editingGroup, setEditingGroup] = useState<GroupWithMembers | null>(null);
   const [selectedParticipant, setSelectedParticipant] = useState<TripParticipantWithProfile | null>(null);
+  const [copiedInviteLink, setCopiedInviteLink] = useState(false);
   const [tabWidth, setTabWidth] = useState(0);
   const sliderTranslate = useRef(new Animated.Value(0)).current;
+
+  useFocusEffect(useCallback(() => {
+    if (!canManage) {
+      setHeaderActions([]);
+      return () => setHeaderActions([]);
+    }
+
+    setHeaderActions([
+      {
+        key: 'create-group',
+        accessibilityLabel: 'Create group',
+        iconName: 'add',
+        onPress: () => {
+          setTab('groups');
+          setCreateModalVisible(true);
+        },
+      },
+    ]);
+
+    return () => setHeaderActions([]);
+  }, [canManage, setHeaderActions]));
 
   useEffect(() => {
     if (!tripId) {
@@ -120,6 +151,20 @@ export function PeopleGroupsScreen({
   async function handleRefresh() {
     if (!tripId) return;
     await fetchGroups(tripId);
+  }
+
+  async function handleGenerateInvite() {
+    if (!tripId) return;
+    try {
+      await generateInvite(tripId);
+    } catch {}
+  }
+
+  async function handleCopyInviteLink() {
+    if (!inviteUrl) return;
+    await Clipboard.setStringAsync(inviteUrl);
+    setCopiedInviteLink(true);
+    setTimeout(() => setCopiedInviteLink(false), 2000);
   }
 
   async function handleJoin(groupId: string) {
@@ -196,9 +241,12 @@ export function PeopleGroupsScreen({
   }
 
   return (
-    <>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScrollView
+        style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        nestedScrollEnabled
         refreshControl={
           <RefreshControl
             tintColor={colors.primary}
@@ -210,11 +258,83 @@ export function PeopleGroupsScreen({
           />
         }
         contentContainerStyle={{
+          flexGrow: 1,
           paddingTop: headerContentOffset,
-          paddingBottom: safeAreaInsets.bottom + spacing.lg,
+          paddingBottom: Math.max(spacing.xxxl, bottomOverlayOffset),
         }}>
         <Container>
         <Stack space="sm">
+        {canManage ? (
+          <Card
+            variant="elevated"
+            style={{
+              gap: spacing.sm,
+              backgroundColor: colors.surface,
+              borderWidth: stroke.thin,
+              borderColor: colors.border,
+            }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+              <View
+                style={[
+                  {
+                    width: 44,
+                    height: 44,
+                    borderRadius: radius.full,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: colors.primarySoft,
+                  },
+                  shadows.sm,
+                ]}>
+                <Ionicons name="link-outline" size={20} color={colors.primary} />
+              </View>
+              <View style={{ flex: 1, gap: spacing.xs / 2 }}>
+                <AppText style={typography.label}>Invite more people</AppText>
+                <AppText variant="caption" tone="muted">
+                  Share this link with people who should join the trip.
+                </AppText>
+              </View>
+            </View>
+
+            {inviteError ? (
+              <AppText variant="caption" tone="error">{inviteError}</AppText>
+            ) : null}
+
+            {inviteUrl ? (
+              <Stack space="sm">
+                <View
+                  style={{
+                    backgroundColor: colors.surfaceMuted,
+                    borderRadius: radius.md,
+                    paddingHorizontal: spacing.sm,
+                    paddingVertical: spacing.xs + 2,
+                  }}>
+                  <AppText variant="caption" tone="muted" numberOfLines={1}>
+                    {inviteUrl}
+                  </AppText>
+                </View>
+                <Button
+                  label={copiedInviteLink ? 'Copied!' : 'Copy link'}
+                  fullWidth
+                  onPress={() => {
+                    void handleCopyInviteLink();
+                  }}
+                />
+              </Stack>
+            ) : (
+              <Button
+                label="Generate invite link"
+                fullWidth
+                loading={isGeneratingInvite}
+                disabled={!tripId || isGeneratingInvite}
+                onPress={() => {
+                  void handleGenerateInvite();
+                }}
+              />
+            )}
+          </Card>
+        ) : null}
+
         <Card
           variant="elevated"
           style={{
@@ -224,16 +344,16 @@ export function PeopleGroupsScreen({
             borderColor: colors.border,
           }}>
           <View style={{ gap: spacing.xs }}>
-            <AppText style={typography.subtitle}>Members & groups</AppText>
+            <AppText style={typography.subtitle}>Members & Groups</AppText>
             <AppText variant="caption" tone="muted">
               Keep an overview of members, organizers, and group assignments for this trip.
             </AppText>
           </View>
 
           <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-            <StatPill label="Members" value={participants.length} />
-            <StatPill label="Organizers" value={organizerCount} />
-            <StatPill label="Groups" value={groups.length} />
+            <StatPill icon="person-outline" value={participants.length} />
+            <StatPill icon="shield-checkmark-outline" value={organizerCount} />
+            <StatPill icon="people-outline" value={groups.length} />
           </View>
         </Card>
 
@@ -309,9 +429,6 @@ export function PeopleGroupsScreen({
                   const roleLabel = participant.role
                     ? (ROLE_LABELS[participant.role] ?? participant.role)
                     : 'Member';
-                  const avatarSource = participant.profile?.profile_picture_url
-                    ? { uri: participant.profile.profile_picture_url }
-                    : undefined;
                   const phone = canManage ? participant.profile?.phonenumber : null;
                   const email = canManage ? participant.profile?.email : null;
                   const isSelf = participant.id === currentParticipantId;
@@ -340,7 +457,12 @@ export function PeopleGroupsScreen({
                         backgroundColor: pressed && canOpenActions ? colors.surfaceMuted : colors.surface,
                         opacity: !canOpenActions && !canManage ? 1 : !canOpenActions ? opacity.disabled : 1,
                       })}>
-                      <Avatar name={name} size="sm" source={avatarSource} />
+                      <ProfileAvatar
+                        name={name}
+                        size="sm"
+                        userId={participant.user_id}
+                        imageId={participant.profile?.profile_picture_url}
+                      />
                       <View style={{ flex: 1, gap: 2 }}>
                             <AppText numberOfLines={1} style={typography.label}>
                               {name}
@@ -376,28 +498,6 @@ export function PeopleGroupsScreen({
           </>
         ) : (
           <>
-            {canManage ? (
-              <Card
-                variant="elevated"
-                style={{
-                  gap: spacing.sm,
-                  backgroundColor: colors.surface,
-                  borderWidth: stroke.thin,
-                  borderColor: colors.border,
-                }}>
-                <View style={{ gap: spacing.xs }}>
-                  <AppText style={typography.label}>Create and manage groups</AppText>
-                  <AppText variant="caption" tone="muted">
-                    Set up cabins, teams, rides, or any other split for the trip.
-                  </AppText>
-                </View>
-                <Button
-                  label="Create group"
-                  onPress={() => setCreateModalVisible(true)}
-                />
-              </Card>
-            ) : null}
-
             {isLoadingGroups && groups.length === 0 ? (
               <View style={{ alignItems: 'center', paddingVertical: spacing.xl }}>
                 <ActivityIndicator color={colors.primary} />
@@ -521,10 +621,6 @@ export function PeopleGroupsScreen({
                               const roleLabel = membership.trip_participant?.role
                                 ? (ROLE_LABELS[membership.trip_participant.role] ?? membership.trip_participant.role)
                                 : 'Member';
-                              const avatarSource = membership.trip_participant?.profile?.profile_picture_url
-                                ? { uri: membership.trip_participant.profile.profile_picture_url }
-                                : undefined;
-
                               return (
                                 <View
                                   key={membership.participant_id}
@@ -537,7 +633,12 @@ export function PeopleGroupsScreen({
                                     paddingHorizontal: spacing.md,
                                     paddingVertical: spacing.sm,
                                   }}>
-                                  <Avatar name={name} size="sm" source={avatarSource} />
+                                  <ProfileAvatar
+                                    name={name}
+                                    size="sm"
+                                    userId={membership.trip_participant?.user_id}
+                                    imageId={membership.trip_participant?.profile?.profile_picture_url}
+                                  />
                                   <View style={{ flex: 1 }}>
                                     <AppText>{name}</AppText>
                                     <AppText variant="caption" tone="muted">
@@ -622,10 +723,10 @@ export function PeopleGroupsScreen({
           onClose={() => setSelectedParticipant(null)}
         />
       ) : null}
-    </>
+    </View>
   );
 
-  function StatPill({ label, value }: { label: string; value: number }) {
+  function StatPill({ icon, value }: { icon: keyof typeof Ionicons.glyphMap; value: number }) {
     return (
       <View
         style={{
@@ -634,12 +735,13 @@ export function PeopleGroupsScreen({
           backgroundColor: colors.surfaceMuted,
           paddingVertical: spacing.xs + 2,
           paddingHorizontal: spacing.sm,
-          gap: 2,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: spacing.xs,
         }}>
         <AppText style={typography.label}>{value}</AppText>
-        <AppText variant="caption" tone="muted">
-          {label}
-        </AppText>
+        <Ionicons name={icon} size={18} color={colors.primary} />
       </View>
     );
   }

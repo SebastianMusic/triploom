@@ -20,12 +20,24 @@ function formatTime(isoString: string): string {
 interface Props {
   message: MessageWithSender;
   isOwnMessage: boolean;
+  showAvatar?: boolean;
+  showSender?: boolean;
+  showTime?: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
   onImagePress?: (imageIndex: number) => void;
 }
 
-export function MessageBubble({ message, isOwnMessage, onEdit, onDelete, onImagePress }: Props) {
+export function MessageBubble({
+  message,
+  isOwnMessage,
+  showAvatar = true,
+  showSender = true,
+  showTime = true,
+  onEdit,
+  onDelete,
+  onImagePress,
+}: Props) {
   const {
     theme: { colors, radius, spacing },
   } = useAppTheme();
@@ -69,9 +81,11 @@ export function MessageBubble({ message, isOwnMessage, onEdit, onDelete, onImage
         isOwnMessage ? styles.containerOwn : styles.containerOther,
       ]}>
       {!isOwnMessage && (
-        <AppText variant="caption" tone="muted" style={styles.sender}>
-          {message.senderName ?? 'Unknown'}
-        </AppText>
+        showSender ? (
+          <AppText variant="caption" tone="muted" style={styles.sender}>
+            {message.senderName ?? 'Unknown'}
+          </AppText>
+        ) : null
       )}
       <View
         style={[
@@ -85,6 +99,7 @@ export function MessageBubble({ message, isOwnMessage, onEdit, onDelete, onImage
             {
               borderRadius: radius.full,
               backgroundColor: isOwnMessage ? colors.primarySoft : colors.surfaceMuted,
+              opacity: showAvatar ? 1 : 0,
             },
           ]}>
           {message.senderAvatarUrl ? (
@@ -175,12 +190,14 @@ export function MessageBubble({ message, isOwnMessage, onEdit, onDelete, onImage
         </View>
           </Pressable>
 
-          <AppText
-            variant="caption"
-            tone="muted"
-            style={[styles.time, isOwnMessage ? styles.timeOwn : styles.timeOther]}>
-            {copied ? 'Copied' : `${formatTime(message.created_at)}${isEdited ? ' · edited' : ''}`}
-          </AppText>
+          {showTime || copied ? (
+            <AppText
+              variant="caption"
+              tone="muted"
+              style={[styles.time, isOwnMessage ? styles.timeOwn : styles.timeOther]}>
+              {copied ? 'Copied' : `${formatTime(message.created_at)}${isEdited ? ' · edited' : ''}`}
+            </AppText>
+          ) : null}
         </View>
       </View>
 
