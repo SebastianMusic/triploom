@@ -118,8 +118,9 @@ nav {
   height: 60px;
   transition: background var(--transition), border-color var(--transition);
 }
-.logo { font-size: 1.25rem; font-weight: 900; letter-spacing: -0.5px; color: var(--text); text-decoration: none; }
+.logo { font-size: 1.25rem; font-weight: 900; letter-spacing: -0.5px; color: var(--text); text-decoration: none; display: flex; align-items: center; gap: .5rem; }
 .logo span { color: var(--primary); }
+.logo-img { width: 28px; height: 28px; border-radius: 7px; object-fit: cover; }
 .nav-links { display: flex; gap: 2rem; list-style: none; margin-right: auto; }
 .nav-links a { text-decoration: none; color: var(--text-muted); font-size: 0.875rem; font-weight: 500; transition: color var(--transition); }
 .nav-links a:hover { color: var(--text); }
