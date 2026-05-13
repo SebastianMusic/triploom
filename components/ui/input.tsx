@@ -18,10 +18,12 @@ export function Input({ label, hint, error, multiline = false, containerStyle, s
   const {
     theme: { colors, radius, sizes, spacing, stroke, typography },
   } = useAppTheme();
-  const { lineHeight: bodyLineHeight, ...bodyTextStyle } = typography.body;
 
   const borderColor = error ? colors.error : isFocused ? colors.focusRing : colors.border;
   const borderWidth = isFocused ? stroke.focus : stroke.thin;
+  const useChatTextMetrics = Platform.OS === 'ios';
+  const verticalPaddingTop = useChatTextMetrics ? 7 : multiline ? spacing.sm : 0;
+  const verticalPaddingBottom = useChatTextMetrics ? 11 : multiline ? spacing.sm : 0;
 
   const textInputEl = (
     <TextInput
@@ -35,7 +37,7 @@ export function Input({ label, hint, error, multiline = false, containerStyle, s
       }}
       placeholderTextColor={colors.textMuted}
       multiline={multiline}
-      textAlignVertical={multiline ? 'top' : 'center'}
+      textAlignVertical={useChatTextMetrics ? 'top' : multiline ? 'top' : 'center'}
       style={[
         {
           minHeight: multiline ? sizes.input.lg : sizes.input.md,
@@ -46,27 +48,20 @@ export function Input({ label, hint, error, multiline = false, containerStyle, s
             borderColor,
             backgroundColor: colors.surface,
             paddingHorizontal: spacing.sm,
-            paddingTop: multiline ? spacing.sm - spacing.xs / 2 : 0,
-            paddingBottom: multiline ? spacing.sm - spacing.xs / 2 : 0,
+            paddingTop: verticalPaddingTop,
+            paddingBottom: verticalPaddingBottom,
           }),
           ...(rightElement && {
             flex: 1,
             paddingHorizontal: spacing.sm,
-            paddingTop: multiline ? spacing.sm - spacing.xs / 2 : 0,
-            paddingBottom: multiline ? spacing.sm - spacing.xs / 2 : 0,
+            paddingTop: verticalPaddingTop,
+            paddingBottom: verticalPaddingBottom,
           }),
           color: colors.text,
           includeFontPadding: false,
-          ...bodyTextStyle,
-          ...(multiline
-            ? { lineHeight: bodyLineHeight }
-            : Platform.OS === 'android'
-              ? { lineHeight: 22 }
-              : {
-                  paddingTop: 0,
-                  paddingBottom: 2,
-                  transform: [{ translateY: -1 }],
-                }),
+          fontFamily: typography.body.fontFamily,
+          fontSize: useChatTextMetrics ? 17 : typography.body.fontSize,
+          lineHeight: useChatTextMetrics ? 25 : typography.body.lineHeight,
         },
         style,
       ]}

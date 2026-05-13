@@ -16,7 +16,7 @@ import { useProfileStore } from '@/store/profile.store';
 import { useTripHeaderActionsStore } from '@/store/trip-header-actions.store';
 import { useTripStore } from '@/store/trip.store';
 import { useChatStore } from '@/store/chat.store';
-import { TripRole } from '@/types';
+import { TripEventPermission, TripRole } from '@/types';
 
 type TripHeaderProps = {
   routeName: string;
@@ -59,23 +59,34 @@ export function TripHeader({ routeName }: TripHeaderProps) {
   const isOrganizer =
     currentParticipant?.role === TripRole.Organizer ||
     currentParticipant?.role === TripRole.CoOrganizer;
+  const currentTrip = useTripStore((state) => state.currentTrip);
+  const canCreateEvent =
+    routeName === 'events/index' &&
+    !!currentTrip &&
+    (isOrganizer || currentTrip.event_permission !== TripEventPermission.Organizer);
+  const canUseScreenActions =
+    routeName === 'home/index' ||
+    routeName === 'tasks/index' ||
+    routeName === 'admin/index';
   const headerActions: HeaderActionItem[] =
-    canCreateAnnouncement
+    canUseScreenActions && screenActions.length > 0
+      ? screenActions
+      : canCreateAnnouncement
       ? [{
           key: 'create-announcement',
           accessibilityLabel: 'Create announcement',
           onPress: handleCreateAnnouncement,
         }]
-      : routeName === 'events/index' && isOrganizer
+      : canCreateEvent
         ? [{
             key: 'create-event',
             accessibilityLabel: 'Create event',
-            onPress: () => router.push('/(app)/(trip)/events/create_event'),
+            onPress: () => router.push({ pathname: '/(app)/(trip)/events', params: { compose: 'event' } }),
           }]
         : screenActions.length > 0
-          ? routeName === 'tasks/index' ? screenActions : []
+          ? canUseScreenActions ? screenActions : []
           : screenAction
-            ? routeName === 'tasks/index' ? [screenAction] : []
+            ? canUseScreenActions ? [screenAction] : []
             : [];
 
   function handleOpenProfile() {

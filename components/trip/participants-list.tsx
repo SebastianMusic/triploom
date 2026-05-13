@@ -2,8 +2,8 @@ import { ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { AppText } from '@/components/ui/text';
-import { Avatar } from '@/components/ui/avatar';
 import { ListItem } from '@/components/ui/list-item';
+import { ProfileAvatar } from '@/components/ui/profile-avatar';
 import { useAppTheme } from '@/components/ui/theme-provider';
 import type { TripParticipantWithProfile } from '@/services/trip.service';
 import { TripRole } from '@/types/trip.types';
@@ -48,7 +48,6 @@ export function ParticipantsList({
     <ScrollView contentContainerStyle={{ padding: spacing.md, gap: spacing.xs }}>
       {sorted.map((p) => {
         const name = p.profile?.user_name ?? 'Unknown';
-        const avatarUrl = p.profile?.profile_picture_url;
         const roleLabel = ROLE_LABELS[p.role as TripRole] ?? null;
         const isRegistered = registeredIds?.has(p.id);
 
@@ -58,10 +57,11 @@ export function ParticipantsList({
             title={name}
             subtitle={roleLabel ?? undefined}
             leading={
-              <Avatar
+              <ProfileAvatar
                 name={name}
                 size="sm"
-                source={avatarUrl ? { uri: avatarUrl } : undefined}
+                userId={p.user_id}
+                imageId={p.profile?.profile_picture_url}
               />
             }
             trailing={

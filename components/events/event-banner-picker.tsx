@@ -9,12 +9,13 @@ import { useAppTheme } from '@/components/ui/theme-provider';
 import { pickSingleImageFromLibrary } from '@/lib/media-picker';
 
 type EventBannerPickerProps = {
+  label?: string;
   uri: string | null;
   onSelect: (uri: string) => void;
   onRemove?: () => void;
 };
 
-export function EventBannerPicker({ uri, onSelect, onRemove }: EventBannerPickerProps) {
+export function EventBannerPicker({ label = 'Banner image', uri, onSelect, onRemove }: EventBannerPickerProps) {
   const { theme: { colors, radius, spacing } } = useAppTheme();
   const [showCamera, setShowCamera] = useState(false);
   const [showActions, setShowActions] = useState(false);
@@ -31,7 +32,7 @@ export function EventBannerPicker({ uri, onSelect, onRemove }: EventBannerPicker
   return (
     <>
       <View style={{ gap: spacing.xs }}>
-        <AppText variant="caption">Banner image</AppText>
+        <AppText variant="caption">{label}</AppText>
 
         <Pressable
           accessibilityRole="button"

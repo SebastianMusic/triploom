@@ -75,6 +75,8 @@ export function EventPreviewCard({ event, fallbackBannerUri, onPress }: EventPre
         borderRadius: radius.xl,
         overflow: 'hidden',
         backgroundColor: cardBackground,
+        borderLeftWidth: isMandatory ? 4 : 0,
+        borderLeftColor: isMandatory ? colors.warning : colors.transparent,
         opacity: pressed ? 0.82 : 1,
         ...shadows.sm,
       })}>
@@ -100,27 +102,12 @@ export function EventPreviewCard({ event, fallbackBannerUri, onPress }: EventPre
             />
           </View>
         )}
-        {isMandatory ? (
-          <View
-            style={{
-              position: 'absolute',
-              top: spacing.sm,
-              left: spacing.sm,
-              borderRadius: radius.full,
-              backgroundColor: colors.warning,
-              paddingHorizontal: spacing.xs,
-              paddingVertical: 4,
-            }}>
-            <AppText variant="caption" style={{ color: colors.textOnPrimary }}>
-              Mandatory
-            </AppText>
-          </View>
-        ) : null}
       </View>
 
       <Stack space="sm" style={{ padding: spacing.md }}>
         <Row justify="space-between" align="flex-start" gap="sm">
           <View style={{ flex: 1, gap: 6 }}>
+            {isMandatory ? <MandatoryPill /> : null}
             <AppText variant="subtitle" numberOfLines={2}>
               {event.title ?? 'Untitled event'}
             </AppText>
@@ -130,17 +117,10 @@ export function EventPreviewCard({ event, fallbackBannerUri, onPress }: EventPre
 
         <EventMeta icon="time-outline" value={formatEventTime(event.start_time, event.end_time)} />
         {event.location_label ? <EventMeta icon="location-outline" value={event.location_label} /> : null}
-        {event.price_range ? <EventMeta icon="cash-outline" value={event.price_range} /> : null}
-        <EventMeta
-          icon="people-outline"
-          value={`${event.event_participation.length} ${event.event_participation.length === 1 ? 'participant' : 'participants'}`}
-        />
-
-        {event.description ? (
-          <AppText tone="muted" numberOfLines={3}>
-            {event.description}
-          </AppText>
-        ) : null}
+        <Row gap="sm" align="center" style={{ flexWrap: 'wrap' }}>
+          {event.price_range ? <EventMeta icon="cash-outline" value={event.price_range} /> : null}
+          <EventMeta icon="people-outline" value={String(event.event_participation.length)} />
+        </Row>
       </Stack>
     </Pressable>
   );
@@ -154,6 +134,23 @@ export function EventPreviewCard({ event, fallbackBannerUri, onPress }: EventPre
           {value}
         </AppText>
       </Row>
+    );
+  }
+
+  function MandatoryPill() {
+    return (
+      <View
+        style={{
+          alignSelf: 'flex-start',
+          borderRadius: radius.full,
+          backgroundColor: colors.warning,
+          paddingHorizontal: spacing.xs,
+          paddingVertical: 3,
+        }}>
+        <AppText variant="caption" style={{ color: colors.textOnPrimary, fontWeight: '700' }}>
+          Mandatory
+        </AppText>
+      </View>
     );
   }
 }
@@ -193,6 +190,8 @@ export function CompactEventCard({ event, onPress }: Omit<EventPreviewCardProps,
       style={{
         padding: spacing.sm,
         backgroundColor: isMandatory ? colors.secondarySoft : colors.surface,
+        borderLeftWidth: isMandatory ? 4 : 0,
+        borderLeftColor: isMandatory ? colors.warning : colors.transparent,
       }}>
       <Row gap="sm" align="center">
         {bannerUri ? (
@@ -217,6 +216,7 @@ export function CompactEventCard({ event, onPress }: Omit<EventPreviewCardProps,
           />
         )}
         <View style={{ flex: 1, gap: 2 }}>
+          {isMandatory ? <MandatoryPill /> : null}
           <AppText numberOfLines={1} style={typography.label}>
             {event.title ?? 'Untitled event'}
           </AppText>
@@ -228,4 +228,21 @@ export function CompactEventCard({ event, onPress }: Omit<EventPreviewCardProps,
       </Row>
     </Card>
   );
+
+  function MandatoryPill() {
+    return (
+      <View
+        style={{
+          alignSelf: 'flex-start',
+          borderRadius: radius.full,
+          backgroundColor: colors.warning,
+          paddingHorizontal: spacing.xs,
+          paddingVertical: 3,
+        }}>
+        <AppText variant="caption" style={{ color: colors.textOnPrimary, fontWeight: '700' }}>
+          Mandatory
+        </AppText>
+      </View>
+    );
+  }
 }

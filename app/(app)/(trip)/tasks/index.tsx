@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,6 +10,7 @@ import { AppText } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
 import { Container } from '@/components/ui/container';
 import { AppDateTimePicker, DateTimeField } from '@/components/ui/date-time-picker';
+import { DestructiveFormFooter } from '@/components/ui/destructive-form-footer';
 import { EmptyState } from '@/components/ui/empty-state';
 import { confirmDestructiveAction } from '@/components/ui/confirm-destructive-action';
 import { IconButton } from '@/components/ui/icon-button';
@@ -94,14 +96,26 @@ export default function TasksScreen() {
 	const [titleError, setTitleError] = useState('');
 	const nextTempId = useRef(0);
 
+	const resetForm = useCallback(() => {
+		setEditingTask(null);
+		setTitle('');
+		setDescription('');
+		setDraftFields([]);
+		setDueDate(null);
+		setEventId(null);
+		setIsMandatory(false);
+		setShowDatePicker(false);
+		setTitleError('');
+	}, []);
+
 	const isOrganizer =
 		currentParticipant?.role === TripRole.Organizer ||
 		currentParticipant?.role === TripRole.CoOrganizer;
 
-	useEffect(() => {
+	useFocusEffect(useCallback(() => {
 		if (!isOrganizer) {
 			setHeaderActions([]);
-			return;
+			return () => setHeaderActions([]);
 		}
 
 		setHeaderActions([
@@ -123,7 +137,7 @@ export default function TasksScreen() {
 		]);
 
 		return () => setHeaderActions([]);
-	}, [isOrganizer, setHeaderActions]);
+	}, [isOrganizer, resetForm, setHeaderActions]));
 
 	useEffect(() => {
 		if (selectedTrip) {
@@ -154,7 +168,7 @@ export default function TasksScreen() {
 		const allFieldIds = Object.values(fields).flat().map((f) => f.id);
 		void fetchAllAssignments(taskIds);
 		if (allFieldIds.length > 0) void fetchAllFieldResponses(allFieldIds);
-	}, [statsVisible]);
+	}, [currentParticipant, fetchAllAssignments, fetchAllFieldResponses, fields, statsVisible, tasks]);
 
 	const now = Date.now();
 	const sortedTasks = useMemo(() => sortTasksByPriority(tasks, assignments), [assignments, tasks]);
@@ -179,32 +193,22 @@ export default function TasksScreen() {
 		[assignments, now, sortedTasks],
 	);
 	const visiblePreviousTasks = previousTasks.slice(0, visiblePreviousTaskCount);
+	const eventTitleById = useMemo(
+		() => new Map(events.map((event) => [event.id, event.title ?? 'Untitled event'])),
+		[events],
+	);
 
 	// Group tasks: event-linked groups first (in event order), then general
 	const eventGroups = events
 		.map((e) => ({ eventId: e.id, title: e.title ?? 'Untitled event', tasks: activeTasks.filter((t) => t.event_id === e.id) }))
 		.filter((g) => g.tasks.length > 0);
 	const generalTasks = activeTasks.filter((t) => !t.event_id);
-	const hasGroups = eventGroups.length > 0;
 
 	async function handleRefresh() {
 		if (!selectedTrip || !currentParticipant) return;
 		setRefreshing(true);
 		try { await getAllTasks(selectedTrip); }
 		finally { setRefreshing(false); }
-	}
-
-
-	function resetForm() {
-		setEditingTask(null);
-		setTitle('');
-		setDescription('');
-		setDraftFields([]);
-		setDueDate(null);
-		setEventId(null);
-		setIsMandatory(false);
-		setShowDatePicker(false);
-		setTitleError('');
 	}
 
 	function openEdit(task: Task) {
@@ -383,12 +387,12 @@ export default function TasksScreen() {
 								) : null}
 								{generalTasks.length > 0 && (
 									<View style={{ gap: spacing.xs }}>
-										{hasGroups && <AppText variant="caption" tone="primary" style={{ paddingHorizontal: 2 }}>General</AppText>}
 										{generalTasks.map((task) => (
 											<TaskCard
 												key={task.id}
 												task={task}
 												assignment={assignments[task.id] ?? null}
+												eventName={task.event_id ? eventTitleById.get(task.event_id) : null}
 												isOrganizer={isOrganizer}
 												onPress={() => setDetailTask(task)}
 												onExportPress={() => handleExport(task)}
@@ -398,12 +402,12 @@ export default function TasksScreen() {
 								)}
 								{eventGroups.map((group) => (
 									<View key={group.eventId} style={{ gap: spacing.xs }}>
-										<AppText variant="caption" tone="accent" style={{ paddingHorizontal: 2 }}>{group.title}</AppText>
 										{group.tasks.map((task) => (
 											<TaskCard
 												key={task.id}
 												task={task}
 												assignment={assignments[task.id] ?? null}
+												eventName={group.title}
 												isOrganizer={isOrganizer}
 												onPress={() => setDetailTask(task)}
 												onExportPress={() => handleExport(task)}
@@ -433,7 +437,9 @@ export default function TasksScreen() {
 														key={task.id}
 														task={task}
 														assignment={assignments[task.id] ?? null}
+														eventName={task.event_id ? eventTitleById.get(task.event_id) : null}
 														isOrganizer={isOrganizer}
+														compact
 														onPress={() => setDetailTask(task)}
 														onExportPress={() => handleExport(task)}
 													/>
@@ -475,6 +481,7 @@ export default function TasksScreen() {
 				fields={detailTask ? (fields[detailTask.id] ?? []) : []}
 				assignment={detailTask ? (assignments[detailTask.id] ?? null) : null}
 				myFieldResponses={myFieldResponses}
+				relatedEventName={detailTask?.event_id ? eventTitleById.get(detailTask.event_id) : null}
 				onClose={() => setDetailTask(null)}
 				onMarkComplete={async (pending) => {
 					if (!currentParticipant || !detailTask) return;
@@ -628,14 +635,12 @@ export default function TasksScreen() {
 									</ScrollView>
 								</Stack>
 
-								{isOrganizer && editingTask && (
-									<Button
+								{isOrganizer && editingTask ? (
+									<DestructiveFormFooter
 										label="Delete task"
-										variant="ghost"
-										fullWidth
 										onPress={() => { setAdminVisible(false); handleDelete(editingTask); resetForm(); }}
 									/>
-								)}
+								) : null}
 							</Stack>
 						</Container>
 					</ScrollView>

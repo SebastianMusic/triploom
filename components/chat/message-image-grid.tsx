@@ -1,6 +1,6 @@
+import { useState } from 'react';
 import { View, Pressable, StyleSheet, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
-import { Ionicons } from '@expo/vector-icons';
 import { AppText } from '@/components/ui/text';
 import type { MessageImage } from '@/types';
 
@@ -9,7 +9,6 @@ interface Props {
   onImagePress: (index: number) => void;
 }
 
-const MAX_HEIGHT = 200;
 const GRID_GAP = 2;
 
 function ImageTile({
@@ -28,8 +27,7 @@ function ImageTile({
       <Image
         source={{ uri: image.url }}
         style={StyleSheet.absoluteFill}
-        contentFit="cover"
-        placeholder={{ color: '#ccc' }}
+        contentFit="contain"
       />
       {overlay && (
         <View style={styles.overlay}>
@@ -42,18 +40,30 @@ function ImageTile({
 
 export function MessageImageGrid({ images, onImagePress }: Props) {
   const { width: screenWidth } = useWindowDimensions();
-  const bubbleWidth = screenWidth * 0.65;
+  const bubbleWidth = Math.max(140, Math.min(screenWidth * 0.43, 240));
+  const [aspectRatios, setAspectRatios] = useState<Record<string, number>>({});
 
   if (images.length === 0) return null;
 
   if (images.length === 1) {
+    const image = images[0];
+    const aspectRatio = aspectRatios[image.path] ?? 4 / 3;
+
     return (
-      <Pressable onPress={() => onImagePress(0)} style={[styles.single, { width: bubbleWidth, maxHeight: MAX_HEIGHT }]}>
+      <Pressable
+        onPress={() => onImagePress(0)}
+        style={[styles.single, { width: bubbleWidth, aspectRatio }]}>
         <Image
-          source={{ uri: images[0].url }}
+          source={{ uri: image.url }}
           style={StyleSheet.absoluteFill}
-          contentFit="cover"
-          placeholder={{ color: '#ccc' }}
+          contentFit="contain"
+          onLoad={(event) => {
+            const width = event.source.width;
+            const height = event.source.height;
+            if (width > 0 && height > 0) {
+              setAspectRatios((current) => ({ ...current, [image.path]: width / height }));
+            }
+          }}
         />
       </Pressable>
     );

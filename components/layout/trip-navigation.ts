@@ -39,17 +39,16 @@ export const TRIP_TAB_ITEMS: TripTabItem[] = [
   {
     routeName: 'chat/index',
     href: '/(app)/(trip)/chat',
-    label: 'Chat',
+    label: 'Chats',
     icon: 'chatbubble-ellipses-outline',
     activeIcon: 'chatbubble-ellipses',
   },
   {
     routeName: 'admin/index',
     href: '/(app)/(trip)/admin',
-    label: 'Admin',
-    icon: 'settings-outline',
-    activeIcon: 'settings',
-    adminOnly: true,
+    label: 'People',
+    icon: 'people-outline',
+    activeIcon: 'people',
   },
 ];
 
@@ -57,11 +56,11 @@ const TRIP_SCREEN_TITLES: Record<string, string> = {
   'home/index': 'Home',
   'events/index': 'Events',
   'tasks/index': 'Tasks',
-  'chat/index': 'Chat',
+  'chat/index': 'Chats',
   'chat/[roomId]': 'Chat',
   'profile/index': 'Profile',
-  'admin/index': 'Admin',
-  'admin/people': 'People & groups',
+  'admin/index': 'People',
+  'admin/people': 'People',
 };
 
 export const PRIMARY_TRIP_ROUTE_NAMES = new Set<string>([

@@ -33,7 +33,8 @@ export function ChatRoomListItem({ room, onPress }: Props) {
       variant="interactive"
       onPress={onPress}
       style={{
-        paddingVertical: spacing.sm,
+        paddingHorizontal: spacing.sm,
+        paddingVertical: spacing.sm + 2,
         backgroundColor: room.hasUnread ? colors.secondarySoft : colors.surface,
         borderWidth: room.hasUnread ? stroke.focus : 0,
         borderColor: room.hasUnread ? colors.primary : colors.transparent,
@@ -45,14 +46,14 @@ export function ChatRoomListItem({ room, onPress }: Props) {
         <Avatar
           name={room.chat_name ?? 'C'}
           size="md"
-          borderRadius={radius.sm}
+          borderRadius={radius.md}
           source={room.imageUrl ? { uri: room.imageUrl } : undefined}
         />
-        <View style={{ flex: 1, minWidth: 0, paddingVertical: 2 }}>
-          <AppText style={[typography.label, { color: colors.text }]} numberOfLines={1}>
+        <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
+          <AppText style={[typography.label, { color: colors.text, fontSize: 17 }]} numberOfLines={1}>
             {room.chat_name ?? 'Chat'}
           </AppText>
-          <AppText variant="caption" tone="muted" numberOfLines={1}>
+          <AppText tone="muted" numberOfLines={1} style={{ fontSize: 13 }}>
             {room.lastActivityAt ? formatRelativeTime(room.lastActivityAt) : 'No messages yet'}
           </AppText>
         </View>

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import {
   Image,
   Modal,
+  Platform,
   Pressable,
   View,
 } from 'react-native';
@@ -56,6 +57,7 @@ export default function EditProfileScreen({
     theme: { colors, opacity, radius, shadows, spacing, typography },
   } = useAppTheme();
   const { headerContentOffset } = useTripChromeInsets();
+  const canAdjustProfilePhoto = Platform.OS !== 'android';
 
   const initials =
     fullName
@@ -74,7 +76,7 @@ export default function EditProfileScreen({
     const uri = await pickSingleImageFromLibrary({ aspect: [1, 1] });
     if (uri) {
       onAvatarUrlChange(uri);
-      setActiveModal('adjust');
+      setActiveModal(canAdjustProfilePhoto ? 'adjust' : 'none');
     }
   }
 
@@ -87,7 +89,7 @@ export default function EditProfileScreen({
         <GeneralCamera
           onPhotoTaken={handlePhotoTaken}
           onClose={() => setActiveModal('none')}
-          adjustShape="circle"
+          adjustShape={canAdjustProfilePhoto ? 'circle' : undefined}
         />
       </Modal>
 
@@ -238,7 +240,7 @@ export default function EditProfileScreen({
             closeDelayMs: 120,
             onPress: handlePickFromLibrary,
           },
-          ...(avatarUrl ? [{
+          ...(avatarUrl && canAdjustProfilePhoto ? [{
             key: 'adjust',
             label: 'Adjust photo',
             icon: 'scan-outline' as const,
@@ -254,7 +256,7 @@ export default function EditProfileScreen({
         ]}
       />
       <PhotoAdjustModal
-        visible={activeModal === 'adjust'}
+        visible={canAdjustProfilePhoto && activeModal === 'adjust'}
         uri={avatarUrl}
         title="Adjust profile photo"
         shape="circle"
