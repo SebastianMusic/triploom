@@ -27,7 +27,6 @@ export function TaskCard({
   isOrganizer,
   compact = false,
   onPress,
-  onExportPress,
 }: {
   task: Task;
   assignment: TaskAssignment | null;
@@ -35,7 +34,6 @@ export function TaskCard({
   isOrganizer?: boolean;
   compact?: boolean;
   onPress: () => void;
-  onExportPress?: () => void;
 }) {
   const { theme: { colors, sizes, spacing, typography } } = useAppTheme();
   const isMandatory = task.is_mandatory ?? false;
@@ -109,15 +107,6 @@ export function TaskCard({
                 {task.title}
               </AppText>
             </View>
-
-            {isOrganizer && onExportPress ? (
-              <Pressable
-                onPress={onExportPress}
-                hitSlop={8}
-                style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}>
-                <Ionicons name="download-outline" size={sizes.icon.sm} color={colors.textMuted} />
-              </Pressable>
-            ) : null}
 
             <Ionicons name="chevron-forward" size={sizes.icon.sm} color={colors.textMuted} />
           </Row>
