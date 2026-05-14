@@ -27,6 +27,7 @@ export function TaskStatsModal({
   allFieldResponses,
   participants,
   onSendReminder,
+  onExport,
   onClose,
 }: {
   visible: boolean;
@@ -36,6 +37,7 @@ export function TaskStatsModal({
   allFieldResponses: Record<string, FieldResponseWithParticipant[]>;
   participants: TripParticipantWithProfile[];
   onSendReminder: (taskTitle: string, userIds: string[]) => Promise<void>;
+  onExport: (task: Task) => void;
   onClose: () => void;
 }) {
   const { theme: { colors, spacing, stroke } } = useAppTheme();
@@ -128,6 +130,7 @@ export function TaskStatsModal({
             totalParticipants={totalParticipants}
             onOpenCompletion={() => setCompletionView(true)}
             onSelectOption={(label, responses) => setSelectedOption({ label, responses })}
+            onExport={() => onExport(selectedTask)}
           />
         ) : (
           <TaskOverallList
@@ -342,6 +345,7 @@ function TaskDetailStats({
   totalParticipants,
   onOpenCompletion,
   onSelectOption,
+  onExport,
 }: {
   task: Task;
   fields: TaskFieldWithOptions[];
@@ -350,6 +354,7 @@ function TaskDetailStats({
   totalParticipants: number;
   onOpenCompletion: () => void;
   onSelectOption: (label: string, responses: FieldResponseWithParticipant[]) => void;
+  onExport: () => void;
 }) {
   const { theme: { colors, spacing, radius, stroke, sizes } } = useAppTheme();
   const insets = useSafeAreaInsets();
@@ -501,6 +506,26 @@ function TaskDetailStats({
 
         return null;
       })}
+
+      <Pressable
+        onPress={onExport}
+        style={({ pressed }) => ({
+          flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+          gap: spacing.sm,
+          backgroundColor: colors.primarySoft,
+          borderRadius: radius.md,
+          borderWidth: stroke.thin,
+          borderColor: colors.primary,
+          paddingVertical: spacing.sm,
+          paddingHorizontal: spacing.md,
+          marginTop: spacing.sm,
+          opacity: pressed ? 0.7 : 1,
+        })}>
+        <Ionicons name="download-outline" size={18} color={colors.primary} />
+        <AppText variant="caption" style={{ fontWeight: '600', color: colors.primary }}>
+          Export responses to spreadsheet
+        </AppText>
+      </Pressable>
     </ScrollView>
   );
 }

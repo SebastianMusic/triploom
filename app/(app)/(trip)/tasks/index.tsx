@@ -395,7 +395,6 @@ export default function TasksScreen() {
 												eventName={task.event_id ? eventTitleById.get(task.event_id) : null}
 												isOrganizer={isOrganizer}
 												onPress={() => setDetailTask(task)}
-												onExportPress={() => handleExport(task)}
 											/>
 										))}
 									</View>
@@ -410,7 +409,6 @@ export default function TasksScreen() {
 												eventName={group.title}
 												isOrganizer={isOrganizer}
 												onPress={() => setDetailTask(task)}
-												onExportPress={() => handleExport(task)}
 											/>
 										))}
 									</View>
@@ -441,7 +439,6 @@ export default function TasksScreen() {
 														isOrganizer={isOrganizer}
 														compact
 														onPress={() => setDetailTask(task)}
-														onExportPress={() => handleExport(task)}
 													/>
 												))}
 												{visiblePreviousTaskCount < previousTasks.length ? (
@@ -472,6 +469,7 @@ export default function TasksScreen() {
 				allFieldResponses={allFieldResponses}
 				participants={participantsWithProfiles}
 				onSendReminder={sendTaskReminder}
+				onExport={handleExport}
 				onClose={() => setStatsVisible(false)}
 			/>
 
