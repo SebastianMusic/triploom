@@ -15,6 +15,7 @@ import {
   getAnnouncements,
   createAnnouncement,
   updateAnnouncement,
+  deleteAnnouncement,
 } from '@/services/announcements.service';
 import { createTestUser, TEST_PASSWORD, type TestUser } from './helpers/user';
 
@@ -284,5 +285,62 @@ describe('updateAnnouncement — role enforcement', () => {
     await expect(
       updateAnnouncement(tripId, announcementId, { title: 'Should fail' })
     ).rejects.toThrow('Not authenticated.');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// deleteAnnouncement
+// ---------------------------------------------------------------------------
+
+describe('deleteAnnouncement', () => {
+  let announcementId: string;
+
+  beforeEach(async () => {
+    await supabase.auth.signInWithPassword({ email: organizer.email, password: TEST_PASSWORD });
+    const result = await createAnnouncement(tripId, { title: 'Delete fixture' });
+    announcementId = result.id;
+  });
+
+  afterEach(async () => {
+    await getSupabaseAdmin().from('announcement').delete().eq('id', announcementId);
+  });
+
+  it('organizer can delete an announcement and it is removed from the DB', async () => {
+    await deleteAnnouncement(tripId, announcementId);
+
+    const { data } = await getSupabaseAdmin()
+      .from('announcement')
+      .select('id')
+      .eq('id', announcementId)
+      .maybeSingle();
+    expect(data).toBeNull();
+  });
+
+  it('co-organizer can delete an announcement', async () => {
+    await supabase.auth.signInWithPassword({ email: coOrganizer.email, password: TEST_PASSWORD });
+
+    await deleteAnnouncement(tripId, announcementId);
+
+    const { data } = await getSupabaseAdmin()
+      .from('announcement')
+      .select('id')
+      .eq('id', announcementId)
+      .maybeSingle();
+    expect(data).toBeNull();
+  });
+
+  it('plain participant is blocked and the announcement remains in the DB', async () => {
+    await supabase.auth.signInWithPassword({ email: participant.email, password: TEST_PASSWORD });
+
+    await expect(deleteAnnouncement(tripId, announcementId)).rejects.toThrow(
+      'Only organizers and co-organizers can manage announcements.',
+    );
+
+    const { data } = await getSupabaseAdmin()
+      .from('announcement')
+      .select('id')
+      .eq('id', announcementId)
+      .single();
+    expect(data?.id).toBe(announcementId);
   });
 });
