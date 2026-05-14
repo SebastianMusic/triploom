@@ -210,7 +210,7 @@ export function LocationViewModal({ visible, onClose, latitude, longitude, label
               },
             ]}>
             <Ionicons name="navigate" size={18} color="#fff" />
-            <AppText style={{ color: '#fff', fontWeight: '600' }}>Åpne i kart</AppText>
+            <AppText style={{ color: '#fff', fontWeight: '600' }}>Open in maps</AppText>
           </Pressable>
         </View>
       </View>

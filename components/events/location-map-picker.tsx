@@ -7,7 +7,7 @@ import WebView, { type WebViewMessageEvent } from 'react-native-webview';
 
 import { AppText } from '@/components/ui/text';
 import { useAppTheme } from '@/components/ui/theme-provider';
-import { buildAndroidMapHtml, getLastKnownLocation, requestLocationForMap, reverseGeocode } from '@/hooks/use-location';
+import { buildAndroidMapHtml, requestLocationForMap, reverseGeocode } from '@/hooks/use-location';
 
 export type SelectedLocation = { label: string; latitude: number; longitude: number };
 
@@ -33,7 +33,7 @@ function IOSPicker({ onClose, onSelectLocation }: Omit<Props, 'visible'>) {
   });
 
   useEffect(() => {
-    getLastKnownLocation().then((coords) => {
+    requestLocationForMap().then((coords) => {
       if (!coords) return;
       const region = {
         latitude: coords.latitude,
@@ -102,7 +102,7 @@ function IOSPicker({ onClose, onSelectLocation }: Omit<Props, 'visible'>) {
           },
         ]}>
         <AppText variant="caption" tone="muted" style={{ textAlign: 'center', marginBottom: spacing.sm }}>
-          Flytt kartet for å plassere pinen
+          Move the map to place the pin
         </AppText>
         <Pressable
           onPress={handleConfirm}
@@ -203,7 +203,7 @@ function AndroidPicker({ onClose, onSelectLocation }: Omit<Props, 'visible'>) {
           },
         ]}>
         <AppText variant="caption" tone="muted" style={{ textAlign: 'center', marginBottom: spacing.sm }}>
-          Flytt kartet for å plassere pinen
+          Move the map to place the pin
         </AppText>
         <Pressable
           onPress={handleConfirm}
