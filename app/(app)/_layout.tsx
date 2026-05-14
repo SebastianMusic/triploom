@@ -13,7 +13,7 @@ export default function AppLayout() {
 	const { theme } = useAppTheme();
 
 	useEffect(() => {
-		fetchProfile();
+		fetchProfile().catch(() => {});
 	}, []);
 
 	usePushNotifications(session?.user.id);
