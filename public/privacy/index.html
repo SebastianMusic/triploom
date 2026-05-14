@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-preset="ocean">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy — Triploom</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../styles.css" />
+  <link rel="icon" type="image/png" href="../images/logo/Applogo.png" />
+  <style>
+    .policy-wrap {
+      max-width: 720px; margin: 0 auto;
+      padding: 4rem 2rem 6rem;
+    }
+    .policy-wrap h1 {
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      font-weight: 900; letter-spacing: -1px;
+      color: var(--text); margin-bottom: .5rem;
+    }
+    .policy-meta {
+      font-size: .8rem; color: var(--text-muted); margin-bottom: 3rem;
+    }
+    .policy-wrap h2 {
+      font-size: 1rem; font-weight: 700;
+      color: var(--text); margin: 2.25rem 0 .6rem;
+      max-width: none; letter-spacing: 0;
+    }
+    .policy-wrap p, .policy-wrap li {
+      font-size: .9rem; color: var(--text-muted); line-height: 1.75;
+    }
+    .policy-wrap ul {
+      padding-left: 1.25rem; margin-top: .4rem;
+    }
+    .policy-wrap li { margin-bottom: .3rem; }
+    .policy-wrap a { color: var(--primary); text-decoration: none; }
+    .policy-wrap a:hover { text-decoration: underline; }
+    hr {
+      border: none; border-top: 1px solid var(--border);
+      margin: 2.5rem 0;
+      transition: border-color var(--transition);
+    }
+    .pill-tag {
+      display: inline-block;
+      background: var(--primary-soft); color: var(--primary);
+      font-size: .7rem; font-weight: 700; letter-spacing: .06em;
+      text-transform: uppercase; padding: .25rem .75rem;
+      border-radius: var(--radius-full); margin-bottom: 1rem;
+      transition: background var(--transition), color var(--transition);
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a class="logo" href="..">
+    <img src="../images/logo/Applogo.png" alt="" class="logo-img" />
+    Trip<span>loom</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="../#features">Features</a></li>
+    <li><a href="../#screens">Screens</a></li>
+    <li><a href="../#how">How it works</a></li>
+  </ul>
+  <div class="nav-controls">
+    <div class="preset-swatches" title="Color theme">
+      <div class="swatch active" data-swatch="ocean"  title="Lagoon"  onclick="setPreset('ocean')"></div>
+      <div class="swatch"       data-swatch="citrus" title="Sunset"  onclick="setPreset('citrus')"></div>
+      <div class="swatch"       data-swatch="forest" title="Palm"    onclick="setPreset('forest')"></div>
+      <div class="swatch"       data-swatch="rose"   title="Coral"   onclick="setPreset('rose')"></div>
+    </div>
+    <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn" title="Toggle dark/light mode" aria-label="Toggle theme">☀️</button>
+  </div>
+</nav>
+
+<div class="policy-wrap">
+  <div class="pill-tag">Legal</div>
+  <h1>Privacy Policy</h1>
+  <p class="policy-meta">Last updated: May 2026 &nbsp;·&nbsp; Applies to the Triploom mobile application</p>
+
+  <p>Triploom is a group travel coordination app. This policy explains what personal data we collect, why we collect it, and how it is handled. We keep this as simple and transparent as possible.</p>
+
+  <hr>
+
+  <h2>1. What data we collect</h2>
+  <p>When you use Triploom, we may collect the following:</p>
+  <ul>
+    <li><strong>Account information</strong> — your name and email address, used to create and identify your account.</li>
+    <li><strong>Profile picture</strong> — an optional photo you choose to upload.</li>
+    <li><strong>Messages</strong> — text messages and images you send within trip chat rooms.</li>
+    <li><strong>Location</strong> — only when you actively choose to share your location in a chat. We do not collect location data in the background.</li>
+    <li><strong>Photos</strong> — images you capture or select when adding them to events or chat messages.</li>
+    <li><strong>Trip content</strong> — events, tasks, and responses you create or submit within a trip.</li>
+    <li><strong>Device push token</strong> — to send you notifications from trips you are part of.</li>
+  </ul>
+
+  <h2>2. Why we collect it</h2>
+  <p>All data collected is used solely to provide the Triploom service:</p>
+  <ul>
+    <li>To let you create and manage group trips with others.</li>
+    <li>To enable real-time chat and location sharing between travel companions.</li>
+    <li>To coordinate shared events and tasks within a trip.</li>
+    <li>To send push notifications for messages, announcements, and task reminders.</li>
+  </ul>
+  <p>We do not use your data for advertising, profiling, or any purpose unrelated to the service.</p>
+
+  <h2>3. Who can see your data</h2>
+  <p>Your data is only visible to other members of the same trip:</p>
+  <ul>
+    <li>Your name, profile picture, and role are visible to everyone in a trip you join.</li>
+    <li>Messages and shared locations are visible to all participants in the relevant chat room.</li>
+    <li>Task responses are visible to the trip organiser.</li>
+    <li>No data is shared with other users outside of your trips, and no data is sold to third parties.</li>
+  </ul>
+
+  <h2>4. Third-party services</h2>
+  <p>Triploom uses the following third-party services to operate:</p>
+  <ul>
+    <li><strong>Supabase</strong> — database, authentication, and file storage. Your account credentials and all trip data are stored on Supabase infrastructure. See <a href="https://supabase.com/privacy" target="_blank" rel="noopener">supabase.com/privacy</a>.</li>
+    <li><strong>Expo / Expo Push</strong> — used to deliver push notifications to your device. See <a href="https://expo.dev/privacy" target="_blank" rel="noopener">expo.dev/privacy</a>.</li>
+    <li><strong>Nominatim / OpenStreetMap</strong> — used for address search when adding event locations. No personal data is attached to these requests. See <a href="https://osmfoundation.org/wiki/Privacy_Policy" target="_blank" rel="noopener">osmfoundation.org</a>.</li>
+    <li><strong>Maileroo</strong> — used to send email attachments such as exported task spreadsheets. Only your registered email address is used for this purpose.</li>
+  </ul>
+
+  <h2>5. Data retention</h2>
+  <p>Your data is retained for as long as your account exists. If you leave a trip, your messages and responses remain visible to other participants unless you request deletion. We do not automatically delete data when a trip ends.</p>
+
+  <h2>6. Deleting your data</h2>
+  <p>You can request deletion of your account and all associated data at any time by contacting us at <a href="mailto:triploomapp@gmail.com">triploomapp@gmail.com</a>. We will process your request within 30 days. Note that content shared with other users (such as chat messages) may remain visible to them until it is also removed.</p>
+
+  <h2>7. Children</h2>
+  <p>Triploom is not intended for children under the age of 13. We do not knowingly collect data from children. If you believe a child has provided us with personal information, please contact us and we will delete it promptly.</p>
+
+  <h2>8. Changes to this policy</h2>
+  <p>We may update this policy as the app evolves. Significant changes will be communicated through the app. The date at the top of this page always reflects the most recent version.</p>
+
+  <h2>9. Contact</h2>
+  <p>If you have any questions about this privacy policy or how your data is handled, please reach out to us at <a href="mailto:triploomapp@gmail.com">triploomapp@gmail.com</a>.</p>
+</div>
+
+<footer>
+  <p><strong>Triploom</strong> &nbsp;·&nbsp; Made with ♥ for group travellers &nbsp;·&nbsp; &copy; 2026 &nbsp;·&nbsp; <a href="/public/privacy/index.html" style="color:inherit;">Privacy Policy</a></p>
+</footer>
+
+<script src="../script.js"></script>
+</body>
+</html>
