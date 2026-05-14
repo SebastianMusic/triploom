@@ -1,29 +1,48 @@
 {
-	"project_info": {
-		"project_number": "328966343814",
-		"project_id": "triploomapp-caf3e",
-		"storage_bucket": "triploomapp-caf3e.firebasestorage.app"
-	},
-	"client": [
-		{
-			"client_info": {
-				"mobilesdk_app_id": "1:328966343814:android:02a09f57abe2a5ac5c1507",
-				"android_client_info": {
-					"package_name": "com.triploomapp.triploom"
-				}
-			},
-			"oauth_client": [],
-			"api_key": [
-				{
-					"current_key": "AIzaSyC6pQmYZhBmWYcMW_yFsqD3WAu_v40VUYo"
-				}
-			],
-			"services": {
-				"appinvite_service": {
-					"other_platform_oauth_client": []
-				}
-			}
-		}
-	],
-	"configuration_version": "1"
+  "project_info": {
+    "project_number": "328966343814",
+    "project_id": "triploomapp-caf3e",
+    "storage_bucket": "triploomapp-caf3e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:328966343814:android:6348769ecc26dc6e5c1507",
+        "android_client_info": {
+          "package_name": "app.triploom.triploom"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC6pQmYZhBmWYcMW_yFsqD3WAu_v40VUYo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:328966343814:android:02a09f57abe2a5ac5c1507",
+        "android_client_info": {
+          "package_name": "com.triploomapp.triploom"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC6pQmYZhBmWYcMW_yFsqD3WAu_v40VUYo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
 }
