@@ -16,7 +16,7 @@
         "NSPhotoLibraryAddUsageDescription": "Triploom needs permission to save edited photos when you choose images for your trips.",
         "ITSAppUsesNonExemptEncryption": false
       },
-      "bundleIdentifier": "com.triploomapp.triploom"
+      "bundleIdentifier": "app.triploom.triploom"
     },
     "android": {
       "permissions": [
@@ -32,7 +32,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.triploomapp.triploom"
+      "package": "app.triploom.triploom"
     },
     "androidNavigationBar": {
       "backgroundColor": "#071219",
