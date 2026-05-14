@@ -24,6 +24,20 @@ function assertCanManageAnnouncements(role: string | null) {
   }
 }
 
+function throwIfNoAnnouncementWasDeleted(error: unknown): never {
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    error.code === 'PGRST116'
+  ) {
+    throw new Error(
+      'Announcement was not deleted. The database is missing the announcement delete policy.',
+    );
+  }
+  throw error;
+}
+
 export async function getAnnouncements(tripId: string): Promise<Announcement[]> {
   const { data, error } = await supabase
     .from('announcement')
@@ -80,6 +94,62 @@ export async function deleteAnnouncement(
     .from('announcement')
     .delete()
     .eq('id', announcementId)
-    .eq('trip_id', tripId);
-  if (error) throw error;
+    .eq('trip_id', tripId)
+    .select('id')
+    .single();
+  if (error) throwIfNoAnnouncementWasDeleted(error);
+}
+
+export function subscribeToAnnouncements(
+  tripId: string,
+  onAnnouncementCreated: (announcement: Announcement) => void,
+  onAnnouncementUpdated: (announcement: Announcement) => void,
+  onAnnouncementDeleted: (announcementId: string) => void,
+  onStatusChange?: (status: string) => void,
+): () => void {
+  const channel = supabase
+    .channel(`announcements:${tripId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'announcement',
+        filter: `trip_id=eq.${tripId}`,
+      },
+      (payload) => {
+        onAnnouncementCreated(payload.new as Announcement);
+      },
+    )
+    .on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'announcement',
+        filter: `trip_id=eq.${tripId}`,
+      },
+      (payload) => {
+        onAnnouncementUpdated(payload.new as Announcement);
+      },
+    )
+    .on(
+      'postgres_changes',
+      {
+        event: 'DELETE',
+        schema: 'public',
+        table: 'announcement',
+        filter: `trip_id=eq.${tripId}`,
+      },
+      (payload) => {
+        onAnnouncementDeleted((payload.old as { id: string }).id);
+      },
+    )
+    .subscribe((status) => {
+      onStatusChange?.(status);
+    });
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
 }

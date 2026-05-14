@@ -3,6 +3,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Image,
   Linking,
   Pressable,
@@ -142,6 +143,8 @@ export default function HomeScreen() {
     isLoading: announcementsLoading,
     fetchAnnouncements,
     deleteAnnouncement,
+    subscribeToAnnouncements,
+    unsubscribeFromAnnouncements,
   } = useAnnouncementStore();
   const { headerContentOffset, bottomOverlayOffset } = useTripChromeInsets();
   const {
@@ -243,6 +246,14 @@ export default function HomeScreen() {
     }, [fetchAnnouncements, fetchEvents, fetchParticipants, getAllTasks, selectedTrip]),
   );
 
+  useFocusEffect(
+    useCallback(() => {
+      if (!selectedTrip) return;
+      subscribeToAnnouncements(selectedTrip);
+      return () => unsubscribeFromAnnouncements();
+    }, [selectedTrip, subscribeToAnnouncements, unsubscribeFromAnnouncements]),
+  );
+
   useEffect(() => {
     if (selectedTrip && session?.user.id) {
       void fetchCurrentParticipant(selectedTrip, session.user.id);
@@ -292,7 +303,14 @@ export default function HomeScreen() {
       title: 'Delete announcement',
       message: 'This cannot be undone.',
       onConfirm: async () => {
-        await deleteAnnouncement(selectedTrip, announcement.id);
+        try {
+          await deleteAnnouncement(selectedTrip, announcement.id);
+        } catch (error) {
+          Alert.alert(
+            'Could not delete announcement',
+            error instanceof Error ? error.message : 'Please try again.',
+          );
+        }
       },
     });
   }

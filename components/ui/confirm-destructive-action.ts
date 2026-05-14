@@ -17,6 +17,17 @@ export function confirmDestructiveAction({
 }: ConfirmDestructiveActionOptions) {
   Alert.alert(title, message, [
     { text: cancelLabel, style: 'cancel' },
-    { text: confirmLabel, style: 'destructive', onPress: () => { void onConfirm(); } },
+    {
+      text: confirmLabel,
+      style: 'destructive',
+      onPress: () => {
+        void Promise.resolve(onConfirm()).catch((error) => {
+          Alert.alert(
+            'Action failed',
+            error instanceof Error ? error.message : 'Please try again.',
+          );
+        });
+      },
+    },
   ]);
 }
