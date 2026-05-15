@@ -12,7 +12,11 @@
       "distribution": "internal"
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://ccyrwyfmijmqijpyvefo.supabase.co/",
+        "EXPO_PUBLIC_SUPABASE_KEY": "sb_publishable_mShwSLqI9nGrYqiamkc5_A_683OC6tz"
+      }
     }
   },
   "submit": {
